@@ -7,14 +7,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Calculator, Plus, Eye } from 'lucide-react';
+import { Calculator, Plus, Eye, AlertCircle } from 'lucide-react';
 
 interface Employee {
   id: string;
   name: string;
   base_salary: number;
+  hra_amount: number;
+  other_conv_amount: number;
 }
 
 interface SalaryRecord {
@@ -24,7 +27,10 @@ interface SalaryRecord {
   total_days_present: number;
   total_hours_worked: number;
   base_salary: number;
+  hra_amount: number;
+  other_conv_amount: number;
   overtime_amount: number;
+  gross_salary: number;
   pf_deduction: number;
   esi_deduction: number;
   advances_deduction: number;
@@ -63,7 +69,7 @@ export const SalaryDisbursement = () => {
     try {
       const { data, error } = await supabase
         .from('payroll_employees')
-        .select('id, name, base_salary')
+        .select('id, name, base_salary, hra_amount, other_conv_amount')
         .eq('active', true)
         .order('name');
 
@@ -154,20 +160,35 @@ export const SalaryDisbursement = () => {
       const totalOvertimeHours = attendanceData.reduce((sum, record) => sum + (record.overtime_hours || 0), 0);
       const totalAdvances = advancesData.reduce((sum, record) => sum + record.advance_amount, 0);
 
-      // Salary calculations
+      // Enhanced salary calculations with new components
       const baseSalary = employee.base_salary;
-      const overtimeRate = baseSalary / 26 / 8 * 2; // Double rate for overtime
-      const overtimeAmount = totalOvertimeHours * overtimeRate;
-      const grossSalary = baseSalary + overtimeAmount;
+      const hraAmount = employee.hra_amount || 0;
+      const otherConvAmount = employee.other_conv_amount || 0;
       
-      const pfDeduction = (grossSalary * payrollSettings.pf_rate) / 100;
-      const esiDeduction = (grossSalary * payrollSettings.esi_rate) / 100;
+      // Overtime calculation based on basic salary only
+      const dailyBasicRate = baseSalary / 30;
+      const hourlyBasicRate = dailyBasicRate / 8;
+      const overtimeAmount = totalOvertimeHours * hourlyBasicRate * 2; // Double rate
+      
+      // Gross salary = Base + HRA + Other/Conv + Overtime
+      const grossSalary = baseSalary + hraAmount + otherConvAmount + overtimeAmount;
+      
+      // Calculate deductions with new logic
+      // PF is calculated on basic salary only
+      const pfDeduction = (baseSalary * payrollSettings.pf_rate) / 100;
+      
+      // ESI is calculated on gross salary but only if gross <= 21,000
+      const esiDeduction = grossSalary <= 21000 ? 
+        (grossSalary * payrollSettings.esi_rate) / 100 : 0;
+      
       const totalDeductions = pfDeduction + esiDeduction + totalAdvances;
       const netSalary = grossSalary - totalDeductions;
 
       const calculatedData = {
         employee_name: employee.name,
         base_salary: baseSalary,
+        hra_amount: hraAmount,
+        other_conv_amount: otherConvAmount,
         total_days_present: parseInt(formData.total_days_present),
         total_hours_worked: totalHours,
         overtime_hours: totalOvertimeHours,
@@ -175,6 +196,7 @@ export const SalaryDisbursement = () => {
         gross_salary: grossSalary,
         pf_deduction: pfDeduction,
         esi_deduction: esiDeduction,
+        esi_exempt: grossSalary > 21000,
         advances_deduction: totalAdvances,
         total_deductions: totalDeductions,
         net_salary: netSalary
@@ -210,7 +232,10 @@ export const SalaryDisbursement = () => {
         total_days_present: calculatedSalary.total_days_present,
         total_hours_worked: calculatedSalary.total_hours_worked,
         base_salary: calculatedSalary.base_salary,
+        hra_amount: calculatedSalary.hra_amount,
+        other_conv_amount: calculatedSalary.other_conv_amount,
         overtime_amount: calculatedSalary.overtime_amount,
+        gross_salary: calculatedSalary.gross_salary,
         pf_deduction: calculatedSalary.pf_deduction,
         esi_deduction: calculatedSalary.esi_deduction,
         advances_deduction: calculatedSalary.advances_deduction,
@@ -226,7 +251,7 @@ export const SalaryDisbursement = () => {
 
       toast({
         title: "Success",
-        description: "Salary record saved successfully",
+        description: "Enhanced salary record saved successfully",
       });
 
       setDialogOpen(false);
@@ -273,13 +298,18 @@ export const SalaryDisbursement = () => {
   };
 
   if (loading) {
-    return <div>Loading salary records...</div>;
+    return <div>Loading enhanced salary records...</div>;
   }
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h3 className="text-lg font-medium">Salary Disbursement</h3>
+        <div>
+          <h3 className="text-lg font-medium">Enhanced Salary Disbursement</h3>
+          <p className="text-sm text-gray-600">
+            Manage salary calculations with Base + HRA + Other/Conv structure
+          </p>
+        </div>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
             <Button onClick={() => {
@@ -295,9 +325,9 @@ export const SalaryDisbursement = () => {
               Calculate Salary
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Calculate Monthly Salary</DialogTitle>
+              <DialogTitle>Calculate Enhanced Monthly Salary</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
@@ -313,7 +343,7 @@ export const SalaryDisbursement = () => {
                     <SelectContent>
                       {employees.map((employee) => (
                         <SelectItem key={employee.id} value={employee.id}>
-                          {employee.name}
+                          {employee.name} - ₹{(employee.base_salary + (employee.hra_amount || 0) + (employee.other_conv_amount || 0)).toLocaleString()}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -346,7 +376,7 @@ export const SalaryDisbursement = () => {
               <div className="flex space-x-2">
                 <Button type="button" onClick={calculateSalary}>
                   <Calculator className="w-4 h-4 mr-2" />
-                  Calculate
+                  Calculate Enhanced Salary
                 </Button>
                 {calculatedSalary && (
                   <Button type="button" onClick={saveSalaryRecord}>
@@ -361,30 +391,71 @@ export const SalaryDisbursement = () => {
               {calculatedSalary && (
                 <Card>
                   <CardHeader>
-                    <CardTitle>Salary Calculation for {calculatedSalary.employee_name}</CardTitle>
+                    <CardTitle>Enhanced Salary Calculation for {calculatedSalary.employee_name}</CardTitle>
+                    <CardDescription>
+                      Complete breakdown with all salary components
+                    </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div className="grid grid-cols-2 gap-6">
                       <div>
-                        <strong>Base Salary:</strong> ₹{calculatedSalary.base_salary.toLocaleString()}
+                        <h4 className="font-semibold mb-3 text-green-700">Earnings</h4>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between">
+                            <span>Base Salary:</span>
+                            <span>₹{calculatedSalary.base_salary.toLocaleString()}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>HRA:</span>
+                            <span>₹{calculatedSalary.hra_amount.toLocaleString()}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Other/Conveyance:</span>
+                            <span>₹{calculatedSalary.other_conv_amount.toLocaleString()}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Overtime:</span>
+                            <span>₹{calculatedSalary.overtime_amount.toFixed(2)}</span>
+                          </div>
+                          <div className="flex justify-between font-bold text-green-700 border-t pt-2">
+                            <span>Gross Salary:</span>
+                            <span>₹{calculatedSalary.gross_salary.toFixed(2)}</span>
+                          </div>
+                        </div>
                       </div>
+                      
                       <div>
-                        <strong>Overtime Amount:</strong> ₹{calculatedSalary.overtime_amount.toFixed(2)}
+                        <h4 className="font-semibold mb-3 text-red-700">Deductions</h4>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between">
+                            <span>PF (on Base only):</span>
+                            <span>₹{calculatedSalary.pf_deduction.toFixed(2)}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>ESI:</span>
+                            <span>₹{calculatedSalary.esi_deduction.toFixed(2)}</span>
+                          </div>
+                          {calculatedSalary.esi_exempt && (
+                            <div className="flex items-center gap-1 text-xs text-amber-600">
+                              <AlertCircle className="w-3 h-3" />
+                              <span>ESI Exempt (Gross &gt; ₹21,000)</span>
+                            </div>
+                          )}
+                          <div className="flex justify-between">
+                            <span>Advances:</span>
+                            <span>₹{calculatedSalary.advances_deduction.toFixed(2)}</span>
+                          </div>
+                          <div className="flex justify-between font-bold text-red-700 border-t pt-2">
+                            <span>Total Deductions:</span>
+                            <span>₹{calculatedSalary.total_deductions.toFixed(2)}</span>
+                          </div>
+                        </div>
                       </div>
-                      <div>
-                        <strong>Gross Salary:</strong> ₹{calculatedSalary.gross_salary.toFixed(2)}
-                      </div>
-                      <div>
-                        <strong>PF Deduction:</strong> ₹{calculatedSalary.pf_deduction.toFixed(2)}
-                      </div>
-                      <div>
-                        <strong>ESI Deduction:</strong> ₹{calculatedSalary.esi_deduction.toFixed(2)}
-                      </div>
-                      <div>
-                        <strong>Advances Deduction:</strong> ₹{calculatedSalary.advances_deduction.toFixed(2)}
-                      </div>
-                      <div className="col-span-2 text-lg font-bold text-green-600">
-                        <strong>Net Salary: ₹{calculatedSalary.net_salary.toFixed(2)}</strong>
+                    </div>
+                    
+                    <div className="mt-6 p-4 bg-blue-50 rounded-lg">
+                      <div className="text-xl font-bold text-blue-800 text-center">
+                        Net Salary: ₹{calculatedSalary.net_salary.toFixed(2)}
                       </div>
                     </div>
                   </CardContent>
@@ -400,7 +471,7 @@ export const SalaryDisbursement = () => {
           <TableRow>
             <TableHead>Employee</TableHead>
             <TableHead>Month</TableHead>
-            <TableHead>Days Present</TableHead>
+            <TableHead>Salary Breakdown</TableHead>
             <TableHead>Net Salary</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Actions</TableHead>
@@ -413,13 +484,26 @@ export const SalaryDisbursement = () => {
                 {record.payroll_employees?.name || 'Unknown'}
               </TableCell>
               <TableCell>{new Date(record.month).toLocaleDateString('en-US', { year: 'numeric', month: 'long' })}</TableCell>
-              <TableCell>{record.total_days_present}</TableCell>
-              <TableCell>₹{record.net_salary.toLocaleString()}</TableCell>
+              <TableCell>
+                <div className="text-xs space-y-1">
+                  <div>Base: ₹{record.base_salary.toLocaleString()}</div>
+                  {record.hra_amount > 0 && <div>HRA: ₹{record.hra_amount.toLocaleString()}</div>}
+                  {record.other_conv_amount > 0 && <div>Other: ₹{record.other_conv_amount.toLocaleString()}</div>}
+                  {record.overtime_amount > 0 && <div>OT: ₹{record.overtime_amount.toFixed(0)}</div>}
+                  <div className="font-semibold">Gross: ₹{record.gross_salary.toLocaleString()}</div>
+                  {record.esi_deduction === 0 && record.gross_salary > 21000 && (
+                    <Badge variant="secondary" className="text-xs">ESI Exempt</Badge>
+                  )}
+                </div>
+              </TableCell>
+              <TableCell className="font-bold">₹{record.net_salary.toLocaleString()}</TableCell>
               <TableCell>
                 {record.disbursed_on ? (
-                  <span className="text-green-600">Disbursed on {new Date(record.disbursed_on).toLocaleDateString()}</span>
+                  <Badge variant="default">
+                    Disbursed on {new Date(record.disbursed_on).toLocaleDateString()}
+                  </Badge>
                 ) : (
-                  <span className="text-orange-600">Pending</span>
+                  <Badge variant="secondary">Pending</Badge>
                 )}
               </TableCell>
               <TableCell>

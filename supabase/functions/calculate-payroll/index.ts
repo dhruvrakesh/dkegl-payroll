@@ -45,7 +45,7 @@ serve(async (req) => {
 
     console.log('Starting payroll calculation for employee:', employee_id, 'month:', month)
 
-    // Get employee details
+    // Get employee details with new salary components
     const { data: employee, error: empError } = await supabase
       .from('payroll_employees')
       .select('*')
@@ -68,7 +68,7 @@ serve(async (req) => {
       throw new Error('Failed to fetch formulas')
     }
 
-    // Get active variables
+    // Get active variables including new ones
     const { data: variables, error: variableError } = await supabase
       .from('formula_variables')
       .select('*')
@@ -118,14 +118,30 @@ serve(async (req) => {
     const totalOvertimeHours = attendanceData?.reduce((sum, record) => sum + (record.overtime_hours || 0), 0) || overtime_hours
     const totalAdvances = advancesData?.reduce((sum, record) => sum + record.advance_amount, 0) || 0
 
-    // Build variable context
+    // Enhanced salary calculations with new components
+    const baseSalary = employee.base_salary || 0
+    const hraAmount = employee.hra_amount || 0
+    const otherConvAmount = employee.other_conv_amount || 0
+    
+    // Overtime calculation based on basic salary only (per day rate = basic/30, per hour = basic/30/8)
+    const dailyBasicRate = baseSalary / 30
+    const hourlyBasicRate = dailyBasicRate / 8
+    const overtimeAmount = totalOvertimeHours * hourlyBasicRate * 2 // Double rate for overtime
+    
+    // Gross salary = Base + HRA + Other/Conv + Overtime
+    const grossSalary = baseSalary + hraAmount + otherConvAmount + overtimeAmount
+
+    // Build variable context with new variables
     const variableContext: Record<string, number> = {
-      // Base employee data
-      base_salary: employee.base_salary,
+      // Base employee data with new components
+      base_salary: baseSalary,
+      hra_amount: hraAmount,
+      other_conv_amount: otherConvAmount,
       days_present,
       overtime_hours: totalOvertimeHours,
       total_hours_worked: totalHoursWorked,
       advances: totalAdvances,
+      gross_salary: grossSalary,
       
       // System variables
       ...variables?.reduce((acc, variable) => {
@@ -148,56 +164,51 @@ serve(async (req) => {
       // Payroll settings
       pf_rate: settings?.pf_rate || 12,
       esi_rate: settings?.esi_rate || 0.75,
+      esi_threshold: 21000, // ESI threshold amount
     }
 
     console.log('Variable context:', variableContext)
 
-    // Calculate step by step
-    const calculationResults: Record<string, number> = {}
-    let grossSalary = 0
-    let totalDeductions = 0
-    let netSalary = 0
-
-    // Process formulas in order
-    const formulaOrder = ['gross_salary', 'deductions', 'net_salary']
+    // Enhanced deduction calculations
+    // PF is calculated on basic salary only
+    const pfDeduction = (baseSalary * variableContext.pf_rate) / 100
     
-    for (const formulaType of formulaOrder) {
-      const formula = formulas?.find(f => f.formula_type === formulaType)
-      if (formula) {
-        const result = evaluateFormula(formula.expression, {
-          ...variableContext,
-          ...calculationResults,
-          gross_salary: grossSalary,
-          total_deductions: totalDeductions
-        })
-        
-        calculationResults[formulaType] = result
-        
-        if (formulaType === 'gross_salary') {
-          grossSalary = result
-        } else if (formulaType === 'deductions') {
-          totalDeductions = result
-        } else if (formulaType === 'net_salary') {
-          netSalary = result
-        }
-      }
-    }
+    // ESI is calculated on gross salary but only if gross <= 21,000
+    const esiDeduction = grossSalary <= variableContext.esi_threshold ? 
+      (grossSalary * variableContext.esi_rate) / 100 : 0
+    
+    const totalDeductions = pfDeduction + esiDeduction + totalAdvances
+    const netSalary = grossSalary - totalDeductions
 
-    // Calculate individual deduction components for transparency
-    const pfDeduction = (grossSalary * variableContext.pf_rate) / 100
-    const esiDeduction = (grossSalary * variableContext.esi_rate) / 100
+    // Calculate step by step results
+    const calculationResults: Record<string, number> = {
+      base_salary: baseSalary,
+      hra_amount: hraAmount,
+      other_conv_amount: otherConvAmount,
+      overtime_amount: overtimeAmount,
+      gross_salary: grossSalary,
+      pf_deduction: pfDeduction,
+      esi_deduction: esiDeduction,
+      advances_deduction: totalAdvances,
+      total_deductions: totalDeductions,
+      net_salary: netSalary
+    }
 
     const finalResults = {
       employee_id,
       employee_name: employee.name,
       month,
-      base_salary: employee.base_salary,
+      base_salary: baseSalary,
+      hra_amount: hraAmount,
+      other_conv_amount: otherConvAmount,
       days_present,
       overtime_hours: totalOvertimeHours,
       total_hours_worked: totalHoursWorked,
+      overtime_amount: overtimeAmount,
       gross_salary: grossSalary,
       pf_deduction: pfDeduction,
       esi_deduction: esiDeduction,
+      esi_exempt: grossSalary > variableContext.esi_threshold,
       advances_deduction: totalAdvances,
       total_deductions: totalDeductions,
       net_salary: netSalary,
@@ -216,7 +227,7 @@ serve(async (req) => {
         calculation_details: finalResults
       })
 
-    console.log('Calculation completed successfully')
+    console.log('Enhanced calculation completed successfully')
 
     return new Response(JSON.stringify(finalResults), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

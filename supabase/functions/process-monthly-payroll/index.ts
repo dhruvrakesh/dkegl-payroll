@@ -10,9 +10,12 @@ const corsHeaders = {
 interface PayrollCalculation {
   employee_id: string;
   base_salary: number;
+  hra_amount: number;
+  other_conv_amount: number;
   total_hours_worked: number;
   total_days_present: number;
   overtime_amount: number;
+  gross_salary: number;
   advances_deduction: number;
   pf_deduction: number;
   esi_deduction: number;
@@ -26,7 +29,7 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    console.log('Starting monthly payroll processing...');
+    console.log('Starting enhanced monthly payroll processing...');
     
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -37,7 +40,7 @@ const handler = async (req: Request): Promise<Response> => {
     const processMonth = month ? new Date(month) : new Date();
     const monthString = processMonth.toISOString().slice(0, 7); // YYYY-MM format
 
-    console.log(`Processing payroll for month: ${monthString}`);
+    console.log(`Processing enhanced payroll for month: ${monthString}`);
 
     // Create bulk job record
     const { data: bulkJob, error: jobError } = await supabase
@@ -57,7 +60,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log('Created bulk job:', bulkJob.id);
 
-    // Get all active employees
+    // Get all active employees with new salary components
     const { data: employees, error: empError } = await supabase
       .from('payroll_employees')
       .select('*')
@@ -128,23 +131,38 @@ const handler = async (req: Request): Promise<Response> => {
 
         const totalAdvances = advances?.reduce((sum, adv) => sum + (adv.advance_amount || 0), 0) || 0;
 
-        // Calculate salary components
+        // Enhanced salary calculations with new components
         const baseSalary = employee.base_salary || 0;
-        const overtimeRate = baseSalary / 208; // Assuming 26 days * 8 hours
-        const overtimeAmount = overtimeHours * overtimeRate;
-        const grossSalary = baseSalary + overtimeAmount;
+        const hraAmount = employee.hra_amount || 0;
+        const otherConvAmount = employee.other_conv_amount || 0;
+        
+        // Overtime calculation based on basic salary only
+        const dailyBasicRate = baseSalary / 30;
+        const hourlyBasicRate = dailyBasicRate / 8;
+        const overtimeAmount = overtimeHours * hourlyBasicRate * 2; // Double rate
+        
+        // Gross salary = Base + HRA + Other/Conv + Overtime
+        const grossSalary = baseSalary + hraAmount + otherConvAmount + overtimeAmount;
 
-        // Calculate deductions
-        const pfDeduction = grossSalary * (settings.pf_rate / 100);
-        const esiDeduction = grossSalary * (settings.esi_rate / 100);
+        // Calculate deductions with new logic
+        // PF is calculated on basic salary only
+        const pfDeduction = baseSalary * (settings.pf_rate / 100);
+        
+        // ESI is calculated on gross salary but only if gross <= 21,000
+        const esiDeduction = grossSalary <= 21000 ? 
+          grossSalary * (settings.esi_rate / 100) : 0;
+        
         const netSalary = grossSalary - pfDeduction - esiDeduction - totalAdvances;
 
         const calculation: PayrollCalculation = {
           employee_id: employee.id,
           base_salary: baseSalary,
+          hra_amount: hraAmount,
+          other_conv_amount: otherConvAmount,
           total_hours_worked: totalHours,
           total_days_present: totalDays,
           overtime_amount: overtimeAmount,
+          gross_salary: grossSalary,
           advances_deduction: totalAdvances,
           pf_deduction: pfDeduction,
           esi_deduction: esiDeduction,
@@ -155,7 +173,7 @@ const handler = async (req: Request): Promise<Response> => {
         calculations.push(calculation);
         processedCount++;
 
-        console.log(`Calculated salary for ${employee.name}: ${netSalary}`);
+        console.log(`Enhanced calculation for ${employee.name}: Gross: ${grossSalary}, Net: ${netSalary}, ESI Exempt: ${grossSalary > 21000}`);
 
       } catch (error) {
         console.error(`Error processing employee ${employee.name}:`, error);
@@ -163,7 +181,7 @@ const handler = async (req: Request): Promise<Response> => {
       }
     }
 
-    // Insert salary disbursements
+    // Insert salary disbursements with new structure
     if (calculations.length > 0) {
       const { error: insertError } = await supabase
         .from('salary_disbursement')
@@ -177,9 +195,9 @@ const handler = async (req: Request): Promise<Response> => {
         throw insertError;
       }
 
-      console.log(`Inserted ${calculations.length} salary calculations`);
+      console.log(`Inserted ${calculations.length} enhanced salary calculations`);
 
-      // Queue emails for salary slips
+      // Queue emails for enhanced salary slips
       for (const calc of calculations) {
         const { data: employee } = await supabase
           .from('payroll_employees')
@@ -187,18 +205,25 @@ const handler = async (req: Request): Promise<Response> => {
           .eq('id', calc.employee_id)
           .single();
 
+        const esiStatus = calc.gross_salary > 21000 ? 'Exempt (Gross > ₹21,000)' : 'Applicable';
+
         await supabase
           .from('email_queue')
           .insert({
             to_email: 'info@dkenterprises.co.in',
-            subject: `Salary Slip - ${employee?.name} - ${monthString}`,
+            subject: `Enhanced Salary Slip - ${employee?.name} - ${monthString}`,
             html_content: `
-              <h2>Salary Slip for ${employee?.name}</h2>
+              <h2>Enhanced Salary Slip for ${employee?.name}</h2>
               <p>Month: ${monthString}</p>
+              <h3>Earnings:</h3>
               <p>Base Salary: ₹${calc.base_salary.toFixed(2)}</p>
+              <p>HRA: ₹${calc.hra_amount.toFixed(2)}</p>
+              <p>Other/Conveyance: ₹${calc.other_conv_amount.toFixed(2)}</p>
               <p>Overtime: ₹${calc.overtime_amount.toFixed(2)}</p>
-              <p>PF Deduction: ₹${calc.pf_deduction.toFixed(2)}</p>
-              <p>ESI Deduction: ₹${calc.esi_deduction.toFixed(2)}</p>
+              <p><strong>Gross Salary: ₹${calc.gross_salary.toFixed(2)}</strong></p>
+              <h3>Deductions:</h3>
+              <p>PF Deduction (on Basic): ₹${calc.pf_deduction.toFixed(2)}</p>
+              <p>ESI Deduction (${esiStatus}): ₹${calc.esi_deduction.toFixed(2)}</p>
               <p>Advances: ₹${calc.advances_deduction.toFixed(2)}</p>
               <p><strong>Net Salary: ₹${calc.net_salary.toFixed(2)}</strong></p>
             `,
@@ -219,12 +244,12 @@ const handler = async (req: Request): Promise<Response> => {
       })
       .eq('id', bulkJob.id);
 
-    console.log(`Monthly payroll processing completed. Processed: ${processedCount}, Failed: ${failedCount}`);
+    console.log(`Enhanced monthly payroll processing completed. Processed: ${processedCount}, Failed: ${failedCount}`);
 
     return new Response(
       JSON.stringify({
         success: true,
-        message: 'Monthly payroll processing completed',
+        message: 'Enhanced monthly payroll processing completed',
         processed: processedCount,
         failed: failedCount,
         job_id: bulkJob.id
@@ -236,7 +261,7 @@ const handler = async (req: Request): Promise<Response> => {
     );
 
   } catch (error: any) {
-    console.error('Error in monthly payroll processing:', error);
+    console.error('Error in enhanced monthly payroll processing:', error);
     return new Response(
       JSON.stringify({ error: error.message }),
       {
