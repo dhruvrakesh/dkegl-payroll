@@ -17,7 +17,7 @@ interface PayrollFormula {
   id: string;
   name: string;
   description: string;
-  formula_type: string;
+  formula_type: 'gross_salary' | 'deductions' | 'net_salary' | 'allowances';
   expression: string;
   active: boolean;
   effective_from: string;
@@ -41,6 +41,15 @@ interface ValidationResult {
   suggestions: string[];
 }
 
+type FormulaType = 'gross_salary' | 'deductions' | 'net_salary' | 'allowances';
+
+interface FormData {
+  name: string;
+  description: string;
+  formula_type: FormulaType;
+  expression: string;
+}
+
 export const FormulaManagement = () => {
   const [formulas, setFormulas] = useState<PayrollFormula[]>([]);
   const [variables, setVariables] = useState<FormulaVariable[]>([]);
@@ -49,7 +58,7 @@ export const FormulaManagement = () => {
   const [editingFormula, setEditingFormula] = useState<PayrollFormula | null>(null);
   const [validation, setValidation] = useState<ValidationResult | null>(null);
   
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormData>({
     name: '',
     description: '',
     formula_type: 'gross_salary',
@@ -135,7 +144,10 @@ export const FormulaManagement = () => {
 
     try {
       const formulaData = {
-        ...formData,
+        name: formData.name,
+        description: formData.description,
+        formula_type: formData.formula_type,
+        expression: formData.expression,
         effective_from: new Date().toISOString().split('T')[0],
       };
 
@@ -148,7 +160,7 @@ export const FormulaManagement = () => {
 
         await supabase
           .from('payroll_formulas')
-          .insert([{ ...formulaData, version: editingFormula.version + 1 }]);
+          .insert({ ...formulaData, version: editingFormula.version + 1 });
       } else {
         // Deactivate existing formula of same type
         await supabase
@@ -159,7 +171,7 @@ export const FormulaManagement = () => {
 
         await supabase
           .from('payroll_formulas')
-          .insert([formulaData]);
+          .insert(formulaData);
       }
 
       toast({
@@ -200,6 +212,10 @@ export const FormulaManagement = () => {
     });
     setEditingFormula(formula);
     setDialogOpen(true);
+  };
+
+  const handleFormulaTypeChange = (value: string) => {
+    setFormData({ ...formData, formula_type: value as FormulaType });
   };
 
   const getFormulaTypeColor = (type: string) => {
@@ -258,7 +274,7 @@ export const FormulaManagement = () => {
 
                 <div>
                   <Label htmlFor="formula_type">Formula Type</Label>
-                  <Select value={formData.formula_type} onValueChange={(value) => setFormData({ ...formData, formula_type: value })}>
+                  <Select value={formData.formula_type} onValueChange={handleFormulaTypeChange}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
