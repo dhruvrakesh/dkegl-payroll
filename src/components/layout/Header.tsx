@@ -37,7 +37,7 @@ export const Header = () => {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="flex items-center gap-2">
                 <User className="w-4 h-4" />
-                <span>{profile.full_name || profile.email}</span>
+                <span>{profile.employee_id || profile.email}</span>
                 <Badge className={getRoleColor(profile.role)}>
                   {profile.role.toUpperCase()}
                 </Badge>

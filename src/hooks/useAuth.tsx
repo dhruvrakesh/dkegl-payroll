@@ -7,9 +7,9 @@ import { useToast } from '@/hooks/use-toast';
 interface Profile {
   id: string;
   email: string;
-  full_name: string | null;
+  employee_id: string;
   role: 'admin' | 'hr' | 'manager' | 'employee';
-  is_active: boolean;
+  is_approved: boolean;
 }
 
 interface AuthContextType {
