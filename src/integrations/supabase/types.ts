@@ -1894,34 +1894,46 @@ export type Database = {
       }
       payroll_employees: {
         Row: {
+          aadhaar_number: string | null
           active: boolean | null
           base_salary: number
           created_at: string | null
+          hra_amount: number | null
           id: string
           joining_date: string
           name: string
+          other_conv_amount: number | null
+          pan_number: string | null
           uan_number: string
           unit_id: string | null
           updated_at: string | null
         }
         Insert: {
+          aadhaar_number?: string | null
           active?: boolean | null
           base_salary: number
           created_at?: string | null
+          hra_amount?: number | null
           id?: string
           joining_date: string
           name: string
+          other_conv_amount?: number | null
+          pan_number?: string | null
           uan_number: string
           unit_id?: string | null
           updated_at?: string | null
         }
         Update: {
+          aadhaar_number?: string | null
           active?: boolean | null
           base_salary?: number
           created_at?: string | null
+          hra_amount?: number | null
           id?: string
           joining_date?: string
           name?: string
+          other_conv_amount?: number | null
+          pan_number?: string | null
           uan_number?: string
           unit_id?: string | null
           updated_at?: string | null
@@ -2294,8 +2306,11 @@ export type Database = {
           disbursed_on: string | null
           employee_id: string | null
           esi_deduction: number | null
+          gross_salary: number | null
+          hra_amount: number | null
           month: string
           net_salary: number
+          other_conv_amount: number | null
           overtime_amount: number | null
           pf_deduction: number | null
           salary_id: string
@@ -2311,8 +2326,11 @@ export type Database = {
           disbursed_on?: string | null
           employee_id?: string | null
           esi_deduction?: number | null
+          gross_salary?: number | null
+          hra_amount?: number | null
           month: string
           net_salary: number
+          other_conv_amount?: number | null
           overtime_amount?: number | null
           pf_deduction?: number | null
           salary_id?: string
@@ -2328,8 +2346,11 @@ export type Database = {
           disbursed_on?: string | null
           employee_id?: string | null
           esi_deduction?: number | null
+          gross_salary?: number | null
+          hra_amount?: number | null
           month?: string
           net_salary?: number
+          other_conv_amount?: number | null
           overtime_amount?: number | null
           pf_deduction?: number | null
           salary_id?: string
@@ -2791,6 +2812,21 @@ export type Database = {
       bytea_to_text: {
         Args: { data: string }
         Returns: string
+      }
+      check_duplicate_process_log: {
+        Args: {
+          p_uiorn: string
+          p_stage: Database["public"]["Enums"]["process_stage"]
+          p_metric: string
+          p_value?: number
+          p_txt_value?: string
+          p_minutes_threshold?: number
+        }
+        Returns: boolean
+      }
+      delete_process_log: {
+        Args: { log_id: string }
+        Returns: undefined
       }
       get_current_user_role: {
         Args: Record<PropertyKey, never>
