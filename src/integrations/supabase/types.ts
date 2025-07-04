@@ -612,6 +612,51 @@ export type Database = {
           },
         ]
       }
+      employee_variable_overrides: {
+        Row: {
+          created_at: string | null
+          effective_from: string
+          effective_to: string | null
+          employee_id: string | null
+          id: string
+          override_value: number
+          variable_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          effective_from?: string
+          effective_to?: string | null
+          employee_id?: string | null
+          id?: string
+          override_value: number
+          variable_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          effective_from?: string
+          effective_to?: string | null
+          employee_id?: string | null
+          id?: string
+          override_value?: number
+          variable_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_variable_overrides_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_variable_overrides_variable_id_fkey"
+            columns: ["variable_id"]
+            isOneToOne: false
+            referencedRelation: "formula_variables"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employees: {
         Row: {
           aadhaar_number: string | null
@@ -828,6 +873,45 @@ export type Database = {
           is_active?: boolean
           section_type?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      formula_variables: {
+        Row: {
+          active: boolean | null
+          calculation_expression: string | null
+          created_at: string | null
+          default_value: number | null
+          description: string | null
+          display_name: string
+          id: string
+          name: string
+          updated_at: string | null
+          variable_type: Database["public"]["Enums"]["variable_type"]
+        }
+        Insert: {
+          active?: boolean | null
+          calculation_expression?: string | null
+          created_at?: string | null
+          default_value?: number | null
+          description?: string | null
+          display_name: string
+          id?: string
+          name: string
+          updated_at?: string | null
+          variable_type: Database["public"]["Enums"]["variable_type"]
+        }
+        Update: {
+          active?: boolean | null
+          calculation_expression?: string | null
+          created_at?: string | null
+          default_value?: number | null
+          description?: string | null
+          display_name?: string
+          id?: string
+          name?: string
+          updated_at?: string | null
+          variable_type?: Database["public"]["Enums"]["variable_type"]
         }
         Relationships: []
       }
@@ -1650,6 +1734,44 @@ export type Database = {
         }
         Relationships: []
       }
+      payroll_calculation_audit: {
+        Row: {
+          calculated_at: string | null
+          calculated_by: string | null
+          calculation_details: Json
+          employee_id: string | null
+          formula_snapshot: Json
+          id: string
+          month: string
+        }
+        Insert: {
+          calculated_at?: string | null
+          calculated_by?: string | null
+          calculation_details: Json
+          employee_id?: string | null
+          formula_snapshot: Json
+          id?: string
+          month: string
+        }
+        Update: {
+          calculated_at?: string | null
+          calculated_by?: string | null
+          calculation_details?: Json
+          employee_id?: string | null
+          formula_snapshot?: Json
+          id?: string
+          month?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_calculation_audit_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payroll_employees: {
         Row: {
           active: boolean | null
@@ -1693,6 +1815,51 @@ export type Database = {
             referencedColumns: ["unit_id"]
           },
         ]
+      }
+      payroll_formulas: {
+        Row: {
+          active: boolean | null
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          effective_from: string
+          effective_to: string | null
+          expression: string
+          formula_type: Database["public"]["Enums"]["formula_type"]
+          id: string
+          name: string
+          updated_at: string | null
+          version: number | null
+        }
+        Insert: {
+          active?: boolean | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          effective_from?: string
+          effective_to?: string | null
+          expression: string
+          formula_type: Database["public"]["Enums"]["formula_type"]
+          id?: string
+          name: string
+          updated_at?: string | null
+          version?: number | null
+        }
+        Update: {
+          active?: boolean | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          effective_from?: string
+          effective_to?: string | null
+          expression?: string
+          formula_type?: Database["public"]["Enums"]["formula_type"]
+          id?: string
+          name?: string
+          updated_at?: string | null
+          version?: number | null
+        }
+        Relationships: []
       }
       payroll_settings: {
         Row: {
@@ -2643,6 +2810,7 @@ export type Database = {
       }
     }
     Enums: {
+      formula_type: "gross_salary" | "deductions" | "net_salary" | "allowances"
       media_type: "audio" | "video"
       process_stage:
         | "PRINTING"
@@ -2651,6 +2819,7 @@ export type Database = {
         | "SLITTING"
         | "DISPATCH"
       stage: "printing" | "lamination" | "adhesive" | "slitting" | "dispatch"
+      variable_type: "fixed" | "calculated" | "employee_specific" | "system"
     }
     CompositeTypes: {
       http_header: {
@@ -2782,6 +2951,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      formula_type: ["gross_salary", "deductions", "net_salary", "allowances"],
       media_type: ["audio", "video"],
       process_stage: [
         "PRINTING",
@@ -2791,6 +2961,7 @@ export const Constants = {
         "DISPATCH",
       ],
       stage: ["printing", "lamination", "adhesive", "slitting", "dispatch"],
+      variable_type: ["fixed", "calculated", "employee_specific", "system"],
     },
   },
 } as const

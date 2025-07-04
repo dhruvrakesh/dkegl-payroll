@@ -10,6 +10,8 @@ import { SalaryDisbursement } from './payroll/SalaryDisbursement';
 import { PayrollSettings } from './payroll/PayrollSettings';
 import { Building2, Users, Clock, DollarSign, Calculator, Settings } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { FormulaManagement } from './payroll/FormulaManagement';
+import { EnhancedSalaryDisbursement } from './payroll/EnhancedSalaryDisbursement';
 
 export const PayrollDashboard = () => {
   const { profile, hasRole } = useAuth();
@@ -20,6 +22,7 @@ export const PayrollDashboard = () => {
   const canViewAdvances = hasRole('admin') || hasRole('hr') || hasRole('manager');
   const canViewSalary = hasRole('admin') || hasRole('hr') || hasRole('manager');
   const canViewSettings = hasRole('admin');
+  const canViewFormulas = hasRole('admin');
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -36,7 +39,7 @@ export const PayrollDashboard = () => {
         </div>
 
         <Tabs defaultValue="employees" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-6">
+          <TabsList className={`grid w-full ${canViewFormulas ? 'grid-cols-7' : 'grid-cols-6'}`}>
             {canViewUnits && (
               <TabsTrigger value="units" className="flex items-center gap-2">
                 <Building2 className="w-4 h-4" />
@@ -65,6 +68,12 @@ export const PayrollDashboard = () => {
               <TabsTrigger value="salary" className="flex items-center gap-2">
                 <Calculator className="w-4 h-4" />
                 Salary
+              </TabsTrigger>
+            )}
+            {canViewFormulas && (
+              <TabsTrigger value="formulas" className="flex items-center gap-2">
+                <Settings className="w-4 h-4" />
+                Formulas
               </TabsTrigger>
             )}
             {canViewSettings && (
@@ -143,13 +152,29 @@ export const PayrollDashboard = () => {
             <TabsContent value="salary">
               <Card>
                 <CardHeader>
-                  <CardTitle>Salary Disbursement</CardTitle>
+                  <CardTitle>Enhanced Salary Calculation</CardTitle>
                   <CardDescription>
-                    Calculate and manage monthly salary disbursements
+                    Calculate salaries using configurable formulas and variables
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <SalaryDisbursement />
+                  <EnhancedSalaryDisbursement />
+                </CardContent>
+              </Card>
+            </TabsContent>
+          )}
+
+          {canViewFormulas && (
+            <TabsContent value="formulas">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Formula Management</CardTitle>
+                  <CardDescription>
+                    Configure and manage payroll calculation formulas
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <FormulaManagement />
                 </CardContent>
               </Card>
             </TabsContent>
