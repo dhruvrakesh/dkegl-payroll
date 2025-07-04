@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -29,7 +28,7 @@ export const PayrollDashboard = () => {
       <div className="container mx-auto p-6 space-y-6">
         <div className="mb-8">
           <h2 className="text-xl font-semibold tracking-tight">
-            Welcome back, {profile?.full_name || profile?.email}
+            Welcome back, {profile?.employee_id || profile?.email}
           </h2>
           <p className="text-muted-foreground">
             Manage employees, attendance, advances, and salary disbursements

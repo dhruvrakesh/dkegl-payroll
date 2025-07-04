@@ -1,4 +1,3 @@
-
 import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -51,7 +50,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             if (error) {
               console.error('Error fetching profile:', error);
             } else {
-              setProfile(profileData);
+              // Type assertion to ensure the role is one of the expected values
+              const typedProfile: Profile = {
+                ...profileData,
+                role: profileData.role as 'admin' | 'hr' | 'manager' | 'employee'
+              };
+              setProfile(typedProfile);
             }
             setLoading(false);
           }, 0);
