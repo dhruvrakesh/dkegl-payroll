@@ -405,6 +405,48 @@ export type Database = {
         }
         Relationships: []
       }
+      bulk_payroll_jobs: {
+        Row: {
+          completed_at: string | null
+          created_at: string | null
+          created_by: string | null
+          error_details: Json | null
+          failed_employees: number | null
+          id: string
+          month: string
+          processed_employees: number | null
+          started_at: string | null
+          status: string | null
+          total_employees: number | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          error_details?: Json | null
+          failed_employees?: number | null
+          id?: string
+          month: string
+          processed_employees?: number | null
+          started_at?: string | null
+          status?: string | null
+          total_employees?: number | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          error_details?: Json | null
+          failed_employees?: number | null
+          id?: string
+          month?: string
+          processed_employees?: number | null
+          started_at?: string | null
+          status?: string | null
+          total_employees?: number | null
+        }
+        Relationships: []
+      }
       colour_targets: {
         Row: {
           created_at: string | null
@@ -611,6 +653,54 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      email_queue: {
+        Row: {
+          attachment_name: string | null
+          attempts: number | null
+          created_at: string | null
+          error_message: string | null
+          html_content: string
+          id: string
+          max_attempts: number | null
+          pdf_attachment: string | null
+          scheduled_for: string | null
+          sent_at: string | null
+          status: string | null
+          subject: string
+          to_email: string
+        }
+        Insert: {
+          attachment_name?: string | null
+          attempts?: number | null
+          created_at?: string | null
+          error_message?: string | null
+          html_content: string
+          id?: string
+          max_attempts?: number | null
+          pdf_attachment?: string | null
+          scheduled_for?: string | null
+          sent_at?: string | null
+          status?: string | null
+          subject: string
+          to_email: string
+        }
+        Update: {
+          attachment_name?: string | null
+          attempts?: number | null
+          created_at?: string | null
+          error_message?: string | null
+          html_content?: string
+          id?: string
+          max_attempts?: number | null
+          pdf_attachment?: string | null
+          scheduled_for?: string | null
+          sent_at?: string | null
+          status?: string | null
+          subject?: string
+          to_email?: string
+        }
+        Relationships: []
       }
       employee_variable_overrides: {
         Row: {
@@ -1731,6 +1821,36 @@ export type Database = {
           id?: string
           name?: string
           plan?: string | null
+        }
+        Relationships: []
+      }
+      payroll_audit_log: {
+        Row: {
+          id: string
+          new_data: Json | null
+          old_data: Json | null
+          operation: string
+          table_name: string
+          timestamp: string | null
+          user_id: string | null
+        }
+        Insert: {
+          id?: string
+          new_data?: Json | null
+          old_data?: Json | null
+          operation: string
+          table_name: string
+          timestamp?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          id?: string
+          new_data?: Json | null
+          old_data?: Json | null
+          operation?: string
+          table_name?: string
+          timestamp?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }
