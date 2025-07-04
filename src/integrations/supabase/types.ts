@@ -9,6 +9,54 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      advances: {
+        Row: {
+          advance_amount: number
+          advance_date: string
+          advance_id: string
+          created_at: string | null
+          employee_id: string | null
+          remarks: string | null
+          unit_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          advance_amount: number
+          advance_date: string
+          advance_id?: string
+          created_at?: string | null
+          employee_id?: string | null
+          remarks?: string | null
+          unit_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          advance_amount?: number
+          advance_date?: string
+          advance_id?: string
+          created_at?: string | null
+          employee_id?: string | null
+          remarks?: string | null
+          unit_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "advances_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "advances_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "units"
+            referencedColumns: ["unit_id"]
+          },
+        ]
+      }
       albums: {
         Row: {
           artist_id: string | null
@@ -183,6 +231,54 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      attendance: {
+        Row: {
+          attendance_date: string
+          attendance_id: string
+          created_at: string | null
+          employee_id: string | null
+          hours_worked: number
+          overtime_hours: number | null
+          unit_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          attendance_date: string
+          attendance_id?: string
+          created_at?: string | null
+          employee_id?: string | null
+          hours_worked: number
+          overtime_hours?: number | null
+          unit_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          attendance_date?: string
+          attendance_id?: string
+          created_at?: string | null
+          employee_id?: string | null
+          hours_worked?: number
+          overtime_hours?: number | null
+          unit_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attendance_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "units"
+            referencedColumns: ["unit_id"]
+          },
+        ]
       }
       audit_gaps: {
         Row: {
@@ -1554,6 +1650,77 @@ export type Database = {
         }
         Relationships: []
       }
+      payroll_employees: {
+        Row: {
+          active: boolean | null
+          base_salary: number
+          created_at: string | null
+          id: string
+          joining_date: string
+          name: string
+          uan_number: string
+          unit_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          active?: boolean | null
+          base_salary: number
+          created_at?: string | null
+          id?: string
+          joining_date: string
+          name: string
+          uan_number: string
+          unit_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          active?: boolean | null
+          base_salary?: number
+          created_at?: string | null
+          id?: string
+          joining_date?: string
+          name?: string
+          uan_number?: string
+          unit_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_employees_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "units"
+            referencedColumns: ["unit_id"]
+          },
+        ]
+      }
+      payroll_settings: {
+        Row: {
+          created_at: string | null
+          effective_from: string
+          esi_rate: number
+          pf_rate: number
+          setting_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          effective_from: string
+          esi_rate: number
+          pf_rate: number
+          setting_id?: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          effective_from?: string
+          esi_rate?: number
+          pf_rate?: number
+          setting_id?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       presses: {
         Row: {
           created_at: string | null
@@ -1831,6 +1998,75 @@ export type Database = {
           url?: string
         }
         Relationships: []
+      }
+      salary_disbursement: {
+        Row: {
+          advances_deduction: number | null
+          base_salary: number
+          created_at: string | null
+          disbursed_on: string | null
+          employee_id: string | null
+          esi_deduction: number | null
+          month: string
+          net_salary: number
+          overtime_amount: number | null
+          pf_deduction: number | null
+          salary_id: string
+          total_days_present: number
+          total_hours_worked: number
+          unit_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          advances_deduction?: number | null
+          base_salary: number
+          created_at?: string | null
+          disbursed_on?: string | null
+          employee_id?: string | null
+          esi_deduction?: number | null
+          month: string
+          net_salary: number
+          overtime_amount?: number | null
+          pf_deduction?: number | null
+          salary_id?: string
+          total_days_present: number
+          total_hours_worked: number
+          unit_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          advances_deduction?: number | null
+          base_salary?: number
+          created_at?: string | null
+          disbursed_on?: string | null
+          employee_id?: string | null
+          esi_deduction?: number | null
+          month?: string
+          net_salary?: number
+          overtime_amount?: number | null
+          pf_deduction?: number | null
+          salary_id?: string
+          total_days_present?: number
+          total_hours_worked?: number
+          unit_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "salary_disbursement_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "salary_disbursement_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "units"
+            referencedColumns: ["unit_id"]
+          },
+        ]
       }
       segment_performance: {
         Row: {
@@ -2185,6 +2421,30 @@ export type Database = {
         Update: {
           last_serial?: number
           ui_date?: string
+        }
+        Relationships: []
+      }
+      units: {
+        Row: {
+          created_at: string | null
+          location: string | null
+          unit_id: string
+          unit_name: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          location?: string | null
+          unit_id?: string
+          unit_name: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          location?: string | null
+          unit_id?: string
+          unit_name?: string
+          updated_at?: string | null
         }
         Relationships: []
       }
