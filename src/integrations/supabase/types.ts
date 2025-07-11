@@ -2708,7 +2708,7 @@ export type Database = {
             foreignKeyName: "process_logs_dkpkl_captured_by_fkey"
             columns: ["captured_by"]
             isOneToOne: false
-            referencedRelation: "users"
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
@@ -2756,7 +2756,7 @@ export type Database = {
             foreignKeyName: "process_logs_se_captured_by_fkey"
             columns: ["captured_by"]
             isOneToOne: false
-            referencedRelation: "users"
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {

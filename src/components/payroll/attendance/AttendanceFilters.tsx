@@ -141,16 +141,16 @@ export const AttendanceFilters: React.FC<AttendanceFiltersProps> = ({
         <div className="space-y-2">
           <Label>Employee</Label>
           <Select
-            value={filters.employeeIds[0] || ""}
+            value={filters.employeeIds[0] || "all-employees"}
             onValueChange={(value) => updateFilters({
-              employeeIds: value ? [value] : []
+              employeeIds: value === "all-employees" ? [] : [value]
             })}
           >
             <SelectTrigger>
               <SelectValue placeholder="Select employee" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Employees</SelectItem>
+              <SelectItem value="all-employees">All Employees</SelectItem>
               {employees.map((employee) => (
                 <SelectItem key={employee.id} value={employee.id}>
                   {employee.name}
