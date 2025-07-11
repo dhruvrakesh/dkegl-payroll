@@ -3667,6 +3667,17 @@ export type Database = {
         Args: { user_id: string; approved: boolean; admin_notes?: string }
         Returns: undefined
       }
+      upsert_process_log: {
+        Args: {
+          p_uiorn: string
+          p_stage: Database["public"]["Enums"]["process_stage"]
+          p_metric: string
+          p_value?: number
+          p_txt_value?: string
+          p_captured_by?: string
+        }
+        Returns: string
+      }
       urlencode: {
         Args: { data: Json } | { string: string } | { string: string }
         Returns: string

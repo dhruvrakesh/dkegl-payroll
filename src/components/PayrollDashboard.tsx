@@ -13,6 +13,7 @@ import { Building2, Users, Clock, DollarSign, Calculator, Settings } from 'lucid
 import { useAuth } from '@/hooks/useAuth';
 import { FormulaManagement } from './payroll/FormulaManagement';
 import { EnhancedSalaryDisbursement } from './payroll/EnhancedSalaryDisbursement';
+import { WageCalculatorDashboard } from './payroll/WageCalculatorDashboard';
 
 export const PayrollDashboard = () => {
   const { profile, hasRole } = useAuth();
@@ -40,7 +41,7 @@ export const PayrollDashboard = () => {
         </div>
 
         <Tabs defaultValue="employees" className="space-y-4">
-          <TabsList className={`grid w-full ${canViewFormulas ? 'grid-cols-7' : 'grid-cols-6'}`}>
+          <TabsList className={`grid w-full ${canViewFormulas ? 'grid-cols-8' : 'grid-cols-7'}`}>
             {canViewUnits && (
               <TabsTrigger value="units" className="flex items-center gap-2">
                 <Building2 className="w-4 h-4" />
@@ -69,6 +70,12 @@ export const PayrollDashboard = () => {
               <TabsTrigger value="salary" className="flex items-center gap-2">
                 <Calculator className="w-4 h-4" />
                 Salary
+              </TabsTrigger>
+            )}
+            {canViewSalary && (
+              <TabsTrigger value="wages" className="flex items-center gap-2">
+                <Calculator className="w-4 h-4" />
+                Wages
               </TabsTrigger>
             )}
             {canViewFormulas && (
@@ -180,6 +187,22 @@ export const PayrollDashboard = () => {
                 </CardHeader>
                 <CardContent>
                   <FormulaManagement />
+                </CardContent>
+              </Card>
+            </TabsContent>
+          )}
+
+          {canViewSalary && (
+            <TabsContent value="wages">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Wage Calculator</CardTitle>
+                  <CardDescription>
+                    Calculate wages for any period with advanced filtering
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <WageCalculatorDashboard />
                 </CardContent>
               </Card>
             </TabsContent>
