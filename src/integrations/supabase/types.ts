@@ -7,8 +7,142 @@ export type Json =
   | Json[]
 
 export type Database = {
+  // Allows to automatically instanciate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "12.2.3 (519615d)"
+  }
   public: {
     Tables: {
+      _artworks_revised_staging: {
+        Row: {
+          circum: number | null
+          coil_size: string | null
+          customer_name: string | null
+          cut_length: string | null
+          cyl_qty: string | null
+          dimensions: string | null
+          file_hyperlink: string | null
+          file_id: string | null
+          item_code: string
+          item_name: string | null
+          last_run: string | null
+          length: string | null
+          location: string | null
+          mielage_m: string | null
+          no_of_colours: string | null
+          qr_code: string | null
+          remarks: string | null
+          total_runs: string | null
+          ups: number | null
+        }
+        Insert: {
+          circum?: number | null
+          coil_size?: string | null
+          customer_name?: string | null
+          cut_length?: string | null
+          cyl_qty?: string | null
+          dimensions?: string | null
+          file_hyperlink?: string | null
+          file_id?: string | null
+          item_code: string
+          item_name?: string | null
+          last_run?: string | null
+          length?: string | null
+          location?: string | null
+          mielage_m?: string | null
+          no_of_colours?: string | null
+          qr_code?: string | null
+          remarks?: string | null
+          total_runs?: string | null
+          ups?: number | null
+        }
+        Update: {
+          circum?: number | null
+          coil_size?: string | null
+          customer_name?: string | null
+          cut_length?: string | null
+          cyl_qty?: string | null
+          dimensions?: string | null
+          file_hyperlink?: string | null
+          file_id?: string | null
+          item_code?: string
+          item_name?: string | null
+          last_run?: string | null
+          length?: string | null
+          location?: string | null
+          mielage_m?: string | null
+          no_of_colours?: string | null
+          qr_code?: string | null
+          remarks?: string | null
+          total_runs?: string | null
+          ups?: number | null
+        }
+        Relationships: []
+      }
+      _artworks_se_backup: {
+        Row: {
+          customer_name: string | null
+          dimensions: string | null
+          file_hyperlink: string | null
+          file_id: string | null
+          item_code: string | null
+          item_name: string | null
+          no_of_colours: string | null
+          snapshot_ts: string | null
+        }
+        Insert: {
+          customer_name?: string | null
+          dimensions?: string | null
+          file_hyperlink?: string | null
+          file_id?: string | null
+          item_code?: string | null
+          item_name?: string | null
+          no_of_colours?: string | null
+          snapshot_ts?: string | null
+        }
+        Update: {
+          customer_name?: string | null
+          dimensions?: string | null
+          file_hyperlink?: string | null
+          file_id?: string | null
+          item_code?: string | null
+          item_name?: string | null
+          no_of_colours?: string | null
+          snapshot_ts?: string | null
+        }
+        Relationships: []
+      }
+      _old_artworks_se: {
+        Row: {
+          customer_name: string | null
+          dimensions: string | null
+          file_hyperlink: string | null
+          file_id: string | null
+          item_code: string
+          item_name: string | null
+          no_of_colours: string | null
+        }
+        Insert: {
+          customer_name?: string | null
+          dimensions?: string | null
+          file_hyperlink?: string | null
+          file_id?: string | null
+          item_code: string
+          item_name?: string | null
+          no_of_colours?: string | null
+        }
+        Update: {
+          customer_name?: string | null
+          dimensions?: string | null
+          file_hyperlink?: string | null
+          file_id?: string | null
+          item_code?: string
+          item_name?: string | null
+          no_of_colours?: string | null
+        }
+        Relationships: []
+      }
       advances: {
         Row: {
           advance_amount: number
@@ -94,6 +228,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      appointments: {
+        Row: {
+          created_at: string
+          email: string
+          full_name: string
+          id: string
+          notes: string | null
+          phone: string
+          pref_date: string
+          pref_slot: string
+          service: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          full_name: string
+          id?: string
+          notes?: string | null
+          phone: string
+          pref_date: string
+          pref_slot: string
+          service: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          full_name?: string
+          id?: string
+          notes?: string | null
+          phone?: string
+          pref_date?: string
+          pref_slot?: string
+          service?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       approval_history: {
         Row: {
@@ -1254,33 +1430,119 @@ export type Database = {
         }
         Relationships: []
       }
+      master_data_artworks_dkpkl_cylinder_name: {
+        Row: {
+          colour: string | null
+          created_at: string
+          customer_name: string | null
+          cylinder_code: string
+          item_code: string
+          last_run: string | null
+          location: string | null
+          manufacturer: string | null
+          mileage_m: number | null
+          remarks: string | null
+          type: string | null
+        }
+        Insert: {
+          colour?: string | null
+          created_at?: string
+          customer_name?: string | null
+          cylinder_code: string
+          item_code: string
+          last_run?: string | null
+          location?: string | null
+          manufacturer?: string | null
+          mileage_m?: number | null
+          remarks?: string | null
+          type?: string | null
+        }
+        Update: {
+          colour?: string | null
+          created_at?: string
+          customer_name?: string | null
+          cylinder_code?: string
+          item_code?: string
+          last_run?: string | null
+          location?: string | null
+          manufacturer?: string | null
+          mileage_m?: number | null
+          remarks?: string | null
+          type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_cylinder_item_code"
+            columns: ["item_code"]
+            isOneToOne: false
+            referencedRelation: "master_data_artworks_dkpkl"
+            referencedColumns: ["item_code"]
+          },
+        ]
+      }
       master_data_artworks_se: {
         Row: {
+          circum: number | null
+          coil_size: string | null
           customer_name: string | null
+          cut_length: string | null
+          cyl_qty: string | null
           dimensions: string | null
           file_hyperlink: string | null
           file_id: string | null
           item_code: string
           item_name: string | null
+          last_run: string | null
+          length: string | null
+          location: string | null
+          mielage_m: string | null
           no_of_colours: string | null
+          qr_code: string | null
+          remarks: string | null
+          total_runs: string | null
+          ups: number | null
         }
         Insert: {
+          circum?: number | null
+          coil_size?: string | null
           customer_name?: string | null
+          cut_length?: string | null
+          cyl_qty?: string | null
           dimensions?: string | null
           file_hyperlink?: string | null
           file_id?: string | null
           item_code: string
           item_name?: string | null
+          last_run?: string | null
+          length?: string | null
+          location?: string | null
+          mielage_m?: string | null
           no_of_colours?: string | null
+          qr_code?: string | null
+          remarks?: string | null
+          total_runs?: string | null
+          ups?: number | null
         }
         Update: {
+          circum?: number | null
+          coil_size?: string | null
           customer_name?: string | null
+          cut_length?: string | null
+          cyl_qty?: string | null
           dimensions?: string | null
           file_hyperlink?: string | null
           file_id?: string | null
           item_code?: string
           item_name?: string | null
+          last_run?: string | null
+          length?: string | null
+          location?: string | null
+          mielage_m?: string | null
           no_of_colours?: string | null
+          qr_code?: string | null
+          remarks?: string | null
+          total_runs?: string | null
+          ups?: number | null
         }
         Relationships: []
       }
@@ -2171,7 +2433,9 @@ export type Database = {
           created_at: string
           email: string
           employee_id: string
+          full_name: string | null
           id: string
+          is_active: boolean | null
           is_approved: boolean | null
           role: string | null
           updated_at: string
@@ -2180,7 +2444,9 @@ export type Database = {
           created_at?: string
           email: string
           employee_id: string
+          full_name?: string | null
           id: string
+          is_active?: boolean | null
           is_approved?: boolean | null
           role?: string | null
           updated_at?: string
@@ -2189,7 +2455,9 @@ export type Database = {
           created_at?: string
           email?: string
           employee_id?: string
+          full_name?: string | null
           id?: string
+          is_active?: boolean | null
           is_approved?: boolean | null
           role?: string | null
           updated_at?: string
@@ -2552,6 +2820,72 @@ export type Database = {
           },
         ]
       }
+      staging_artworks_se: {
+        Row: {
+          circum: number | null
+          coil_size: string | null
+          customer_name: string | null
+          cut_length: string | null
+          cyl_qty: string | null
+          dimensions: string | null
+          file_hyperlink: string | null
+          file_id: string | null
+          item_code: string
+          item_name: string | null
+          last_run: string | null
+          length: string | null
+          location: string | null
+          mileage_m: string | null
+          no_of_colours: string | null
+          qr_code: string | null
+          remarks: string | null
+          total_runs: string | null
+          ups: number | null
+        }
+        Insert: {
+          circum?: number | null
+          coil_size?: string | null
+          customer_name?: string | null
+          cut_length?: string | null
+          cyl_qty?: string | null
+          dimensions?: string | null
+          file_hyperlink?: string | null
+          file_id?: string | null
+          item_code: string
+          item_name?: string | null
+          last_run?: string | null
+          length?: string | null
+          location?: string | null
+          mileage_m?: string | null
+          no_of_colours?: string | null
+          qr_code?: string | null
+          remarks?: string | null
+          total_runs?: string | null
+          ups?: number | null
+        }
+        Update: {
+          circum?: number | null
+          coil_size?: string | null
+          customer_name?: string | null
+          cut_length?: string | null
+          cyl_qty?: string | null
+          dimensions?: string | null
+          file_hyperlink?: string | null
+          file_id?: string | null
+          item_code?: string
+          item_name?: string | null
+          last_run?: string | null
+          length?: string | null
+          location?: string | null
+          mileage_m?: string | null
+          no_of_colours?: string | null
+          qr_code?: string | null
+          remarks?: string | null
+          total_runs?: string | null
+          ups?: number | null
+        }
+        Relationships: []
+      }
       substrate_master_dkpkl: {
         Row: {
           gsm: number | null
@@ -2852,6 +3186,10 @@ export type Database = {
         Args: { "": unknown }
         Returns: unknown
       }
+      has_role: {
+        Args: { user_role: string }
+        Returns: boolean
+      }
       http: {
         Args: { request: Database["public"]["CompositeTypes"]["http_request"] }
         Returns: Database["public"]["CompositeTypes"]["http_response"]
@@ -2999,21 +3337,25 @@ export type Database = {
   }
 }
 
-type DefaultSchema = Database[Extract<keyof Database, "public">]
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
 
 export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof (Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-        Database[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
     : never = never,
-> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
-  ? (Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-      Database[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
       Row: infer R
     }
     ? R
@@ -3031,14 +3373,16 @@ export type Tables<
 export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
-> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
-  ? Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Insert: infer I
     }
     ? I
@@ -3054,14 +3398,16 @@ export type TablesInsert<
 export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
-> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
-  ? Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Update: infer U
     }
     ? U
@@ -3077,14 +3423,16 @@ export type TablesUpdate<
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   EnumName extends DefaultSchemaEnumNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof Database[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
     : never = never,
-> = DefaultSchemaEnumNameOrOptions extends { schema: keyof Database }
-  ? Database[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
   : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
     ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
     : never
@@ -3092,14 +3440,16 @@ export type Enums<
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof Database[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
     : never = never,
-> = PublicCompositeTypeNameOrOptions extends { schema: keyof Database }
-  ? Database[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
   : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
     ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never
