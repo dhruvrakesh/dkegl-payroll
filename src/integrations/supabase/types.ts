@@ -408,12 +408,295 @@ export type Database = {
         }
         Relationships: []
       }
+      asset_assignments: {
+        Row: {
+          asset_id: string | null
+          assigned_by: string | null
+          assigned_date: string | null
+          assigned_to: string | null
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          notes: string | null
+          return_date: string | null
+        }
+        Insert: {
+          asset_id?: string | null
+          assigned_by?: string | null
+          assigned_date?: string | null
+          assigned_to?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          notes?: string | null
+          return_date?: string | null
+        }
+        Update: {
+          asset_id?: string | null
+          assigned_by?: string | null
+          assigned_date?: string | null
+          assigned_to?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          notes?: string | null
+          return_date?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asset_assignments_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "assets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      asset_categories: {
+        Row: {
+          code: string
+          created_at: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          parent_category_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          parent_category_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          parent_category_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asset_categories_parent_category_id_fkey"
+            columns: ["parent_category_id"]
+            isOneToOne: false
+            referencedRelation: "asset_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      asset_history: {
+        Row: {
+          action: string
+          asset_id: string | null
+          changed_by: string | null
+          created_at: string | null
+          field_name: string | null
+          id: string
+          new_value: string | null
+          notes: string | null
+          old_value: string | null
+        }
+        Insert: {
+          action: string
+          asset_id?: string | null
+          changed_by?: string | null
+          created_at?: string | null
+          field_name?: string | null
+          id?: string
+          new_value?: string | null
+          notes?: string | null
+          old_value?: string | null
+        }
+        Update: {
+          action?: string
+          asset_id?: string | null
+          changed_by?: string | null
+          created_at?: string | null
+          field_name?: string | null
+          id?: string
+          new_value?: string | null
+          notes?: string | null
+          old_value?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asset_history_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "assets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      asset_transfers: {
+        Row: {
+          approved_by: string | null
+          asset_id: string | null
+          created_at: string | null
+          from_location_id: string | null
+          id: string
+          notes: string | null
+          requested_by: string | null
+          status: Database["public"]["Enums"]["transfer_status"] | null
+          to_location_id: string | null
+          transfer_date: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          approved_by?: string | null
+          asset_id?: string | null
+          created_at?: string | null
+          from_location_id?: string | null
+          id?: string
+          notes?: string | null
+          requested_by?: string | null
+          status?: Database["public"]["Enums"]["transfer_status"] | null
+          to_location_id?: string | null
+          transfer_date?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          approved_by?: string | null
+          asset_id?: string | null
+          created_at?: string | null
+          from_location_id?: string | null
+          id?: string
+          notes?: string | null
+          requested_by?: string | null
+          status?: Database["public"]["Enums"]["transfer_status"] | null
+          to_location_id?: string | null
+          transfer_date?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asset_transfers_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asset_transfers_from_location_id_fkey"
+            columns: ["from_location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asset_transfers_to_location_id_fkey"
+            columns: ["to_location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      assets: {
+        Row: {
+          asset_code: string
+          category_id: string | null
+          condition: Database["public"]["Enums"]["asset_condition"] | null
+          created_at: string | null
+          created_by: string | null
+          current_value: number | null
+          description: string | null
+          id: string
+          image_url: string | null
+          is_active: boolean | null
+          location_id: string | null
+          manufacturer: string | null
+          model: string | null
+          name: string
+          notes: string | null
+          purchase_cost: number | null
+          purchase_date: string | null
+          serial_number: string | null
+          status: Database["public"]["Enums"]["asset_status"] | null
+          updated_at: string | null
+          updated_by: string | null
+          warranty_expiry: string | null
+        }
+        Insert: {
+          asset_code: string
+          category_id?: string | null
+          condition?: Database["public"]["Enums"]["asset_condition"] | null
+          created_at?: string | null
+          created_by?: string | null
+          current_value?: number | null
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          location_id?: string | null
+          manufacturer?: string | null
+          model?: string | null
+          name: string
+          notes?: string | null
+          purchase_cost?: number | null
+          purchase_date?: string | null
+          serial_number?: string | null
+          status?: Database["public"]["Enums"]["asset_status"] | null
+          updated_at?: string | null
+          updated_by?: string | null
+          warranty_expiry?: string | null
+        }
+        Update: {
+          asset_code?: string
+          category_id?: string | null
+          condition?: Database["public"]["Enums"]["asset_condition"] | null
+          created_at?: string | null
+          created_by?: string | null
+          current_value?: number | null
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          location_id?: string | null
+          manufacturer?: string | null
+          model?: string | null
+          name?: string
+          notes?: string | null
+          purchase_cost?: number | null
+          purchase_date?: string | null
+          serial_number?: string | null
+          status?: Database["public"]["Enums"]["asset_status"] | null
+          updated_at?: string | null
+          updated_by?: string | null
+          warranty_expiry?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assets_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "asset_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assets_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       attendance: {
         Row: {
           attendance_date: string
           attendance_id: string
           created_at: string | null
-          employee_id: string | null
+          employee_id: string
           hours_worked: number
           overtime_hours: number | null
           unit_id: string | null
@@ -423,7 +706,7 @@ export type Database = {
           attendance_date: string
           attendance_id?: string
           created_at?: string | null
-          employee_id?: string | null
+          employee_id: string
           hours_worked: number
           overtime_hours?: number | null
           unit_id?: string | null
@@ -433,7 +716,7 @@ export type Database = {
           attendance_date?: string
           attendance_id?: string
           created_at?: string | null
-          employee_id?: string | null
+          employee_id?: string
           hours_worked?: number
           overtime_hours?: number | null
           unit_id?: string | null
@@ -455,6 +738,39 @@ export type Database = {
             referencedColumns: ["unit_id"]
           },
         ]
+      }
+      attendance_bad_backup: {
+        Row: {
+          attendance_date: string | null
+          attendance_id: string | null
+          created_at: string | null
+          employee_id: string | null
+          hours_worked: number | null
+          overtime_hours: number | null
+          unit_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          attendance_date?: string | null
+          attendance_id?: string | null
+          created_at?: string | null
+          employee_id?: string | null
+          hours_worked?: number | null
+          overtime_hours?: number | null
+          unit_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          attendance_date?: string | null
+          attendance_id?: string | null
+          created_at?: string | null
+          employee_id?: string | null
+          hours_worked?: number | null
+          overtime_hours?: number | null
+          unit_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       audit_gaps: {
         Row: {
@@ -1369,6 +1685,48 @@ export type Database = {
             referencedColumns: ["employee_id"]
           },
         ]
+      }
+      locations: {
+        Row: {
+          address: string | null
+          city: string | null
+          code: string
+          country: string | null
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          postal_code: string | null
+          state: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          address?: string | null
+          city?: string | null
+          code: string
+          country?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          postal_code?: string | null
+          state?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          address?: string | null
+          city?: string | null
+          code?: string
+          country?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          postal_code?: string | null
+          state?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       master_data_artworks_dkpkl: {
         Row: {
@@ -3070,6 +3428,7 @@ export type Database = {
         Row: {
           created_at: string | null
           location: string | null
+          unit_code: string
           unit_id: string
           unit_name: string
           updated_at: string | null
@@ -3077,6 +3436,7 @@ export type Database = {
         Insert: {
           created_at?: string | null
           location?: string | null
+          unit_code: string
           unit_id?: string
           unit_name: string
           updated_at?: string | null
@@ -3084,6 +3444,7 @@ export type Database = {
         Update: {
           created_at?: string | null
           location?: string | null
+          unit_code?: string
           unit_id?: string
           unit_name?: string
           updated_at?: string | null
@@ -3161,6 +3522,10 @@ export type Database = {
       delete_process_log: {
         Args: { log_id: string }
         Returns: undefined
+      }
+      generate_asset_code: {
+        Args: { p_location_code: string; p_category_code: string }
+        Returns: string
       }
       get_current_user_role: {
         Args: Record<PropertyKey, never>
@@ -3245,6 +3610,10 @@ export type Database = {
         Args: { csv_url: string }
         Returns: undefined
       }
+      insert_attendance_from_csv: {
+        Args: { rows: Json }
+        Returns: Json
+      }
       is_admin: {
         Args: Record<PropertyKey, never>
         Returns: boolean
@@ -3304,6 +3673,8 @@ export type Database = {
       }
     }
     Enums: {
+      asset_condition: "new" | "good" | "fair" | "poor"
+      asset_status: "active" | "maintenance" | "retired" | "disposed"
       formula_type: "gross_salary" | "deductions" | "net_salary" | "allowances"
       media_type: "audio" | "video"
       process_stage:
@@ -3313,6 +3684,7 @@ export type Database = {
         | "SLITTING"
         | "DISPATCH"
       stage: "printing" | "lamination" | "adhesive" | "slitting" | "dispatch"
+      transfer_status: "pending" | "approved" | "rejected" | "completed"
       variable_type: "fixed" | "calculated" | "employee_specific" | "system"
     }
     CompositeTypes: {
@@ -3457,6 +3829,8 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      asset_condition: ["new", "good", "fair", "poor"],
+      asset_status: ["active", "maintenance", "retired", "disposed"],
       formula_type: ["gross_salary", "deductions", "net_salary", "allowances"],
       media_type: ["audio", "video"],
       process_stage: [
@@ -3467,6 +3841,7 @@ export const Constants = {
         "DISPATCH",
       ],
       stage: ["printing", "lamination", "adhesive", "slitting", "dispatch"],
+      transfer_status: ["pending", "approved", "rejected", "completed"],
       variable_type: ["fixed", "calculated", "employee_specific", "system"],
     },
   },
