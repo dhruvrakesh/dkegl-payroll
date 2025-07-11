@@ -17,56 +17,97 @@ interface CsvRow {
   unit_code: string;
 }
 
+interface ValidationResult {
+  isValid: boolean;
+  errors: string[];
+}
+
+const REQUIRED_COLUMNS = ['employee_code', 'date', 'hours_worked', 'overtime_hours', 'unit_code'];
+
 export const AttendanceCsvUploader = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
-  const validateCsvData = (data: any[]): { isValid: boolean; errors: string[] } => {
+  const validateRequiredColumns = (data: any[]): string[] => {
     const errors: string[] = [];
-    const requiredColumns = ['employee_code', 'date', 'hours_worked', 'overtime_hours', 'unit_code'];
     
     if (data.length === 0) {
       errors.push('CSV file is empty');
-      return { isValid: false, errors };
+      return errors;
     }
 
-    // Check if all required columns exist
     const firstRow = data[0];
-    const missingColumns = requiredColumns.filter(col => !(col in firstRow));
+    const missingColumns = REQUIRED_COLUMNS.filter(col => !(col in firstRow));
     if (missingColumns.length > 0) {
       errors.push(`Missing required columns: ${missingColumns.join(', ')}`);
     }
 
+    return errors;
+  };
+
+  const validateDate = (dateStr: string, rowNum: number): string[] => {
+    const errors: string[] = [];
+    
+    if (!dateStr?.trim()) {
+      errors.push(`Row ${rowNum}: Date is required`);
+    } else {
+      const date = new Date(dateStr);
+      if (isNaN(date.getTime())) {
+        errors.push(`Row ${rowNum}: Invalid date format`);
+      }
+    }
+
+    return errors;
+  };
+
+  const validateHours = (hoursWorked: string, overtimeHours: string, rowNum: number): string[] => {
+    const errors: string[] = [];
+    
+    const hours = parseFloat(hoursWorked || '0');
+    if (isNaN(hours) || hours < 0 || hours > 24) {
+      errors.push(`Row ${rowNum}: Hours worked must be between 0 and 24`);
+    }
+
+    const overtime = parseFloat(overtimeHours || '0');
+    if (isNaN(overtime) || overtime < 0) {
+      errors.push(`Row ${rowNum}: Overtime hours cannot be negative`);
+    }
+
+    return errors;
+  };
+
+  const validateRowData = (row: any, index: number): string[] => {
+    const errors: string[] = [];
+    const rowNum = index + 1;
+    
+    // Check required fields
+    if (!row.employee_code?.trim()) {
+      errors.push(`Row ${rowNum}: Employee code is required`);
+    }
+    
+    // Validate date
+    errors.push(...validateDate(row.date, rowNum));
+    
+    // Validate hours
+    errors.push(...validateHours(row.hours_worked, row.overtime_hours, rowNum));
+
+    return errors;
+  };
+
+  const validateCsvData = (data: any[]): ValidationResult => {
+    const errors: string[] = [];
+    
+    // Check required columns
+    errors.push(...validateRequiredColumns(data));
+    
+    if (errors.length > 0) {
+      return { isValid: false, errors };
+    }
+
     // Validate each row
     data.forEach((row, index) => {
-      const rowNum = index + 1;
-      
-      // Check required fields
-      if (!row.employee_code?.trim()) {
-        errors.push(`Row ${rowNum}: Employee code is required`);
-      }
-      
-      if (!row.date?.trim()) {
-        errors.push(`Row ${rowNum}: Date is required`);
-      } else {
-        const date = new Date(row.date);
-        if (isNaN(date.getTime())) {
-          errors.push(`Row ${rowNum}: Invalid date format`);
-        }
-      }
-
-      // Validate hours_worked
-      const hoursWorked = parseFloat(row.hours_worked || '0');
-      if (isNaN(hoursWorked) || hoursWorked < 0 || hoursWorked > 24) {
-        errors.push(`Row ${rowNum}: Hours worked must be between 0 and 24`);
-      }
-
-      // Validate overtime_hours
-      const overtimeHours = parseFloat(row.overtime_hours || '0');
-      if (isNaN(overtimeHours) || overtimeHours < 0) {
-        errors.push(`Row ${rowNum}: Overtime hours cannot be negative`);
-      }
+      errors.push(...validateRowData(row, index));
     });
 
     return { isValid: errors.length === 0, errors };
@@ -95,8 +136,8 @@ export const AttendanceCsvUploader = () => {
               return;
             }
 
-            // Call the RPC function
-            const { error: rpcError } = await supabase.rpc('insert_attendance_from_csv', {
+            // Call the RPC function using type assertion
+            const { error: rpcError } = await (supabase.rpc as any)('insert_attendance_from_csv', {
               rows: results.data
             });
 
@@ -132,9 +173,9 @@ export const AttendanceCsvUploader = () => {
   };
 
   const handleDownloadTemplate = () => {
-    // Create a link to the edge function endpoint
+    // Create a link to the edge function endpoint using the direct URL
     const link = document.createElement('a');
-    link.href = `${supabase.supabaseUrl}/functions/v1/get-attendance-template`;
+    link.href = 'https://xltzaggnwhqskxkrzdqo.supabase.co/functions/v1/get-attendance-template';
     link.download = 'attendance_template.csv';
     document.body.appendChild(link);
     link.click();
