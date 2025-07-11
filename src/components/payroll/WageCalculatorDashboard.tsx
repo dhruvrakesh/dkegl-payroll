@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -78,44 +79,66 @@ export const WageCalculatorDashboard = () => {
     try {
       setLoading(true);
 
-      // Simple fetch to avoid TypeScript recursion
-      const empResponse = await fetch('/api/employees'); // This would need backend endpoint
-      const unitsResponse = await fetch('/api/units');   // This would need backend endpoint
-      
-      // For now, use direct simple queries with any types
-      const employeesData: any[] = [];
-      const unitsData: any[] = [];
+      // Fetch units
+      const { data: unitsData, error: unitsError } = await supabase
+        .from('units')
+        .select('unit_id, unit_name, unit_code')
+        .order('unit_name');
 
-      // Create unit lookup map
-      const unitMap = new Map();
-      const processedUnits: Unit[] = [];
+      if (unitsError) {
+        console.error('Error fetching units:', unitsError);
+        throw unitsError;
+      }
 
-      unitsData.forEach((unit: any) => {
-        unitMap.set(unit.unit_id, unit.unit_name);
-        processedUnits.push({
-          unit_id: unit.unit_id,
-          unit_name: unit.unit_name,
-          unit_code: unit.unit_code
-        });
-      });
+      // Fetch employees with unit information
+      const { data: employeesData, error: employeesError } = await supabase
+        .from('payroll_employees')
+        .select(`
+          id,
+          name,
+          uan_number,
+          unit_id,
+          base_salary,
+          units!inner(unit_name)
+        `)
+        .eq('active', true)
+        .order('name');
+
+      if (employeesError) {
+        console.error('Error fetching employees:', employeesError);
+        throw employeesError;
+      }
+
+      // Process units
+      const processedUnits: Unit[] = (unitsData || []).map(unit => ({
+        unit_id: unit.unit_id,
+        unit_name: unit.unit_name,
+        unit_code: unit.unit_code
+      }));
 
       // Process employees with unit names
-      const processedEmployees: Employee[] = employeesData.map((emp: any) => ({
+      const processedEmployees: Employee[] = (employeesData || []).map((emp: any) => ({
         id: emp.id,
         name: emp.name,
         uan_number: emp.uan_number,
         unit_id: emp.unit_id,
-        base_salary: emp.base_salary,
-        unit_name: unitMap.get(emp.unit_id) || 'Unassigned'
+        base_salary: emp.base_salary || 0,
+        unit_name: emp.units?.unit_name || 'Unassigned'
       }));
 
-      setEmployees(processedEmployees);
       setUnits(processedUnits);
+      setEmployees(processedEmployees);
+
+      console.log('Loaded data:', {
+        units: processedUnits.length,
+        employees: processedEmployees.length
+      });
+
     } catch (error) {
-      console.error('Error fetching data:', error);
+      console.error('Error fetching initial data:', error);
       toast({
         title: "Error",
-        description: "Failed to load data",
+        description: "Failed to load data. Please check your connection and try again.",
         variant: "destructive",
       });
     } finally {
@@ -143,49 +166,40 @@ export const WageCalculatorDashboard = () => {
         targetEmployees = employees.filter(emp => emp.id === filters.employee_id);
       }
 
+      console.log('Calculating wages for:', {
+        employees: targetEmployees.length,
+        dateRange: `${filters.date_from} to ${filters.date_to}`
+      });
+
       const calculations: WageCalculation[] = [];
 
       for (const employee of targetEmployees) {
-        // Define types for attendance and advances
-        type AttendanceRow = {
-          overtime_hours: number;
-          attendance_date: string;
-        };
-        
-        type AdvanceRow = {
-          advance_amount: number;
-        };
-
-        // Fetch attendance - simplified
-        const attendanceQuery = await supabase
+        // Fetch attendance data
+        const { data: attendanceData, error: attendanceError } = await supabase
           .from('attendance')
-          .select('overtime_hours, attendance_date')
+          .select('overtime_hours, attendance_date, hours_worked')
           .eq('employee_id', employee.id)
           .gte('attendance_date', filters.date_from)
           .lte('attendance_date', filters.date_to);
 
-        if (attendanceQuery.error) {
-          console.error('Error fetching attendance:', attendanceQuery.error);
+        if (attendanceError) {
+          console.error('Error fetching attendance for employee:', employee.name, attendanceError);
           continue;
         }
 
-        // Fetch advances - simplified
-        const advancesQuery = await supabase
+        // Fetch advances data
+        const { data: advancesData, error: advancesError } = await supabase
           .from('advances')
           .select('advance_amount')
           .eq('employee_id', employee.id)
           .gte('advance_date', filters.date_from)
           .lte('advance_date', filters.date_to);
 
-        if (advancesQuery.error) {
-          console.error('Error fetching advances:', advancesQuery.error);
+        if (advancesError) {
+          console.error('Error fetching advances for employee:', employee.name, advancesError);
           continue;
         }
 
-        const attendanceData = attendanceQuery.data;
-        const advancesData = advancesQuery.data;
-
-        // Calculate totals safely
         const attendance = attendanceData || [];
         const advances = advancesData || [];
         
@@ -234,6 +248,13 @@ export const WageCalculatorDashboard = () => {
       }
 
       setCalculations(calculations);
+      
+      console.log('Calculations completed:', {
+        totalCalculations: calculations.length,
+        totalGross: calculations.reduce((sum, calc) => sum + calc.gross_salary, 0),
+        totalNet: calculations.reduce((sum, calc) => sum + calc.net_salary, 0)
+      });
+
       toast({
         title: "Success",
         description: `Calculated wages for ${calculations.length} employees`,
@@ -242,7 +263,7 @@ export const WageCalculatorDashboard = () => {
       console.error('Error calculating wages:', error);
       toast({
         title: "Error",
-        description: "Failed to calculate wages",
+        description: "Failed to calculate wages. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -302,11 +323,69 @@ export const WageCalculatorDashboard = () => {
     }
   };
 
+  const exportToCSV = () => {
+    if (calculations.length === 0) {
+      toast({
+        title: "Error",
+        description: "No data to export",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const headers = [
+      'Employee Name',
+      'Unit',
+      'Period Start',
+      'Period End',
+      'Days Present',
+      'Overtime Hours',
+      'Gross Salary',
+      'PF Deduction',
+      'ESI Deduction',
+      'Advances Deduction',
+      'Net Salary'
+    ];
+
+    const csvData = calculations.map(calc => [
+      calc.employee_name,
+      calc.unit_name,
+      calc.period_start,
+      calc.period_end,
+      calc.days_present,
+      calc.overtime_hours,
+      calc.gross_salary.toFixed(2),
+      calc.deductions.pf.toFixed(2),
+      calc.deductions.esi.toFixed(2),
+      calc.deductions.advances.toFixed(2),
+      calc.net_salary.toFixed(2)
+    ]);
+
+    const csvContent = [headers, ...csvData]
+      .map(row => row.map(field => `"${field}"`).join(','))
+      .join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `wage_calculations_${filters.date_from}_${filters.date_to}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    toast({
+      title: "Success",
+      description: "CSV file downloaded successfully",
+    });
+  };
+
   const filteredEmployees = filters.unit_id && filters.unit_id !== 'all-units'
     ? employees.filter(emp => emp.unit_id === filters.unit_id)
     : employees;
 
-  if (loading) {
+  if (loading && employees.length === 0) {
     return <div className="flex justify-center p-8">Loading wage calculator...</div>;
   }
 
@@ -316,6 +395,9 @@ export const WageCalculatorDashboard = () => {
         <div>
           <h2 className="text-2xl font-bold">Wage Calculator Dashboard</h2>
           <p className="text-muted-foreground">Calculate wages for any period with advanced filtering</p>
+          <p className="text-sm text-muted-foreground mt-1">
+            Loaded: {units.length} units, {employees.length} employees
+          </p>
         </div>
       </div>
 
@@ -429,7 +511,7 @@ export const WageCalculatorDashboard = () => {
                   </Button>
                   <Button onClick={calculateWagesForPeriod} disabled={loading}>
                     <Calculator className="w-4 h-4 mr-2" />
-                    Calculate Wages
+                    {loading ? 'Calculating...' : 'Calculate Wages'}
                   </Button>
                 </div>
               </div>
@@ -454,10 +536,10 @@ export const WageCalculatorDashboard = () => {
                 <div className="space-y-4">
                   <div className="flex justify-between items-center">
                     <div className="text-sm text-muted-foreground">
-                      Showing {calculations.length} calculations
+                      Showing {calculations.length} calculations for period {filters.date_from} to {filters.date_to}
                     </div>
                     <div className="space-x-2">
-                      <Button variant="outline">
+                      <Button variant="outline" onClick={exportToCSV}>
                         <Download className="w-4 h-4 mr-2" />
                         Export CSV
                       </Button>
