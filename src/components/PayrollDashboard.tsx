@@ -5,6 +5,7 @@ import { Header } from '@/components/layout/Header';
 import { UnitsManagement } from './payroll/UnitsManagement';
 import { EmployeesManagement } from './payroll/EmployeesManagement';
 import { AttendanceManagement } from './payroll/AttendanceManagement';
+import { AttendanceCsvUploader } from '@/components/AttendanceCsvUploader';
 import { AdvancesManagement } from './payroll/AdvancesManagement';
 import { SalaryDisbursement } from './payroll/SalaryDisbursement';
 import { PayrollSettings } from './payroll/PayrollSettings';
@@ -118,17 +119,21 @@ export const PayrollDashboard = () => {
 
           {canViewAttendance && (
             <TabsContent value="attendance">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Attendance Management</CardTitle>
-                  <CardDescription>
-                    Track daily attendance and working hours
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <AttendanceManagement />
-                </CardContent>
-              </Card>
+              <div className="space-y-6">
+                <AttendanceCsvUploader />
+                
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Attendance Management</CardTitle>
+                    <CardDescription>
+                      Track daily attendance and working hours
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <AttendanceManagement />
+                  </CardContent>
+                </Card>
+              </div>
             </TabsContent>
           )}
 
