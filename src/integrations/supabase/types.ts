@@ -1007,6 +1007,55 @@ export type Database = {
         }
         Relationships: []
       }
+      deck_viscosity_readings: {
+        Row: {
+          captured_at: string
+          captured_by: string | null
+          deck_id: string
+          id: string
+          job_id: string | null
+          viscosity_cps: number
+        }
+        Insert: {
+          captured_at?: string
+          captured_by?: string | null
+          deck_id: string
+          id?: string
+          job_id?: string | null
+          viscosity_cps: number
+        }
+        Update: {
+          captured_at?: string
+          captured_by?: string | null
+          deck_id?: string
+          id?: string
+          job_id?: string | null
+          viscosity_cps?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deck_viscosity_readings_captured_by_fkey"
+            columns: ["captured_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deck_viscosity_readings_deck_id_fkey"
+            columns: ["deck_id"]
+            isOneToOne: false
+            referencedRelation: "press_decks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deck_viscosity_readings_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       document_requirements: {
         Row: {
           document_id: string
@@ -2640,6 +2689,38 @@ export type Database = {
         }
         Relationships: []
       }
+      press_decks: {
+        Row: {
+          colour: string | null
+          created_at: string | null
+          deck_no: number
+          id: string
+          press_id: string | null
+        }
+        Insert: {
+          colour?: string | null
+          created_at?: string | null
+          deck_no: number
+          id?: string
+          press_id?: string | null
+        }
+        Update: {
+          colour?: string | null
+          created_at?: string | null
+          deck_no?: number
+          id?: string
+          press_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "press_decks_press_id_fkey"
+            columns: ["press_id"]
+            isOneToOne: false
+            referencedRelation: "presses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       presses: {
         Row: {
           created_at: string | null
@@ -2924,10 +3005,100 @@ export type Database = {
         }
         Relationships: []
       }
+      salary_audit_log: {
+        Row: {
+          action: string
+          batch_id: string | null
+          details: Json | null
+          id: string
+          performed_at: string
+          performed_by: string | null
+        }
+        Insert: {
+          action: string
+          batch_id?: string | null
+          details?: Json | null
+          id?: string
+          performed_at?: string
+          performed_by?: string | null
+        }
+        Update: {
+          action?: string
+          batch_id?: string | null
+          details?: Json | null
+          id?: string
+          performed_at?: string
+          performed_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "salary_audit_log_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "salary_batches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      salary_batches: {
+        Row: {
+          batch_name: string
+          completed_at: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          metadata: Json | null
+          period_end: string
+          period_start: string
+          period_type: string
+          status: string
+          total_deductions: number
+          total_employees: number
+          total_gross_amount: number
+          total_net_amount: number
+          updated_at: string
+        }
+        Insert: {
+          batch_name: string
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          metadata?: Json | null
+          period_end: string
+          period_start: string
+          period_type: string
+          status?: string
+          total_deductions?: number
+          total_employees?: number
+          total_gross_amount?: number
+          total_net_amount?: number
+          updated_at?: string
+        }
+        Update: {
+          batch_name?: string
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          metadata?: Json | null
+          period_end?: string
+          period_start?: string
+          period_type?: string
+          status?: string
+          total_deductions?: number
+          total_employees?: number
+          total_gross_amount?: number
+          total_net_amount?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       salary_disbursement: {
         Row: {
           advances_deduction: number | null
           base_salary: number
+          batch_id: string | null
           created_at: string | null
           disbursed_on: string | null
           employee_id: string | null
@@ -2948,6 +3119,7 @@ export type Database = {
         Insert: {
           advances_deduction?: number | null
           base_salary: number
+          batch_id?: string | null
           created_at?: string | null
           disbursed_on?: string | null
           employee_id?: string | null
@@ -2968,6 +3140,7 @@ export type Database = {
         Update: {
           advances_deduction?: number | null
           base_salary?: number
+          batch_id?: string | null
           created_at?: string | null
           disbursed_on?: string | null
           employee_id?: string | null
@@ -2986,6 +3159,13 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "salary_disbursement_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "salary_batches"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "salary_disbursement_employee_id_fkey"
             columns: ["employee_id"]
@@ -3519,6 +3699,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      delete_deck_viscosity_reading: {
+        Args: { p_reading_id: string }
+        Returns: boolean
+      }
       delete_process_log: {
         Args: { log_id: string }
         Returns: undefined
@@ -3530,6 +3714,17 @@ export type Database = {
       get_current_user_role: {
         Args: Record<PropertyKey, never>
         Returns: string
+      }
+      get_deck_viscosity_readings: {
+        Args: { p_deck_id: string }
+        Returns: {
+          captured_at: string
+          captured_by: string | null
+          deck_id: string
+          id: string
+          job_id: string | null
+          viscosity_cps: number
+        }[]
       }
       gtrgm_compress: {
         Args: { "": unknown }
@@ -3666,6 +3861,15 @@ export type Database = {
       update_user_approval: {
         Args: { user_id: string; approved: boolean; admin_notes?: string }
         Returns: undefined
+      }
+      upsert_deck_viscosity: {
+        Args: {
+          p_deck_id: string
+          p_viscosity_cps: number
+          p_job_id?: string
+          p_captured_by?: string
+        }
+        Returns: string
       }
       upsert_process_log: {
         Args: {

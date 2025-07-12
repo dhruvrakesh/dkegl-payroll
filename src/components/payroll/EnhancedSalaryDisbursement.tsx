@@ -1,358 +1,436 @@
 
 import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { CalendarDays, Save, AlertTriangle, FileText, Download, Trash2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
-import { Calculator, Plus, Eye, Settings } from 'lucide-react';
+import { toast } from 'sonner';
+import { WageCalculatorDashboard } from './WageCalculatorDashboard';
 
-interface Employee {
+interface SalaryBatch {
   id: string;
-  name: string;
-  base_salary: number;
-}
-
-interface CalculationResult {
-  employee_id: string;
-  employee_name: string;
-  month: string;
-  base_salary: number;
-  days_present: number;
-  overtime_hours: number;
-  gross_salary: number;
-  pf_deduction: number;
-  esi_deduction: number;
-  advances_deduction: number;
+  batch_name: string;
+  period_type: 'monthly' | 'custom';
+  period_start: string;
+  period_end: string;
+  status: 'draft' | 'processing' | 'completed' | 'archived';
+  total_employees: number;
+  total_gross_amount: number;
+  total_net_amount: number;
   total_deductions: number;
-  net_salary: number;
-  calculation_breakdown: Record<string, number>;
-  formulas_used: Array<{ id: string; name: string; type: string }>;
+  created_at: string;
+  updated_at: string;
+  completed_at?: string;
 }
 
-export const EnhancedSalaryDisbursement = () => {
-  const [employees, setEmployees] = useState<Employee[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [dialogOpen, setDialogOpen] = useState({
-    calculate: false,
-    preview: false,
-    settings: false
-  });
-  const [calculationResult, setCalculationResult] = useState<CalculationResult | null>(null);
-  
-  const [formData, setFormData] = useState({
-    employee_id: '',
-    month: '',
-    days_present: '',
-    overtime_hours: '0',
-    custom_variables: {} as Record<string, number>
-  });
+interface SalaryRecord {
+  salary_id: string;
+  employee_id: string;
+  month: string;
+  net_salary: number;
+  batch_id?: string;
+  employee?: {
+    name: string;
+    uan_number: string;
+  };
+}
 
-  const { toast } = useToast();
+export function EnhancedSalaryDisbursement() {
+  const [batches, setBatches] = useState<SalaryBatch[]>([]);
+  const [selectedBatch, setSelectedBatch] = useState<SalaryBatch | null>(null);
+  const [salaryRecords, setSalaryRecords] = useState<SalaryRecord[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [showOverwriteDialog, setShowOverwriteDialog] = useState(false);
+  const [conflictingBatch, setConflictingBatch] = useState<SalaryBatch | null>(null);
+  const [newBatchData, setNewBatchData] = useState({
+    batchName: '',
+    periodType: 'monthly' as 'monthly' | 'custom',
+    periodStart: '',
+    periodEnd: ''
+  });
 
   useEffect(() => {
-    fetchEmployees();
+    fetchBatches();
   }, []);
 
-  const fetchEmployees = async () => {
+  const fetchBatches = async () => {
     try {
       const { data, error } = await supabase
-        .from('payroll_employees')
-        .select('id, name, base_salary')
-        .eq('active', true)
-        .order('name');
+        .from('salary_batches')
+        .select('*')
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setEmployees(data || []);
+      setBatches(data || []);
     } catch (error) {
-      console.error('Error fetching employees:', error);
-    } finally {
-      setLoading(false);
+      console.error('Error fetching batches:', error);
+      toast.error('Failed to fetch salary batches');
     }
   };
 
-  const calculateSalary = async (preview = false) => {
-    if (!formData.employee_id || !formData.month || !formData.days_present) {
-      toast({
-        title: "Error",
-        description: "Please fill all required fields",
-        variant: "destructive",
-      });
-      return;
-    }
-
+  const fetchBatchRecords = async (batchId: string) => {
     try {
-      const { data, error } = await supabase.functions.invoke('calculate-payroll', {
-        body: {
-          employee_id: formData.employee_id,
-          month: formData.month,
-          days_present: parseInt(formData.days_present),
-          overtime_hours: parseInt(formData.overtime_hours),
-          custom_variables: formData.custom_variables
-        }
-      });
+      const { data, error } = await supabase
+        .from('salary_disbursement')
+        .select(`
+          *,
+          employee:payroll_employees(name, uan_number)
+        `)
+        .eq('batch_id', batchId);
 
       if (error) throw error;
-
-      setCalculationResult(data);
-      
-      if (preview) {
-        setDialogOpen({ ...dialogOpen, preview: true });
-      } else {
-        toast({
-          title: "Success",
-          description: "Salary calculated successfully",
-        });
-      }
+      setSalaryRecords(data || []);
     } catch (error) {
-      console.error('Calculation error:', error);
-      toast({
-        title: "Error",
-        description: "Failed to calculate salary",
-        variant: "destructive",
-      });
+      console.error('Error fetching batch records:', error);
+      toast.error('Failed to fetch batch records');
     }
   };
 
-  const saveSalaryRecord = async () => {
-    if (!calculationResult) return;
-
+  const checkForConflictingBatch = async (periodStart: string, periodEnd: string) => {
     try {
-      // Get employee's unit_id
-      const { data: employeeData, error: employeeError } = await supabase
-        .from('payroll_employees')
-        .select('unit_id')
-        .eq('id', formData.employee_id)
+      const { data, error } = await supabase
+        .from('salary_batches')
+        .select('*')
+        .eq('period_start', periodStart)
+        .eq('period_end', periodEnd)
+        .neq('status', 'archived')
         .single();
 
-      if (employeeError) throw employeeError;
-
-      const salaryData = {
-        employee_id: calculationResult.employee_id,
-        month: `${formData.month}-01`,
-        total_days_present: calculationResult.days_present,
-        total_hours_worked: calculationResult.overtime_hours,
-        base_salary: calculationResult.base_salary,
-        overtime_amount: calculationResult.gross_salary - calculationResult.base_salary,
-        pf_deduction: calculationResult.pf_deduction,
-        esi_deduction: calculationResult.esi_deduction,
-        advances_deduction: calculationResult.advances_deduction,
-        net_salary: calculationResult.net_salary,
-        unit_id: employeeData.unit_id
-      };
-
-      const { error } = await supabase
-        .from('salary_disbursement')
-        .insert([salaryData]);
-
-      if (error) throw error;
-
-      toast({
-        title: "Success",
-        description: "Salary record saved successfully",
-      });
-
-      setDialogOpen({ calculate: false, preview: false, settings: false });
-      setCalculationResult(null);
-      setFormData({
-        employee_id: '',
-        month: '',
-        days_present: '',
-        overtime_hours: '0',
-        custom_variables: {}
-      });
+      if (error && error.code !== 'PGRST116') throw error;
+      return data;
     } catch (error) {
-      console.error('Error saving salary record:', error);
-      toast({
-        title: "Error",
-        description: "Failed to save salary record",
-        variant: "destructive",
-      });
+      console.error('Error checking for conflicts:', error);
+      return null;
     }
   };
 
-  if (loading) {
-    return <div>Loading enhanced salary calculation...</div>;
-  }
+  const createNewBatch = async (overwriteExisting = false) => {
+    setIsLoading(true);
+    try {
+      let batchToCreate = newBatchData;
+      
+      if (!overwriteExisting) {
+        const conflict = await checkForConflictingBatch(
+          newBatchData.periodStart,
+          newBatchData.periodEnd
+        );
+        
+        if (conflict) {
+          setConflictingBatch(conflict);
+          setShowOverwriteDialog(true);
+          setIsLoading(false);
+          return;
+        }
+      }
+
+      // If overwriting, archive the existing batch
+      if (overwriteExisting && conflictingBatch) {
+        await supabase
+          .from('salary_batches')
+          .update({ status: 'archived' })
+          .eq('id', conflictingBatch.id);
+      }
+
+      // Create new batch
+      const { data: batch, error } = await supabase
+        .from('salary_batches')
+        .insert({
+          batch_name: batchToCreate.batchName,
+          period_type: batchToCreate.periodType,
+          period_start: batchToCreate.periodStart,
+          period_end: batchToCreate.periodEnd,
+          status: 'draft'
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      toast.success('Salary batch created successfully');
+      setNewBatchData({
+        batchName: '',
+        periodType: 'monthly',
+        periodStart: '',
+        periodEnd: ''
+      });
+      setShowOverwriteDialog(false);
+      setConflictingBatch(null);
+      await fetchBatches();
+      setSelectedBatch(batch);
+    } catch (error) {
+      console.error('Error creating batch:', error);
+      toast.error('Failed to create salary batch');
+    }
+    setIsLoading(false);
+  };
+
+  const generateMonthlyBatch = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth();
+    
+    const periodStart = new Date(year, month, 1);
+    const periodEnd = new Date(year, month + 1, 0);
+    
+    setNewBatchData({
+      batchName: `Salary - ${periodStart.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}`,
+      periodType: 'monthly',
+      periodStart: periodStart.toISOString().split('T')[0],
+      periodEnd: periodEnd.toISOString().split('T')[0]
+    });
+  };
+
+  const handleBatchSelect = (batch: SalaryBatch) => {
+    setSelectedBatch(batch);
+    fetchBatchRecords(batch.id);
+  };
+
+  const getStatusBadge = (status: string) => {
+    const variants = {
+      draft: 'secondary',
+      processing: 'default',
+      completed: 'default',
+      archived: 'outline'
+    } as const;
+    
+    return (
+      <Badge variant={variants[status as keyof typeof variants] || 'secondary'}>
+        {status.charAt(0).toUpperCase() + status.slice(1)}
+      </Badge>
+    );
+  };
+
+  const handleSalaryGenerated = async (salaryData: any, batchId?: string) => {
+    if (batchId && selectedBatch) {
+      // Update batch totals
+      const totalNet = salaryData.reduce((sum: number, record: any) => sum + record.net_salary, 0);
+      const totalGross = salaryData.reduce((sum: number, record: any) => sum + record.gross_salary, 0);
+      const totalDeductions = totalGross - totalNet;
+
+      await supabase
+        .from('salary_batches')
+        .update({
+          total_employees: salaryData.length,
+          total_gross_amount: totalGross,
+          total_net_amount: totalNet,
+          total_deductions: totalDeductions,
+          status: 'completed',
+          completed_at: new Date().toISOString()
+        })
+        .eq('id', batchId);
+
+      await fetchBatches();
+      await fetchBatchRecords(batchId);
+      toast.success('Batch updated with salary calculations');
+    }
+  };
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h3 className="text-lg font-medium">Enhanced Salary Calculation</h3>
-        <div className="flex space-x-2">
-          <Dialog open={dialogOpen.calculate} onOpenChange={(open) => setDialogOpen({ ...dialogOpen, calculate: open })}>
-            <DialogTrigger asChild>
-              <Button>
-                <Calculator className="w-4 h-4 mr-2" />
-                Calculate Salary
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-2xl">
-              <DialogHeader>
-                <DialogTitle>Calculate Monthly Salary</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="employee_id">Employee</Label>
-                    <Select 
-                      value={formData.employee_id} 
-                      onValueChange={(value) => setFormData({ ...formData, employee_id: value })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select employee" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {employees.map((employee) => (
-                          <SelectItem key={employee.id} value={employee.id}>
-                            {employee.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label htmlFor="month">Month</Label>
-                    <Input
-                      id="month"
-                      type="month"
-                      value={formData.month}
-                      onChange={(e) => setFormData({ ...formData, month: e.target.value })}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="days_present">Days Present</Label>
-                    <Input
-                      id="days_present"
-                      type="number"
-                      min="0"
-                      max="31"
-                      value={formData.days_present}
-                      onChange={(e) => setFormData({ ...formData, days_present: e.target.value })}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="overtime_hours">Overtime Hours</Label>
-                    <Input
-                      id="overtime_hours"
-                      type="number"
-                      min="0"
-                      value={formData.overtime_hours}
-                      onChange={(e) => setFormData({ ...formData, overtime_hours: e.target.value })}
-                    />
-                  </div>
-                </div>
+        <h2 className="text-2xl font-bold">Enhanced Salary Management</h2>
+        <Dialog>
+          <DialogTrigger asChild>
+            <Button>
+              <CalendarDays className="w-4 h-4 mr-2" />
+              Create New Batch
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Create Salary Batch</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="batchName">Batch Name</Label>
+                <Input
+                  id="batchName"
+                  value={newBatchData.batchName}
+                  onChange={(e) => setNewBatchData(prev => ({ ...prev, batchName: e.target.value }))}
+                  placeholder="Enter batch name"
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="periodType">Period Type</Label>
+                <Select
+                  value={newBatchData.periodType}
+                  onValueChange={(value: 'monthly' | 'custom') => setNewBatchData(prev => ({ ...prev, periodType: value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="monthly">Monthly</SelectItem>
+                    <SelectItem value="custom">Custom Range</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-                <div className="flex space-x-2">
-                  <Button type="button" onClick={() => calculateSalary(true)} variant="outline">
-                    <Eye className="w-4 h-4 mr-2" />
-                    Preview
-                  </Button>
-                  <Button type="button" onClick={() => calculateSalary(false)}>
-                    <Calculator className="w-4 h-4 mr-2" />
-                    Calculate & Save
-                  </Button>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="periodStart">Start Date</Label>
+                  <Input
+                    id="periodStart"
+                    type="date"
+                    value={newBatchData.periodStart}
+                    onChange={(e) => setNewBatchData(prev => ({ ...prev, periodStart: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="periodEnd">End Date</Label>
+                  <Input
+                    id="periodEnd"
+                    type="date"
+                    value={newBatchData.periodEnd}
+                    onChange={(e) => setNewBatchData(prev => ({ ...prev, periodEnd: e.target.value }))}
+                  />
                 </div>
               </div>
-            </DialogContent>
-          </Dialog>
-        </div>
+
+              <Button
+                onClick={generateMonthlyBatch}
+                variant="outline"
+                className="w-full"
+              >
+                Generate Current Month
+              </Button>
+
+              <Button
+                onClick={() => createNewBatch(false)}
+                disabled={isLoading || !newBatchData.batchName || !newBatchData.periodStart || !newBatchData.periodEnd}
+                className="w-full"
+              >
+                {isLoading ? 'Creating...' : 'Create Batch'}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
 
-      {/* Preview Dialog */}
-      <Dialog open={dialogOpen.preview} onOpenChange={(open) => setDialogOpen({ ...dialogOpen, preview: open })}>
-        <DialogContent className="max-w-4xl">
-          <DialogHeader>
-            <DialogTitle>Salary Calculation Preview</DialogTitle>
-          </DialogHeader>
-          {calculationResult && (
-            <div className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle>{calculationResult.employee_name}</CardTitle>
-                  <CardDescription>
-                    Salary calculation for {new Date(calculationResult.month).toLocaleDateString('en-US', { year: 'numeric', month: 'long' })}
-                  </CardDescription>
+      <Tabs defaultValue="batches" className="w-full">
+        <TabsList>
+          <TabsTrigger value="batches">Salary Batches</TabsTrigger>
+          <TabsTrigger value="calculator">Wage Calculator</TabsTrigger>
+          {selectedBatch && <TabsTrigger value="records">Batch Records</TabsTrigger>}
+        </TabsList>
+
+        <TabsContent value="batches">
+          <div className="grid gap-4">
+            {batches.map((batch) => (
+              <Card key={batch.id} className="cursor-pointer hover:shadow-md transition-shadow"
+                    onClick={() => handleBatchSelect(batch)}>
+                <CardHeader className="pb-3">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <CardTitle className="text-lg">{batch.batch_name}</CardTitle>
+                      <p className="text-sm text-muted-foreground">
+                        {new Date(batch.period_start).toLocaleDateString()} - {new Date(batch.period_end).toLocaleDateString()}
+                      </p>
+                    </div>
+                    {getStatusBadge(batch.status)}
+                  </div>
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-3 gap-4 text-sm">
                     <div>
-                      <strong>Base Salary:</strong><br />
-                      ₹{calculationResult.base_salary.toLocaleString()}
+                      <p className="text-muted-foreground">Employees</p>
+                      <p className="font-medium">{batch.total_employees}</p>
                     </div>
                     <div>
-                      <strong>Days Present:</strong><br />
-                      {calculationResult.days_present}
+                      <p className="text-muted-foreground">Net Amount</p>
+                      <p className="font-medium">₹{batch.total_net_amount.toLocaleString()}</p>
                     </div>
                     <div>
-                      <strong>Overtime Hours:</strong><br />
-                      {calculationResult.overtime_hours}
-                    </div>
-                    <div>
-                      <strong>Gross Salary:</strong><br />
-                      ₹{calculationResult.gross_salary.toFixed(2)}
-                    </div>
-                    <div>
-                      <strong>Total Deductions:</strong><br />
-                      ₹{calculationResult.total_deductions.toFixed(2)}
-                    </div>
-                    <div className="text-lg font-bold text-green-600">
-                      <strong>Net Salary:</strong><br />
-                      ₹{calculationResult.net_salary.toFixed(2)}
+                      <p className="text-muted-foreground">Created</p>
+                      <p className="font-medium">{new Date(batch.created_at).toLocaleDateString()}</p>
                     </div>
                   </div>
                 </CardContent>
               </Card>
+            ))}
+          </div>
+        </TabsContent>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-sm">Calculation Breakdown</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2 text-xs">
-                    {Object.entries(calculationResult.calculation_breakdown).map(([key, value]) => (
-                      <div key={key} className="flex justify-between">
-                        <span className="capitalize">{key.replace('_', ' ')}:</span>
-                        <span>₹{value.toFixed(2)}</span>
+        <TabsContent value="calculator">
+          <WageCalculatorDashboard 
+            selectedBatchId={selectedBatch?.id}
+            onSalaryGenerated={handleSalaryGenerated}
+          />
+        </TabsContent>
+
+        <TabsContent value="records">
+          {selectedBatch && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Batch Records: {selectedBatch.batch_name}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {salaryRecords.map((record) => (
+                    <div key={record.salary_id} className="flex justify-between items-center p-3 border rounded">
+                      <div>
+                        <p className="font-medium">{record.employee?.name}</p>
+                        <p className="text-sm text-muted-foreground">UAN: {record.employee?.uan_number}</p>
                       </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-sm">Formulas Used</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex flex-wrap gap-2">
-                    {calculationResult.formulas_used.map((formula) => (
-                      <Badge key={formula.id} variant="outline">
-                        {formula.name} ({formula.type})
-                      </Badge>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-
-              <div className="flex justify-end space-x-2">
-                <Button variant="outline" onClick={() => setDialogOpen({ ...dialogOpen, preview: false })}>
-                  Close
-                </Button>
-                <Button onClick={saveSalaryRecord}>
-                  Save Salary Record
-                </Button>
-              </div>
-            </div>
+                      <div className="text-right">
+                        <p className="font-medium">₹{record.net_salary.toLocaleString()}</p>
+                        <p className="text-sm text-muted-foreground">{record.month}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
           )}
+        </TabsContent>
+      </Tabs>
+
+      {/* Overwrite Confirmation Dialog */}
+      <Dialog open={showOverwriteDialog} onOpenChange={setShowOverwriteDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-yellow-500" />
+              Existing Batch Found
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Alert>
+              <AlertTriangle className="w-4 h-4" />
+              <AlertDescription>
+                A salary batch already exists for this period: <strong>{conflictingBatch?.batch_name}</strong>
+                <br />
+                Period: {conflictingBatch && new Date(conflictingBatch.period_start).toLocaleDateString()} - {conflictingBatch && new Date(conflictingBatch.period_end).toLocaleDateString()}
+              </AlertDescription>
+            </Alert>
+            
+            <p className="text-sm text-muted-foreground">
+              Creating a new batch will archive the existing one. This action cannot be undone.
+            </p>
+            
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" onClick={() => setShowOverwriteDialog(false)}>
+                Cancel
+              </Button>
+              <Button 
+                variant="destructive" 
+                onClick={() => createNewBatch(true)}
+                disabled={isLoading}
+              >
+                {isLoading ? 'Processing...' : 'Archive & Create New'}
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
   );
-};
+}
