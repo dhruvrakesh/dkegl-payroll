@@ -22,9 +22,13 @@ interface ValidationResult {
   errors: string[];
 }
 
+interface AttendanceCsvUploaderProps {
+  onUploadSuccess?: () => void;
+}
+
 const REQUIRED_COLUMNS = ['employee_code', 'date', 'hours_worked', 'overtime_hours', 'unit_code'];
 
-export const AttendanceCsvUploader = () => {
+export const AttendanceCsvUploader = ({ onUploadSuccess }: AttendanceCsvUploaderProps) => {
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
@@ -152,6 +156,11 @@ export const AttendanceCsvUploader = () => {
 
             // Clear the file input
             event.target.value = '';
+            
+            // Call the success callback to refresh data
+            if (onUploadSuccess) {
+              onUploadSuccess();
+            }
             
           } catch (error) {
             console.error('Upload error:', error);

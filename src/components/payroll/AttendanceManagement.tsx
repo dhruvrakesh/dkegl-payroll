@@ -6,8 +6,9 @@ import { AttendanceCalendarView } from './attendance/AttendanceCalendarView';
 import { AttendanceEmployeeView } from './attendance/AttendanceEmployeeView';
 import { AttendanceSummaryView } from './attendance/AttendanceSummaryView';
 import { AttendanceFilters } from './attendance/AttendanceFilters';
+import { AttendanceCsvUploader } from '../AttendanceCsvUploader';
 import { useAttendanceData } from '@/hooks/useAttendanceData';
-import { Calendar, Users, BarChart3, Table } from 'lucide-react';
+import { Calendar, Users, BarChart3, Table, Upload } from 'lucide-react';
 
 export interface AttendanceFilters {
   dateRange: {
@@ -34,6 +35,11 @@ export const AttendanceManagement = () => {
     aggregatedData 
   } = useAttendanceData(filters);
 
+  const handleCsvUploadSuccess = () => {
+    // Refresh data after successful CSV upload
+    refreshAttendance();
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -47,7 +53,7 @@ export const AttendanceManagement = () => {
       />
 
       <Tabs value={activeView} onValueChange={setActiveView} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="summary" className="flex items-center gap-2">
             <BarChart3 className="w-4 h-4" />
             Summary
@@ -63,6 +69,10 @@ export const AttendanceManagement = () => {
           <TabsTrigger value="table" className="flex items-center gap-2">
             <Table className="w-4 h-4" />
             Detailed Table
+          </TabsTrigger>
+          <TabsTrigger value="upload" className="flex items-center gap-2">
+            <Upload className="w-4 h-4" />
+            Bulk Upload
           </TabsTrigger>
         </TabsList>
 
@@ -98,6 +108,10 @@ export const AttendanceManagement = () => {
             loading={loading}
             onRefresh={refreshAttendance}
           />
+        </TabsContent>
+
+        <TabsContent value="upload">
+          <AttendanceCsvUploader onUploadSuccess={handleCsvUploadSuccess} />
         </TabsContent>
       </Tabs>
     </div>
