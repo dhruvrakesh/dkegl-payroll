@@ -7,13 +7,20 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon, Download, Save, Calculator } from 'lucide-react';
+import { CalendarIcon, Download, Save, Calculator, Users, Building2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import * as XLSX from 'xlsx';
 import type { DateRange } from 'react-day-picker';
+
+interface Unit {
+  unit_id: string;
+  unit_name: string;
+  unit_code: string;
+  location: string;
+}
 
 interface SalaryResult {
   employee_id: string;
@@ -39,7 +46,9 @@ interface WageCalculatorDashboardProps {
 }
 
 export function WageCalculatorDashboard({ selectedBatchId, onSalaryGenerated }: WageCalculatorDashboardProps) {
+  const [units, setUnits] = useState<Unit[]>([]);
   const [selectedUnit, setSelectedUnit] = useState<string | undefined>(undefined);
+  const [selectedUnitInfo, setSelectedUnitInfo] = useState<Unit | null>(null);
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
     from: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
     to: new Date()
@@ -47,6 +56,24 @@ export function WageCalculatorDashboard({ selectedBatchId, onSalaryGenerated }: 
   const [salaryResults, setSalaryResults] = useState<SalaryResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isLoadingUnits, setIsLoadingUnits] = useState(true);
+  const [employeeCount, setEmployeeCount] = useState<number>(0);
+
+  // Fetch units on component mount
+  useEffect(() => {
+    fetchUnits();
+  }, []);
+
+  // Update selected unit info when unit changes
+  useEffect(() => {
+    if (selectedUnit && units.length > 0) {
+      const unitInfo = units.find(u => u.unit_id === selectedUnit);
+      setSelectedUnitInfo(unitInfo || null);
+      if (unitInfo) {
+        fetchEmployeeCount(selectedUnit);
+      }
+    }
+  }, [selectedUnit, units]);
 
   useEffect(() => {
     if (selectedBatchId) {
@@ -54,7 +81,46 @@ export function WageCalculatorDashboard({ selectedBatchId, onSalaryGenerated }: 
     }
   }, [selectedBatchId]);
 
+  const fetchUnits = async () => {
+    try {
+      setIsLoadingUnits(true);
+      const { data, error } = await supabase
+        .from('units')
+        .select('unit_id, unit_name, unit_code, location')
+        .order('unit_name');
+
+      if (error) throw error;
+      setUnits(data || []);
+    } catch (error) {
+      console.error('Error fetching units:', error);
+      toast.error('Failed to load units');
+    } finally {
+      setIsLoadingUnits(false);
+    }
+  };
+
+  const fetchEmployeeCount = async (unitId: string) => {
+    try {
+      const { count, error } = await supabase
+        .from('payroll_employees')
+        .select('*', { count: 'exact', head: true })
+        .eq('unit_id', unitId)
+        .eq('active', true);
+
+      if (error) throw error;
+      setEmployeeCount(count || 0);
+    } catch (error) {
+      console.error('Error fetching employee count:', error);
+      setEmployeeCount(0);
+    }
+  };
+
   const calculateSalaries = async () => {
+    if (!selectedUnit) {
+      toast.error('Please select a unit');
+      return;
+    }
+
     if (!dateRange?.from || !dateRange?.to) {
       toast.error('Please select a valid date range');
       return;
@@ -62,23 +128,45 @@ export function WageCalculatorDashboard({ selectedBatchId, onSalaryGenerated }: 
 
     setIsLoading(true);
     try {
+      // First, get employees for the selected unit
       const { data: employees, error: empError } = await supabase
         .from('payroll_employees')
-        .select(`
-          *,
-          attendance!inner(*)
-        `)
-        .eq('attendance.unit_id', selectedUnit || null)
-        .gte('attendance.attendance_date', dateRange.from.toISOString().split('T')[0])
-        .lte('attendance.attendance_date', dateRange.to.toISOString().split('T')[0]);
+        .select('*')
+        .eq('unit_id', selectedUnit)
+        .eq('active', true);
 
       if (empError) throw empError;
 
+      if (!employees || employees.length === 0) {
+        toast.error('No active employees found for the selected unit');
+        setSalaryResults([]);
+        setIsLoading(false);
+        return;
+      }
+
+      console.log(`Found ${employees.length} employees for unit ${selectedUnitInfo?.unit_name}`);
+
+      // Get employee IDs for attendance query
+      const employeeIds = employees.map(emp => emp.id);
+
+      // Then, get attendance data for these employees within the date range
+      const { data: attendanceData, error: attError } = await supabase
+        .from('attendance')
+        .select('*')
+        .in('employee_id', employeeIds)
+        .gte('attendance_date', dateRange.from.toISOString().split('T')[0])
+        .lte('attendance_date', dateRange.to.toISOString().split('T')[0]);
+
+      if (attError) throw attError;
+
+      console.log(`Found ${attendanceData?.length || 0} attendance records for the period`);
+
+      // Calculate salaries for each employee
       const results = await Promise.all(employees.map(async (employee) => {
-        const attendanceData = employee.attendance || [];
-        const totalDays = attendanceData.length;
-        const totalHours = attendanceData.reduce((sum: number, att: any) => sum + (att.hours_worked || 0), 0);
-        const overtimeHours = attendanceData.reduce((sum: number, att: any) => sum + (att.overtime_hours || 0), 0);
+        const employeeAttendance = attendanceData?.filter(att => att.employee_id === employee.id) || [];
+        const totalDays = employeeAttendance.length;
+        const totalHours = employeeAttendance.reduce((sum, att) => sum + (att.hours_worked || 0), 0);
+        const overtimeHours = employeeAttendance.reduce((sum, att) => sum + (att.overtime_hours || 0), 0);
 
         const baseSalary = employee.base_salary || 0;
         const hraAmount = employee.hra_amount || 0;
@@ -90,6 +178,7 @@ export function WageCalculatorDashboard({ selectedBatchId, onSalaryGenerated }: 
         const pfDeduction = Math.min(grossSalary * 0.12, 1800);
         const esiDeduction = grossSalary <= 21000 ? grossSalary * 0.0075 : 0;
 
+        // Get advances for this employee in the date range
         const { data: advances } = await supabase
           .from('advances')
           .select('advance_amount')
@@ -103,7 +192,7 @@ export function WageCalculatorDashboard({ selectedBatchId, onSalaryGenerated }: 
         return {
           employee_id: employee.id,
           employee_name: employee.name,
-          uan_number: employee.uan_number,
+          uan_number: employee.uan_number || 'N/A',
           total_days_present: totalDays,
           total_hours_worked: totalHours,
           base_salary: baseSalary,
@@ -120,10 +209,10 @@ export function WageCalculatorDashboard({ selectedBatchId, onSalaryGenerated }: 
       }));
 
       setSalaryResults(results);
-      toast.success(`Calculated salaries for ${results.length} employees`);
+      toast.success(`Calculated salaries for ${results.length} employees from ${selectedUnitInfo?.unit_name}`);
     } catch (error) {
       console.error('Error calculating salaries:', error);
-      toast.error('Failed to calculate salaries');
+      toast.error('Failed to calculate salaries. Please check the console for details.');
     }
     setIsLoading(false);
   };
@@ -180,7 +269,7 @@ export function WageCalculatorDashboard({ selectedBatchId, onSalaryGenerated }: 
       return;
     }
 
-    const filename = 'salary_data.xlsx';
+    const filename = `salary_data_${selectedUnitInfo?.unit_code || 'unit'}_${format(dateRange?.from || new Date(), 'yyyy-MM')}.xlsx`;
     const ws = XLSX.utils.json_to_sheet(salaryResults);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Salary Data');
@@ -205,14 +294,21 @@ export function WageCalculatorDashboard({ selectedBatchId, onSalaryGenerated }: 
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label htmlFor="unit">Select Unit</Label>
-              <Select onValueChange={setSelectedUnit}>
+              <Select onValueChange={setSelectedUnit} disabled={isLoadingUnits}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select a unit" />
+                  <SelectValue placeholder={isLoadingUnits ? "Loading units..." : "Select a unit"} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="unit1">Unit 1</SelectItem>
-                  <SelectItem value="unit2">Unit 2</SelectItem>
-                  <SelectItem value="unit3">Unit 3</SelectItem>
+                  {units.map((unit) => (
+                    <SelectItem key={unit.unit_id} value={unit.unit_id}>
+                      <div className="flex flex-col">
+                        <span className="font-medium">{unit.unit_code} - {unit.unit_name}</span>
+                        {unit.location && (
+                          <span className="text-xs text-muted-foreground">{unit.location}</span>
+                        )}
+                      </div>
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -256,11 +352,33 @@ export function WageCalculatorDashboard({ selectedBatchId, onSalaryGenerated }: 
               </Popover>
             </div>
           </div>
+
+          {/* Unit and Period Summary */}
+          {selectedUnitInfo && (
+            <div className="grid grid-cols-2 gap-4 p-4 bg-muted/50 rounded-lg">
+              <div className="flex items-center gap-2">
+                <Building2 className="w-4 h-4 text-muted-foreground" />
+                <div>
+                  <p className="text-sm font-medium">{selectedUnitInfo.unit_name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {selectedUnitInfo.unit_code} • {selectedUnitInfo.location}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Users className="w-4 h-4 text-muted-foreground" />
+                <div>
+                  <p className="text-sm font-medium">{employeeCount} Active Employees</p>
+                  <p className="text-xs text-muted-foreground">In selected unit</p>
+                </div>
+              </div>
+            </div>
+          )}
           
           <div className="flex gap-4">
             <Button 
               onClick={calculateSalaries} 
-              disabled={isLoading || !dateRange?.from || !dateRange?.to}
+              disabled={isLoading || !dateRange?.from || !dateRange?.to || !selectedUnit}
               className="flex-1"
             >
               {isLoading ? 'Calculating...' : 'Calculate Salaries'}
@@ -279,11 +397,36 @@ export function WageCalculatorDashboard({ selectedBatchId, onSalaryGenerated }: 
                 
                 <Button onClick={exportToCSV} variant="outline">
                   <Download className="w-4 h-4 mr-2" />
-                  Export CSV
+                  Export Excel
                 </Button>
               </>
             )}
           </div>
+
+          {/* Calculation Summary */}
+          {salaryResults.length > 0 && (
+            <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+              <h3 className="font-medium text-green-900 mb-2">Calculation Summary</h3>
+              <div className="grid grid-cols-3 gap-4 text-sm">
+                <div>
+                  <p className="text-green-700">Employees Processed:</p>
+                  <p className="font-medium text-green-900">{salaryResults.length}</p>
+                </div>
+                <div>
+                  <p className="text-green-700">Total Gross Amount:</p>
+                  <p className="font-medium text-green-900">
+                    ₹{salaryResults.reduce((sum, r) => sum + r.gross_salary, 0).toLocaleString()}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-green-700">Total Net Amount:</p>
+                  <p className="font-medium text-green-900">
+                    ₹{salaryResults.reduce((sum, r) => sum + r.net_salary, 0).toLocaleString()}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
