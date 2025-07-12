@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,12 +13,14 @@ import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import * as XLSX from 'xlsx';
+import type { DateRange } from 'react-day-picker';
 
 interface SalaryResult {
   employee_id: string;
   employee_name: string;
   uan_number: string;
   total_days_present: number;
+  total_hours_worked: number;
   base_salary: number;
   hra_amount: number;
   other_conv_amount: number;
@@ -37,7 +40,7 @@ interface WageCalculatorDashboardProps {
 
 export function WageCalculatorDashboard({ selectedBatchId, onSalaryGenerated }: WageCalculatorDashboardProps) {
   const [selectedUnit, setSelectedUnit] = useState<string | undefined>(undefined);
-  const [dateRange, setDateRange] = useState<{ from?: Date; to?: Date }>({
+  const [dateRange, setDateRange] = useState<DateRange | undefined>({
     from: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
     to: new Date()
   });
@@ -52,6 +55,11 @@ export function WageCalculatorDashboard({ selectedBatchId, onSalaryGenerated }: 
   }, [selectedBatchId]);
 
   const calculateSalaries = async () => {
+    if (!dateRange?.from || !dateRange?.to) {
+      toast.error('Please select a valid date range');
+      return;
+    }
+
     setIsLoading(true);
     try {
       const { data: employees, error: empError } = await supabase
@@ -61,8 +69,8 @@ export function WageCalculatorDashboard({ selectedBatchId, onSalaryGenerated }: 
           attendance!inner(*)
         `)
         .eq('attendance.unit_id', selectedUnit || null)
-        .gte('attendance.attendance_date', dateRange.from?.toISOString().split('T')[0])
-        .lte('attendance.attendance_date', dateRange.to?.toISOString().split('T')[0]);
+        .gte('attendance.attendance_date', dateRange.from.toISOString().split('T')[0])
+        .lte('attendance.attendance_date', dateRange.to.toISOString().split('T')[0]);
 
       if (empError) throw empError;
 
@@ -97,6 +105,7 @@ export function WageCalculatorDashboard({ selectedBatchId, onSalaryGenerated }: 
           employee_name: employee.name,
           uan_number: employee.uan_number,
           total_days_present: totalDays,
+          total_hours_worked: totalHours,
           base_salary: baseSalary,
           hra_amount: hraAmount,
           other_conv_amount: otherConvAmount,
@@ -131,6 +140,7 @@ export function WageCalculatorDashboard({ selectedBatchId, onSalaryGenerated }: 
         employee_id: result.employee_id,
         month: result.month,
         total_days_present: result.total_days_present,
+        total_hours_worked: result.total_hours_worked,
         base_salary: result.base_salary,
         hra_amount: result.hra_amount,
         other_conv_amount: result.other_conv_amount,
@@ -215,11 +225,11 @@ export function WageCalculatorDashboard({ selectedBatchId, onSalaryGenerated }: 
                     variant={'outline'}
                     className={cn(
                       'w-[240px] justify-start text-left font-normal',
-                      !dateRange.from && 'text-muted-foreground'
+                      !dateRange?.from && 'text-muted-foreground'
                     )}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {dateRange.from ? (
+                    {dateRange?.from ? (
                       dateRange.to ? (
                         `${format(dateRange.from, 'MMM dd, yyyy')} - ${format(
                           dateRange.to,
@@ -240,6 +250,7 @@ export function WageCalculatorDashboard({ selectedBatchId, onSalaryGenerated }: 
                     selected={dateRange}
                     onSelect={setDateRange}
                     numberOfMonths={2}
+                    className="pointer-events-auto"
                   />
                 </PopoverContent>
               </Popover>
@@ -249,7 +260,7 @@ export function WageCalculatorDashboard({ selectedBatchId, onSalaryGenerated }: 
           <div className="flex gap-4">
             <Button 
               onClick={calculateSalaries} 
-              disabled={isLoading || !dateRange.from || !dateRange.to}
+              disabled={isLoading || !dateRange?.from || !dateRange?.to}
               className="flex-1"
             >
               {isLoading ? 'Calculating...' : 'Calculate Salaries'}
@@ -296,6 +307,9 @@ export function WageCalculatorDashboard({ selectedBatchId, onSalaryGenerated }: 
                       Days Present
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Hours Worked
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Gross Salary
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -323,6 +337,9 @@ export function WageCalculatorDashboard({ selectedBatchId, onSalaryGenerated }: 
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         {result.total_days_present}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {result.total_hours_worked}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         ₹{result.gross_salary.toLocaleString()}

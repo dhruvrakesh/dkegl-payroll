@@ -68,7 +68,15 @@ export function EnhancedSalaryDisbursement() {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setBatches(data || []);
+      
+      // Type cast the database response to match our interface
+      const typedBatches: SalaryBatch[] = (data || []).map(batch => ({
+        ...batch,
+        period_type: batch.period_type as 'monthly' | 'custom',
+        status: batch.status as 'draft' | 'processing' | 'completed' | 'archived'
+      }));
+      
+      setBatches(typedBatches);
     } catch (error) {
       console.error('Error fetching batches:', error);
       toast.error('Failed to fetch salary batches');
@@ -104,7 +112,17 @@ export function EnhancedSalaryDisbursement() {
         .single();
 
       if (error && error.code !== 'PGRST116') throw error;
-      return data;
+      
+      if (data) {
+        // Type cast the conflicting batch
+        return {
+          ...data,
+          period_type: data.period_type as 'monthly' | 'custom',
+          status: data.status as 'draft' | 'processing' | 'completed' | 'archived'
+        };
+      }
+      
+      return null;
     } catch (error) {
       console.error('Error checking for conflicts:', error);
       return null;
@@ -153,6 +171,13 @@ export function EnhancedSalaryDisbursement() {
 
       if (error) throw error;
 
+      // Type cast the new batch
+      const typedBatch: SalaryBatch = {
+        ...batch,
+        period_type: batch.period_type as 'monthly' | 'custom',
+        status: batch.status as 'draft' | 'processing' | 'completed' | 'archived'
+      };
+
       toast.success('Salary batch created successfully');
       setNewBatchData({
         batchName: '',
@@ -163,7 +188,7 @@ export function EnhancedSalaryDisbursement() {
       setShowOverwriteDialog(false);
       setConflictingBatch(null);
       await fetchBatches();
-      setSelectedBatch(batch);
+      setSelectedBatch(typedBatch);
     } catch (error) {
       console.error('Error creating batch:', error);
       toast.error('Failed to create salary batch');
