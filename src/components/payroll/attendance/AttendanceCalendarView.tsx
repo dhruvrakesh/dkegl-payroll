@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths } from 'date-fns';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, startOfWeek, endOfWeek, isSameMonth, getDay } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -91,9 +91,12 @@ export const AttendanceCalendarView: React.FC<AttendanceCalendarViewProps> = ({
     fetchCalendarData();
   }, [currentMonth]);
 
+  // Generate proper calendar grid with correct day alignment
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(currentMonth);
-  const daysInMonth = eachDayOfInterval({ start: monthStart, end: monthEnd });
+  const calendarStart = startOfWeek(monthStart, { weekStartsOn: 0 }); // Sunday = 0
+  const calendarEnd = endOfWeek(monthEnd, { weekStartsOn: 0 });
+  const calendarDays = eachDayOfInterval({ start: calendarStart, end: calendarEnd });
 
   // Group attendance records by date using calendar data
   const attendanceByDate = new Map<string, Attendance[]>();
@@ -201,7 +204,8 @@ export const AttendanceCalendarView: React.FC<AttendanceCalendarViewProps> = ({
             ))}
             
             {/* Calendar days */}
-            {daysInMonth.map(date => {
+            {calendarDays.map(date => {
+              const isCurrentMonth = isSameMonth(date, currentMonth);
               const dayAttendance = getDayAttendance(date);
               const totalHours = getTotalHoursForDay(date);
               const employeeCount = getEmployeeCountForDay(date);
@@ -211,7 +215,7 @@ export const AttendanceCalendarView: React.FC<AttendanceCalendarViewProps> = ({
               
               // Determine visual styling based on day type
               let dayStyle = '';
-              if (dayAttendance.length > 0) {
+              if (isCurrentMonth && dayAttendance.length > 0) {
                 if (weeklyOff) {
                   dayStyle = 'bg-blue-50 border-blue-200'; // Weekly off (all zero hours)
                 } else if (workingCount > 0) {
@@ -226,6 +230,7 @@ export const AttendanceCalendarView: React.FC<AttendanceCalendarViewProps> = ({
                   key={date.toISOString()}
                   className={`
                     p-2 min-h-[80px] border rounded-lg cursor-pointer transition-colors
+                    ${!isCurrentMonth ? 'opacity-30 text-muted-foreground' : ''}
                     ${isSelected ? 'bg-primary/10 border-primary' : 'hover:bg-muted/50'}
                     ${dayStyle}
                   `}
@@ -234,7 +239,7 @@ export const AttendanceCalendarView: React.FC<AttendanceCalendarViewProps> = ({
                   <div className="text-sm font-medium mb-1">
                     {format(date, 'd')}
                   </div>
-                  {dayAttendance.length > 0 && (
+                  {isCurrentMonth && dayAttendance.length > 0 && (
                     <div className="space-y-1">
                       <Badge 
                         variant={weeklyOff ? "default" : workingCount > 0 ? "secondary" : "outline"} 
