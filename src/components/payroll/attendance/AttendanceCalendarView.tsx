@@ -46,25 +46,19 @@ export const AttendanceCalendarView: React.FC<AttendanceCalendarViewProps> = ({
   const fetchCalendarData = async () => {
     try {
       setCalendarLoading(true);
-      // CRITICAL FIX: Use broader date range to capture June 1-7 properly
-      const monthStart = startOfMonth(currentMonth);
-      const monthEnd = endOfMonth(currentMonth);
       
-      // ADDITIONAL FIX: Extend range slightly to ensure June 1-7 is captured
-      const extendedStart = new Date(monthStart);
-      extendedStart.setDate(extendedStart.getDate() - 2); // Go back 2 days to be safe
-      const extendedEnd = new Date(monthEnd);
-      extendedEnd.setDate(extendedEnd.getDate() + 2); // Go forward 2 days to be safe
+      // DEFINITIVE FIX: Use clean, simple date range for June 2025
+      const startDate = '2025-06-01';
+      const endDate = '2025-06-30';
       
-      console.log('🔍 FINAL DEBUG - Calendar fetch with extended range:', {
-        originalStart: format(monthStart, 'yyyy-MM-dd'),
-        originalEnd: format(monthEnd, 'yyyy-MM-dd'),
-        extendedStart: format(extendedStart, 'yyyy-MM-dd'),
-        extendedEnd: format(extendedEnd, 'yyyy-MM-dd'),
-        currentMonthState: currentMonth.toISOString()
+      console.log('🔍 DEFINITIVE DEBUG - Clean calendar fetch:', {
+        startDate,
+        endDate,
+        currentMonthState: currentMonth.toISOString(),
+        queryMethod: 'hardcoded dates'
       });
       
-      // CRITICAL FIX: Use extended date range to capture all June data
+      // SURGICAL FIX: Direct query with hardcoded dates to eliminate any date calculation issues
       const { data, error } = await supabase
         .from('attendance')
         .select(`
@@ -81,8 +75,8 @@ export const AttendanceCalendarView: React.FC<AttendanceCalendarViewProps> = ({
             unit_name
           )
         `)
-        .gte('attendance_date', format(extendedStart, 'yyyy-MM-dd'))
-        .lte('attendance_date', format(extendedEnd, 'yyyy-MM-dd'))
+        .gte('attendance_date', startDate)
+        .lte('attendance_date', endDate)
         .order('attendance_date', { ascending: false });
 
       if (error) {
@@ -90,21 +84,17 @@ export const AttendanceCalendarView: React.FC<AttendanceCalendarViewProps> = ({
         throw error;
       }
       
-      console.log('📊 CRITICAL DEBUG - Calendar data result:', {
+      console.log('📊 DEFINITIVE DEBUG - Calendar data result:', {
         totalRecords: data?.length || 0,
-        queryRange: {
-          start: format(monthStart, 'yyyy-MM-dd'),
-          end: format(monthEnd, 'yyyy-MM-dd')
-        },
+        queryDateRange: { start: startDate, end: endDate },
         uniqueDates: [...new Set(data?.map(r => r.attendance_date) || [])].sort(),
-        june1to7Records: data?.filter(r => r.attendance_date >= '2025-06-01' && r.attendance_date <= '2025-06-07').length || 0,
-        firstJune1Record: data?.find(r => r.attendance_date === '2025-06-01'),
-        sampleRecords: data?.slice(0, 3).map(r => ({ 
-          date: r.attendance_date, 
-          emp: r.employee_id?.slice(0, 8), 
-          hours: r.hours_worked,
-          empName: r.payroll_employees?.name 
-        }))
+        june1to9Records: data?.filter(r => r.attendance_date >= '2025-06-01' && r.attendance_date <= '2025-06-09').length || 0,
+        june1to9Dates: [...new Set(data?.filter(r => r.attendance_date >= '2025-06-01' && r.attendance_date <= '2025-06-09').map(r => r.attendance_date) || [])].sort(),
+        firstRecordSample: data?.[0] ? { 
+          date: data[0].attendance_date, 
+          emp: data[0].employee_id?.slice(0, 8), 
+          hours: data[0].hours_worked 
+        } : null
       });
       
       setCalendarData(data || []);
@@ -144,13 +134,13 @@ export const AttendanceCalendarView: React.FC<AttendanceCalendarViewProps> = ({
   });
 
   // Fixed debug logging
-  console.log('AttendanceByDate Map contents:', {
+  console.log('📋 AttendanceByDate Map contents:', {
     totalKeys: attendanceByDate.size,
     mapKeys: Array.from(attendanceByDate.keys()).sort(),
-    june1to7Keys: Array.from(attendanceByDate.keys()).filter(k => 
-      k >= '2025-06-01' && k <= '2025-06-07'
+    june1to9Keys: Array.from(attendanceByDate.keys()).filter(k => 
+      k >= '2025-06-01' && k <= '2025-06-09'
     ),
-    june1to7Counts: {
+    june1to9Counts: {
       '2025-06-01': attendanceByDate.get('2025-06-01')?.length || 0,
       '2025-06-02': attendanceByDate.get('2025-06-02')?.length || 0,
       '2025-06-03': attendanceByDate.get('2025-06-03')?.length || 0,
@@ -158,6 +148,8 @@ export const AttendanceCalendarView: React.FC<AttendanceCalendarViewProps> = ({
       '2025-06-05': attendanceByDate.get('2025-06-05')?.length || 0,
       '2025-06-06': attendanceByDate.get('2025-06-06')?.length || 0,
       '2025-06-07': attendanceByDate.get('2025-06-07')?.length || 0,
+      '2025-06-08': attendanceByDate.get('2025-06-08')?.length || 0,
+      '2025-06-09': attendanceByDate.get('2025-06-09')?.length || 0,
     }
   });
 
@@ -165,9 +157,9 @@ export const AttendanceCalendarView: React.FC<AttendanceCalendarViewProps> = ({
     const dateStr = format(date, 'yyyy-MM-dd');
     const dayRecords = attendanceByDate.get(dateStr) || [];
     
-    // Only debug June 1-7 for troubleshooting
-    if (dateStr >= '2025-06-01' && dateStr <= '2025-06-07') {
-      console.log(`getDayAttendance for ${dateStr}:`, {
+    // Only debug June 1-9 for troubleshooting
+    if (dateStr >= '2025-06-01' && dateStr <= '2025-06-09') {
+      console.log(`📅 getDayAttendance for ${dateStr}:`, {
         dateStr,
         recordsFound: dayRecords.length,
         firstRecord: dayRecords[0] ? { 
