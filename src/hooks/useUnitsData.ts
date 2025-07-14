@@ -8,7 +8,6 @@ interface Unit {
   unit_name: string;
   unit_code: string;
   location: string;
-  active: boolean;
 }
 
 export const useUnitsData = () => {
@@ -21,8 +20,7 @@ export const useUnitsData = () => {
       setLoading(true);
       const { data, error } = await supabase
         .from('units')
-        .select('unit_id, unit_name, unit_code, location, active')
-        .eq('active', true)
+        .select('unit_id, unit_name, unit_code, location')
         .order('unit_name');
 
       if (error) throw error;

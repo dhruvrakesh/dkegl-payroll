@@ -153,11 +153,10 @@ export const useAttendanceData = (filters: AttendanceFilters) => {
 
       if (empError) throw empError;
 
-      // Get unit information
+      // Get unit information - using the correct column names
       const { data: units, error: unitError } = await supabase
         .from('units')
-        .select('unit_id, unit_name')
-        .eq('active', true);
+        .select('unit_id, unit_name, unit_code, location');
 
       if (unitError) throw unitError;
 
