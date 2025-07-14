@@ -114,7 +114,10 @@ export const useAttendanceData = (filters: AttendanceFilters) => {
         }
       }
 
-      const { data, error } = await query.order('attendance_date', { ascending: false });
+      // Remove default 1000 row limit to fetch all records
+      const { data, error } = await query
+        .order('attendance_date', { ascending: false })
+        .limit(10000); // Set high limit to ensure we get all records
 
       if (error) throw error;
       
