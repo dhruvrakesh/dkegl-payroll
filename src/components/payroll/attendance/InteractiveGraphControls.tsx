@@ -204,18 +204,6 @@ export const InteractiveGraphControls: React.FC<InteractiveGraphControlsProps> =
             <Button variant="outline" size="sm" onClick={() => setQuickDateRange(90)}>
               Last 3 Months
             </Button>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => updateFilters({
-                dateRange: {
-                  from: new Date(2025, 5, 1), // June 2025
-                  to: new Date(2025, 5, 30)
-                }
-              })}
-            >
-              June 2025
-            </Button>
           </div>
         </div>
 

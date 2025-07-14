@@ -53,7 +53,15 @@ export const AttendanceCalendarView: React.FC<AttendanceCalendarViewProps> = ({
 
   const getDayAttendance = (date: Date) => {
     const dateStr = format(date, 'yyyy-MM-dd');
-    return attendanceByDate.get(dateStr) || [];
+    const dayRecords = attendanceByDate.get(dateStr) || [];
+    
+    // Enrich records with employee names if missing
+    return dayRecords.map((record: Attendance) => ({
+      ...record,
+      payroll_employees: record.payroll_employees || {
+        name: employees.find(emp => emp.id === record.employee_id)?.name || 'Unknown Employee'
+      }
+    }));
   };
 
   const getTotalHoursForDay = (date: Date) => {
@@ -160,9 +168,9 @@ export const AttendanceCalendarView: React.FC<AttendanceCalendarViewProps> = ({
                 {getDayAttendance(selectedDate).map((record: Attendance) => (
                   <div key={record.attendance_id} className="flex items-center justify-between p-3 border rounded-lg">
                     <div>
-                      <div className="font-medium">{record.payroll_employees?.name || 'Unknown'}</div>
+                      <div className="font-medium">{record.payroll_employees?.name || 'Unknown Employee'}</div>
                       <div className="text-sm text-muted-foreground">
-                        {record.units?.unit_name}
+                        {record.units?.unit_name || 'No Unit'}
                       </div>
                     </div>
                     <div className="text-right">
