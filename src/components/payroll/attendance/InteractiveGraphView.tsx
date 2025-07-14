@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
 import { GraphFilters, useGraphData } from '@/hooks/useGraphData';
+import { CHART_TYPES } from '@/config/constants';
 
 interface InteractiveGraphViewProps {
   filters: GraphFilters;
@@ -46,7 +47,7 @@ export const InteractiveGraphView: React.FC<InteractiveGraphViewProps> = ({ filt
 
   const renderChart = () => {
     switch (filters.chartType) {
-      case 'line':
+      case CHART_TYPES.LINE:
         return (
           <ChartContainer config={chartConfig}>
             <ResponsiveContainer width="100%" height={400}>
@@ -66,7 +67,7 @@ export const InteractiveGraphView: React.FC<InteractiveGraphViewProps> = ({ filt
           </ChartContainer>
         );
 
-      case 'bar':
+      case CHART_TYPES.BAR:
         return (
           <ChartContainer config={chartConfig}>
             <ResponsiveContainer width="100%" height={400}>
@@ -81,7 +82,7 @@ export const InteractiveGraphView: React.FC<InteractiveGraphViewProps> = ({ filt
           </ChartContainer>
         );
 
-      case 'stacked':
+      case CHART_TYPES.STACKED:
         return (
           <ChartContainer config={chartConfig}>
             <ResponsiveContainer width="100%" height={400}>
@@ -97,7 +98,7 @@ export const InteractiveGraphView: React.FC<InteractiveGraphViewProps> = ({ filt
           </ChartContainer>
         );
 
-      case 'comparison':
+      case CHART_TYPES.COMPARISON:
         return (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card>

@@ -10,6 +10,8 @@ import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useUnitsData } from '@/hooks/useUnitsData';
 import { GraphFilters } from '@/hooks/useGraphData';
+import { FILTER_VALUES, CHART_TYPES, TIME_PERIODS } from '@/config/constants';
+import type { ChartType, TimePeriod } from '@/config/types';
 
 interface InteractiveGraphControlsProps {
   filters: GraphFilters;
@@ -48,16 +50,16 @@ export const InteractiveGraphControls: React.FC<InteractiveGraphControlsProps> =
           <div className="space-y-2">
             <label className="text-sm font-medium">Select Units</label>
             <Select
-              value={filters.unitIds[0] || "all-units"}
+              value={filters.unitIds[0] || FILTER_VALUES.ALL_UNITS}
               onValueChange={(value) => updateFilters({
-                unitIds: value === "all-units" ? [] : [value]
+                unitIds: value === FILTER_VALUES.ALL_UNITS ? [] : [value]
               })}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select units" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all-units">All Units</SelectItem>
+                <SelectItem value={FILTER_VALUES.ALL_UNITS}>All Units</SelectItem>
                 {units.map((unit) => (
                   <SelectItem key={unit.unit_id} value={unit.unit_id}>
                     {unit.unit_name} ({unit.unit_code})
@@ -72,31 +74,31 @@ export const InteractiveGraphControls: React.FC<InteractiveGraphControlsProps> =
             <label className="text-sm font-medium">Chart Type</label>
             <Select
               value={filters.chartType}
-              onValueChange={(value: 'line' | 'bar' | 'stacked' | 'comparison') => updateFilters({ chartType: value })}
+              onValueChange={(value: ChartType) => updateFilters({ chartType: value })}
             >
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="line">
+                <SelectItem value={CHART_TYPES.LINE}>
                   <div className="flex items-center gap-2">
                     <LineChart className="w-4 h-4" />
                     Line Chart
                   </div>
                 </SelectItem>
-                <SelectItem value="bar">
+                <SelectItem value={CHART_TYPES.BAR}>
                   <div className="flex items-center gap-2">
                     <BarChart3 className="w-4 h-4" />
                     Bar Chart
                   </div>
                 </SelectItem>
-                <SelectItem value="stacked">
+                <SelectItem value={CHART_TYPES.STACKED}>
                   <div className="flex items-center gap-2">
                     <PieChart className="w-4 h-4" />
                     Stacked Chart
                   </div>
                 </SelectItem>
-                <SelectItem value="comparison">
+                <SelectItem value={CHART_TYPES.COMPARISON}>
                   <div className="flex items-center gap-2">
                     <TrendingUp className="w-4 h-4" />
                     Comparison
@@ -111,15 +113,15 @@ export const InteractiveGraphControls: React.FC<InteractiveGraphControlsProps> =
             <label className="text-sm font-medium">Period</label>
             <Select
               value={filters.period}
-              onValueChange={(value: 'daily' | 'weekly' | 'monthly') => updateFilters({ period: value })}
+              onValueChange={(value: TimePeriod) => updateFilters({ period: value })}
             >
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="daily">Daily</SelectItem>
-                <SelectItem value="weekly">Weekly</SelectItem>
-                <SelectItem value="monthly">Monthly</SelectItem>
+                <SelectItem value={TIME_PERIODS.DAILY}>Daily</SelectItem>
+                <SelectItem value={TIME_PERIODS.WEEKLY}>Weekly</SelectItem>
+                <SelectItem value={TIME_PERIODS.MONTHLY}>Monthly</SelectItem>
               </SelectContent>
             </Select>
           </div>

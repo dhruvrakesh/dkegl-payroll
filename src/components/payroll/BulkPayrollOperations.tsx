@@ -9,6 +9,8 @@ import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Calendar, Play, Clock, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { JOB_STATUS, MESSAGE_TYPES } from '@/config/constants';
+import { getStatusColor } from '@/config/utils';
 
 interface BulkJob {
   id: string;
@@ -47,7 +49,7 @@ export const BulkPayrollOperations = () => {
     } catch (error) {
       console.error('Error fetching bulk jobs:', error);
       toast({
-        title: 'Error',
+        title: MESSAGE_TYPES.ERROR,
         description: 'Failed to fetch bulk payroll jobs',
         variant: 'destructive',
       });
@@ -57,7 +59,7 @@ export const BulkPayrollOperations = () => {
   const triggerMonthlyPayroll = async () => {
     if (!selectedMonth) {
       toast({
-        title: 'Error',
+        title: MESSAGE_TYPES.ERROR,
         description: 'Please select a month',
         variant: 'destructive',
       });
@@ -73,7 +75,7 @@ export const BulkPayrollOperations = () => {
       if (error) throw error;
 
       toast({
-        title: 'Success',
+        title: MESSAGE_TYPES.SUCCESS,
         description: 'Monthly payroll processing started successfully',
       });
 
@@ -82,7 +84,7 @@ export const BulkPayrollOperations = () => {
     } catch (error) {
       console.error('Error triggering payroll:', error);
       toast({
-        title: 'Error',
+        title: MESSAGE_TYPES.ERROR,
         description: 'Failed to trigger monthly payroll processing',
         variant: 'destructive',
       });
@@ -93,31 +95,16 @@ export const BulkPayrollOperations = () => {
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'pending':
+      case JOB_STATUS.PENDING:
         return <Clock className="h-4 w-4" />;
-      case 'processing':
+      case JOB_STATUS.PROCESSING:
         return <AlertCircle className="h-4 w-4 animate-spin" />;
-      case 'completed':
+      case JOB_STATUS.COMPLETED:
         return <CheckCircle className="h-4 w-4" />;
-      case 'failed':
+      case JOB_STATUS.FAILED:
         return <XCircle className="h-4 w-4" />;
       default:
         return <Clock className="h-4 w-4" />;
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'pending':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'processing':
-        return 'bg-blue-100 text-blue-800';
-      case 'completed':
-        return 'bg-green-100 text-green-800';
-      case 'failed':
-        return 'bg-red-100 text-red-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
     }
   };
 
@@ -204,7 +191,7 @@ export const BulkPayrollOperations = () => {
                     </div>
                   </div>
 
-                  {job.status === 'processing' && (
+                  {job.status === JOB_STATUS.PROCESSING && (
                     <div className="space-y-2">
                       <div className="flex justify-between text-sm">
                         <span>Progress</span>
@@ -216,7 +203,7 @@ export const BulkPayrollOperations = () => {
                     </div>
                   )}
 
-                  {(job.status === 'completed' || job.status === 'failed') && (
+                  {(job.status === JOB_STATUS.COMPLETED || job.status === JOB_STATUS.FAILED) && (
                     <div className="grid grid-cols-3 gap-4 text-sm">
                       <div className="text-center">
                         <div className="font-medium text-blue-600">

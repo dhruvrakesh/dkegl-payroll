@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,6 +9,7 @@ import { CalendarIcon, Filter, X, Building2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useUnitsData } from '@/hooks/useUnitsData';
+import { FILTER_VALUES, QUICK_DATE_RANGES } from '@/config/constants';
 
 interface AttendanceFilters {
   dateRange: {
@@ -51,7 +51,6 @@ export const AttendanceFilters: React.FC<AttendanceFiltersProps> = ({
       unitIds: []
     });
   };
-
 
   const hasActiveFilters = 
     filters.dateRange.from || 
@@ -152,9 +151,9 @@ export const AttendanceFilters: React.FC<AttendanceFiltersProps> = ({
         <div className="space-y-2">
           <Label>Unit</Label>
           <Select
-            value={filters.unitIds[0] || "all-units"}
+            value={filters.unitIds[0] || FILTER_VALUES.ALL_UNITS}
             onValueChange={(value) => updateFilters({
-              unitIds: value === "all-units" ? [] : [value],
+              unitIds: value === FILTER_VALUES.ALL_UNITS ? [] : [value],
               // Clear employee filter when unit changes
               employeeIds: []
             })}
@@ -175,7 +174,7 @@ export const AttendanceFilters: React.FC<AttendanceFiltersProps> = ({
               </SelectValue>
             </SelectTrigger>
             <SelectContent className="bg-background border shadow-md z-50">
-              <SelectItem value="all-units">All Units</SelectItem>
+              <SelectItem value={FILTER_VALUES.ALL_UNITS}>All Units</SelectItem>
               {unitsLoading ? (
                 <div className="p-2 text-center text-muted-foreground">Loading units...</div>
               ) : units.length === 0 ? (
@@ -199,16 +198,16 @@ export const AttendanceFilters: React.FC<AttendanceFiltersProps> = ({
         <div className="space-y-2">
           <Label>Employee</Label>
           <Select
-            value={filters.employeeIds[0] || "all-employees"}
+            value={filters.employeeIds[0] || FILTER_VALUES.ALL_EMPLOYEES}
             onValueChange={(value) => updateFilters({
-              employeeIds: value === "all-employees" ? [] : [value]
+              employeeIds: value === FILTER_VALUES.ALL_EMPLOYEES ? [] : [value]
             })}
           >
             <SelectTrigger>
               <SelectValue placeholder="Select employee" />
             </SelectTrigger>
             <SelectContent className="bg-background border shadow-md z-50">
-              <SelectItem value="all-employees">
+              <SelectItem value={FILTER_VALUES.ALL_EMPLOYEES}>
                 All Employees
                 {filters.unitIds.length > 0 && (
                   <span className="text-xs text-muted-foreground ml-1">
@@ -235,23 +234,23 @@ export const AttendanceFilters: React.FC<AttendanceFiltersProps> = ({
               let to: Date | null = null;
 
               switch (value) {
-                case 'today':
+                case QUICK_DATE_RANGES.TODAY:
                   from = to = today;
                   break;
-                case 'week':
+                case QUICK_DATE_RANGES.WEEK:
                   from = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
                   to = today;
                   break;
-                case 'month':
+                case QUICK_DATE_RANGES.MONTH:
                   from = new Date(today.getFullYear(), today.getMonth(), 1);
                   to = today;
                   break;
-                case 'quarter':
+                case QUICK_DATE_RANGES.QUARTER:
                   const quarterStart = new Date(today.getFullYear(), Math.floor(today.getMonth() / 3) * 3, 1);
                   from = quarterStart;
                   to = today;
                   break;
-                case 'june2025':
+                case QUICK_DATE_RANGES.JUNE_2025:
                   from = new Date(2025, 5, 1);
                   to = new Date(2025, 5, 30);
                   break;
@@ -264,11 +263,11 @@ export const AttendanceFilters: React.FC<AttendanceFiltersProps> = ({
               <SelectValue placeholder="Quick select" />
             </SelectTrigger>
             <SelectContent className="bg-background border shadow-md z-50">
-              <SelectItem value="today">Today</SelectItem>
-              <SelectItem value="week">Last 7 Days</SelectItem>
-              <SelectItem value="month">This Month</SelectItem>
-              <SelectItem value="quarter">This Quarter</SelectItem>
-              <SelectItem value="june2025">June 2025</SelectItem>
+              <SelectItem value={QUICK_DATE_RANGES.TODAY}>Today</SelectItem>
+              <SelectItem value={QUICK_DATE_RANGES.WEEK}>Last 7 Days</SelectItem>
+              <SelectItem value={QUICK_DATE_RANGES.MONTH}>This Month</SelectItem>
+              <SelectItem value={QUICK_DATE_RANGES.QUARTER}>This Quarter</SelectItem>
+              <SelectItem value={QUICK_DATE_RANGES.JUNE_2025}>June 2025</SelectItem>
             </SelectContent>
           </Select>
         </div>

@@ -1,6 +1,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useAttendanceData } from './useAttendanceData';
+import type { ChartType, TimePeriod } from '@/config/types';
 
 export interface GraphFilters {
   unitIds: string[];
@@ -8,8 +9,8 @@ export interface GraphFilters {
     from: Date | null;
     to: Date | null;
   };
-  chartType: 'line' | 'bar' | 'stacked' | 'comparison';
-  period: 'daily' | 'weekly' | 'monthly';
+  chartType: ChartType;
+  period: TimePeriod;
 }
 
 export interface GraphData {
