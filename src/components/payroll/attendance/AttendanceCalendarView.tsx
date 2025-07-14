@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, AlertCircle } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, startOfWeek, endOfWeek, isSameMonth, getDay } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -35,34 +35,101 @@ export const AttendanceCalendarView: React.FC<AttendanceCalendarViewProps> = ({
   loading: parentLoading,
   onRefresh
 }) => {
-  // Initialize to current month instead of hardcoded June 2025
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [calendarData, setCalendarData] = useState<Attendance[]>([]);
   const [calendarLoading, setCalendarLoading] = useState(false);
+  const [debugInfo, setDebugInfo] = useState<any>(null);
   const { toast } = useToast();
 
-  // Fetch calendar-specific data for the current month - DYNAMICALLY BASED ON currentMonth
+  // Enhanced database investigation function
+  const investigateDatabase = async () => {
+    try {
+      console.log('🔍 INVESTIGATING DATABASE FOR ATTENDANCE DATA');
+      
+      // Check total records in attendance table
+      const { count: totalRecords, error: countError } = await supabase
+        .from('attendance')
+        .select('*', { count: 'exact', head: true });
+      
+      if (countError) {
+        console.error('Error counting total records:', countError);
+        return;
+      }
+      
+      // Check June 2024 data specifically
+      const { data: juneData, error: juneError } = await supabase
+        .from('attendance')
+        .select('attendance_date, employee_id, hours_worked')
+        .gte('attendance_date', '2024-06-01')
+        .lte('attendance_date', '2024-06-30')
+        .order('attendance_date');
+      
+      if (juneError) {
+        console.error('Error fetching June data:', juneError);
+        return;
+      }
+      
+      // Check for June 24-30 specifically
+      const june24to30 = juneData?.filter(record => {
+        const date = new Date(record.attendance_date);
+        return date.getDate() >= 24 && date.getDate() <= 30;
+      }) || [];
+      
+      const debugData = {
+        totalRecords,
+        juneRecordsTotal: juneData?.length || 0,
+        june24to30Count: june24to30.length,
+        june24to30Records: june24to30,
+        uniqueJuneDates: [...new Set(juneData?.map(r => r.attendance_date) || [])].sort(),
+        missingDates: []
+      };
+      
+      // Check for missing dates in June 24-30
+      for (let day = 24; day <= 30; day++) {
+        const dateStr = `2024-06-${day.toString().padStart(2, '0')}`;
+        const hasData = juneData?.some(r => r.attendance_date === dateStr);
+        if (!hasData) {
+          debugData.missingDates.push(dateStr);
+        }
+      }
+      
+      console.log('📊 DATABASE INVESTIGATION RESULTS:', debugData);
+      setDebugInfo(debugData);
+      
+      if (debugData.missingDates.length > 0) {
+        toast({
+          title: "Missing Attendance Data",
+          description: `No attendance records found for: ${debugData.missingDates.join(', ')}`,
+          variant: "destructive",
+        });
+      }
+      
+    } catch (error) {
+      console.error('❌ Database investigation failed:', error);
+    }
+  };
+
+  // Fetch calendar-specific data for the current month - FULLY DYNAMIC
   const fetchCalendarData = async () => {
     try {
       setCalendarLoading(true);
       
-      // DYNAMIC FIX: Calculate start and end dates based on currentMonth state
+      // DYNAMIC MONTH CALCULATION - No hardcoded dates
       const monthStart = startOfMonth(currentMonth);
       const monthEnd = endOfMonth(currentMonth);
       const startDate = format(monthStart, 'yyyy-MM-dd');
       const endDate = format(monthEnd, 'yyyy-MM-dd');
       
-      console.log('🔍 DYNAMIC CALENDAR FETCH:', {
-        currentMonth: currentMonth.toISOString(),
-        monthStart: monthStart.toISOString(),
-        monthEnd: monthEnd.toISOString(),
+      console.log('🔍 FETCHING CALENDAR DATA:', {
+        currentMonth: format(currentMonth, 'MMMM yyyy'),
+        monthStart: format(monthStart, 'yyyy-MM-dd'),
+        monthEnd: format(monthEnd, 'yyyy-MM-dd'),
         startDate,
-        endDate,
-        monthName: format(currentMonth, 'MMMM yyyy')
+        endDate
       });
       
-      // CONFIRMED: No limit applied - fetch ALL records for the month
+      // Fetch ALL records for the month (no limit)
       const { data, error } = await supabase
         .from('attendance')
         .select(`
@@ -88,24 +155,24 @@ export const AttendanceCalendarView: React.FC<AttendanceCalendarViewProps> = ({
         throw error;
       }
       
-      console.log('📊 DYNAMIC CALENDAR DATA RESULT:', {
+      console.log('📊 CALENDAR DATA RESULT:', {
         monthName: format(currentMonth, 'MMMM yyyy'),
         totalRecords: data?.length || 0,
         dateRange: { start: startDate, end: endDate },
         uniqueDates: [...new Set(data?.map(r => r.attendance_date) || [])].sort(),
-        firstRecord: data?.[0] ? { 
-          date: data[0].attendance_date, 
-          emp: data[0].employee_id?.slice(0, 8), 
-          hours: data[0].hours_worked 
-        } : null,
-        lastRecord: data?.[data.length - 1] ? { 
-          date: data[data.length - 1].attendance_date, 
-          emp: data[data.length - 1].employee_id?.slice(0, 8), 
-          hours: data[data.length - 1].hours_worked 
-        } : null
+        sampleRecords: data?.slice(0, 3).map(r => ({
+          date: r.attendance_date,
+          employee: r.employee_id?.slice(0, 8),
+          hours: r.hours_worked
+        })) || []
       });
       
       setCalendarData(data || []);
+      
+      // Auto-investigate if current month is June 2024
+      if (format(currentMonth, 'yyyy-MM') === '2024-06') {
+        await investigateDatabase();
+      }
       
     } catch (error) {
       console.error('❌ Error fetching calendar data:', error);
@@ -131,7 +198,7 @@ export const AttendanceCalendarView: React.FC<AttendanceCalendarViewProps> = ({
   const calendarEnd = endOfWeek(monthEnd, { weekStartsOn: 0 });
   const calendarDays = eachDayOfInterval({ start: calendarStart, end: calendarEnd });
 
-  // Group attendance records by date using ONLY calendar data (not filtered attendanceRecords)
+  // Group attendance records by date using ONLY calendar data
   const attendanceByDate = new Map<string, Attendance[]>();
   calendarData.forEach(record => {
     const dateKey = record.attendance_date; // This is already in YYYY-MM-DD format
@@ -141,34 +208,9 @@ export const AttendanceCalendarView: React.FC<AttendanceCalendarViewProps> = ({
     attendanceByDate.get(dateKey)!.push(record);
   });
 
-  // Clean debug logging - now generic for any month
-  console.log('📋 AttendanceByDate Map contents:', {
-    currentMonth: format(currentMonth, 'MMMM yyyy'),
-    totalKeys: attendanceByDate.size,
-    mapKeys: Array.from(attendanceByDate.keys()).sort(),
-    sampleDateCounts: Object.fromEntries(
-      Array.from(attendanceByDate.keys()).slice(0, 10).map(k => [k, attendanceByDate.get(k)?.length || 0])
-    )
-  });
-
   const getDayAttendance = (date: Date) => {
     const dateStr = format(date, 'yyyy-MM-dd');
     const dayRecords = attendanceByDate.get(dateStr) || [];
-    
-    // Generic logging for troubleshooting any month
-    if (dayRecords.length > 0) {
-      console.log(`📅 getDayAttendance for ${dateStr}:`, {
-        dateStr,
-        recordsFound: dayRecords.length,
-        firstRecord: dayRecords[0] ? { 
-          id: dayRecords[0].employee_id?.slice(0, 8), 
-          hours: dayRecords[0].hours_worked,
-          date: dayRecords[0].attendance_date
-        } : null,
-        mapHasKey: attendanceByDate.has(dateStr),
-        totalMapSize: attendanceByDate.size
-      });
-    }
     
     // Enrich records with employee names if missing
     return dayRecords.map((record: Attendance) => ({
@@ -218,6 +260,34 @@ export const AttendanceCalendarView: React.FC<AttendanceCalendarViewProps> = ({
 
   return (
     <div className="space-y-4">
+      {/* Debug Info Panel - Show when investigating */}
+      {debugInfo && (
+        <Card className="border-orange-200 bg-orange-50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-orange-800">
+              <AlertCircle className="w-5 h-5" />
+              Database Investigation Results
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="text-sm text-orange-700">
+            <div className="space-y-2">
+              <p><strong>Total Attendance Records:</strong> {debugInfo.totalRecords}</p>
+              <p><strong>June 2024 Records:</strong> {debugInfo.juneRecordsTotal}</p>
+              <p><strong>June 24-30 Records:</strong> {debugInfo.june24to30Count}</p>
+              {debugInfo.missingDates.length > 0 && (
+                <p><strong>Missing Dates:</strong> {debugInfo.missingDates.join(', ')}</p>
+              )}
+              <details className="mt-2">
+                <summary className="cursor-pointer font-medium">View Unique June Dates</summary>
+                <div className="mt-2 text-xs bg-white p-2 rounded border">
+                  {debugInfo.uniqueJuneDates.join(', ')}
+                </div>
+              </details>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Calendar Header */}
       <Card>
         <CardHeader>
@@ -239,6 +309,11 @@ export const AttendanceCalendarView: React.FC<AttendanceCalendarViewProps> = ({
               <Button variant="outline" size="sm" onClick={nextMonth}>
                 <ChevronRight className="w-4 h-4" />
               </Button>
+              {format(currentMonth, 'yyyy-MM') === '2024-06' && (
+                <Button variant="outline" size="sm" onClick={investigateDatabase}>
+                  Investigate DB
+                </Button>
+              )}
             </div>
           </div>
         </CardHeader>

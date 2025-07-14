@@ -43,7 +43,17 @@ serve(async (req) => {
 
     const { employee_id, month, days_present, overtime_hours = 0, custom_variables = {} }: CalculationRequest = await req.json()
 
-    console.log('Starting payroll calculation for employee:', employee_id, 'month:', month)
+    console.log('🔍 PAYROLL CALCULATION REQUEST:', {
+      employee_id: employee_id.slice(0, 8),
+      month,
+      days_present,
+      overtime_hours
+    })
+
+    // VALIDATION: Check if days_present is realistic
+    if (days_present < 0 || days_present > 31) {
+      throw new Error('Invalid days_present value')
+    }
 
     // Get employee details with new salary components
     const { data: employee, error: empError } = await supabase
@@ -56,35 +66,90 @@ serve(async (req) => {
       throw new Error('Employee not found')
     }
 
-    // Get active formulas
-    const { data: formulas, error: formulaError } = await supabase
-      .from('payroll_formulas')
-      .select('*')
-      .eq('active', true)
-      .lte('effective_from', new Date().toISOString().split('T')[0])
-      .order('created_at', { ascending: false })
+    console.log('👤 EMPLOYEE DATA:', {
+      name: employee.name,
+      base_salary: employee.base_salary,
+      hra_amount: employee.hra_amount,
+      other_conv_amount: employee.other_conv_amount
+    })
 
-    if (formulaError) {
-      throw new Error('Failed to fetch formulas')
-    }
+    // Get attendance data for the month to validate days_present
+    const monthStart = `${month}-01`
+    const monthEnd = new Date(new Date(monthStart).getFullYear(), new Date(monthStart).getMonth() + 1, 0).toISOString().split('T')[0]
 
-    // Get active variables including new ones
-    const { data: variables, error: variableError } = await supabase
-      .from('formula_variables')
-      .select('*')
-      .eq('active', true)
-
-    if (variableError) {
-      throw new Error('Failed to fetch variables')
-    }
-
-    // Get employee-specific overrides
-    const { data: overrides } = await supabase
-      .from('employee_variable_overrides')
-      .select('*')
+    const { data: attendanceData } = await supabase
+      .from('attendance')
+      .select('hours_worked, overtime_hours, attendance_date')
       .eq('employee_id', employee_id)
-      .lte('effective_from', new Date().toISOString().split('T')[0])
-      .or(`effective_to.is.null,effective_to.gte.${new Date().toISOString().split('T')[0]}`)
+      .gte('attendance_date', monthStart)
+      .lte('attendance_date', monthEnd)
+
+    console.log('📊 ATTENDANCE DATA:', {
+      totalRecords: attendanceData?.length || 0,
+      dateRange: { start: monthStart, end: monthEnd }
+    })
+
+    // CRITICAL: Calculate ACTUAL days worked (where hours_worked > 0)
+    const actualDaysWorked = attendanceData?.filter(record => record.hours_worked > 0).length || 0
+    const totalHoursWorked = attendanceData?.reduce((sum, record) => sum + record.hours_worked, 0) || 0
+    const totalOvertimeHours = attendanceData?.reduce((sum, record) => sum + (record.overtime_hours || 0), 0) || overtime_hours
+
+    // VALIDATION: Use actual attendance data instead of passed days_present
+    const validatedDaysPresent = actualDaysWorked
+    
+    console.log('✅ ATTENDANCE VALIDATION:', {
+      passedDaysPresent: days_present,
+      actualDaysWorked,
+      validatedDaysPresent,
+      totalHoursWorked,
+      totalOvertimeHours,
+      attendanceRecords: attendanceData?.map(r => ({
+        date: r.attendance_date,
+        hours: r.hours_worked,
+        overtime: r.overtime_hours
+      })) || []
+    })
+
+    // SALARY CALCULATION LOGIC
+    const baseSalary = employee.base_salary || 0
+    const hraAmount = employee.hra_amount || 0
+    const otherConvAmount = employee.other_conv_amount || 0
+    
+    // Calculate working days in the month (approximate)
+    const totalDaysInMonth = new Date(new Date(monthStart).getFullYear(), new Date(monthStart).getMonth() + 1, 0).getDate()
+    const workingDaysInMonth = Math.floor(totalDaysInMonth * (6/7)) // Exclude Sundays
+    
+    // PRO-RATED SALARY CALCULATION
+    let proRatedBaseSalary = baseSalary
+    let proRatedHra = hraAmount
+    let proRatedOtherConv = otherConvAmount
+    
+    // If employee has 0 days worked, salary should be 0
+    if (validatedDaysPresent === 0) {
+      proRatedBaseSalary = 0
+      proRatedHra = 0
+      proRatedOtherConv = 0
+      console.log('⚠️ ZERO DAYS WORKED - Salary set to 0')
+    } else if (validatedDaysPresent < workingDaysInMonth) {
+      // Pro-rate salary based on actual days worked
+      const workRatio = validatedDaysPresent / workingDaysInMonth
+      proRatedBaseSalary = baseSalary * workRatio
+      proRatedHra = hraAmount * workRatio
+      proRatedOtherConv = otherConvAmount * workRatio
+      console.log('📊 PRO-RATED SALARY:', {
+        workRatio: workRatio.toFixed(3),
+        originalBase: baseSalary,
+        proRatedBase: proRatedBaseSalary.toFixed(2)
+      })
+    }
+    
+    // Overtime calculation based on basic salary only (per day rate = basic/30, per hour = basic/30/8)
+    const dailyBasicRate = baseSalary / 30
+    const hourlyBasicRate = dailyBasicRate / 8
+    const overtimeAmount = validatedDaysPresent > 0 ? totalOvertimeHours * hourlyBasicRate * 1.5 : 0 // 1.5x rate for overtime
+    
+    // Gross salary = Pro-rated Base + Pro-rated HRA + Pro-rated Other/Conv + Overtime
+    const grossSalary = proRatedBaseSalary + proRatedHra + proRatedOtherConv + overtimeAmount
 
     // Get payroll settings (PF/ESI rates)
     const { data: settings } = await supabase
@@ -94,17 +159,6 @@ serve(async (req) => {
       .limit(1)
       .single()
 
-    // Get attendance data for the month
-    const monthStart = `${month}-01`
-    const monthEnd = new Date(new Date(monthStart).getFullYear(), new Date(monthStart).getMonth() + 1, 0).toISOString().split('T')[0]
-
-    const { data: attendanceData } = await supabase
-      .from('attendance')
-      .select('hours_worked, overtime_hours')
-      .eq('employee_id', employee_id)
-      .gte('attendance_date', monthStart)
-      .lte('attendance_date', monthEnd)
-
     // Get advances for the month
     const { data: advancesData } = await supabase
       .from('advances')
@@ -113,108 +167,86 @@ serve(async (req) => {
       .gte('advance_date', monthStart)
       .lte('advance_date', monthEnd)
 
-    // Calculate totals from attendance and advances
-    const totalHoursWorked = attendanceData?.reduce((sum, record) => sum + record.hours_worked, 0) || 0
-    const totalOvertimeHours = attendanceData?.reduce((sum, record) => sum + (record.overtime_hours || 0), 0) || overtime_hours
     const totalAdvances = advancesData?.reduce((sum, record) => sum + record.advance_amount, 0) || 0
 
-    // Enhanced salary calculations with new components
-    const baseSalary = employee.base_salary || 0
-    const hraAmount = employee.hra_amount || 0
-    const otherConvAmount = employee.other_conv_amount || 0
+    // Enhanced deduction calculations
+    // PF is calculated on pro-rated basic salary only (only if employee worked)
+    const pfDeduction = validatedDaysPresent > 0 ? Math.min((proRatedBaseSalary * (settings?.pf_rate || 12)) / 100, 1800) : 0
     
-    // Overtime calculation based on basic salary only (per day rate = basic/30, per hour = basic/30/8)
-    const dailyBasicRate = baseSalary / 30
-    const hourlyBasicRate = dailyBasicRate / 8
-    const overtimeAmount = totalOvertimeHours * hourlyBasicRate * 2 // Double rate for overtime
+    // ESI is calculated on gross salary but only if gross <= 21,000 (only if employee worked)
+    const esiThreshold = 21000
+    const esiDeduction = (validatedDaysPresent > 0 && grossSalary <= esiThreshold) ? 
+      (grossSalary * (settings?.esi_rate || 0.75)) / 100 : 0
     
-    // Gross salary = Base + HRA + Other/Conv + Overtime
-    const grossSalary = baseSalary + hraAmount + otherConvAmount + overtimeAmount
+    const totalDeductions = pfDeduction + esiDeduction + totalAdvances
+    const netSalary = grossSalary - totalDeductions
 
-    // Build variable context with new variables
+    console.log('💰 FINAL SALARY CALCULATION:', {
+      validatedDaysPresent,
+      workingDaysInMonth,
+      proRatedBaseSalary: proRatedBaseSalary.toFixed(2),
+      proRatedHra: proRatedHra.toFixed(2),
+      proRatedOtherConv: proRatedOtherConv.toFixed(2),
+      overtimeAmount: overtimeAmount.toFixed(2),
+      grossSalary: grossSalary.toFixed(2),
+      pfDeduction: pfDeduction.toFixed(2),
+      esiDeduction: esiDeduction.toFixed(2),
+      totalAdvances: totalAdvances.toFixed(2),
+      netSalary: netSalary.toFixed(2)
+    })
+
+    // Build variable context for audit trail
     const variableContext: Record<string, number> = {
-      // Base employee data with new components
-      base_salary: baseSalary,
-      hra_amount: hraAmount,
-      other_conv_amount: otherConvAmount,
-      days_present,
+      // Base employee data with pro-rated components
+      base_salary: proRatedBaseSalary,
+      hra_amount: proRatedHra,
+      other_conv_amount: proRatedOtherConv,
+      days_present: validatedDaysPresent,
+      actual_days_worked: validatedDaysPresent,
+      working_days_in_month: workingDaysInMonth,
       overtime_hours: totalOvertimeHours,
       total_hours_worked: totalHoursWorked,
       advances: totalAdvances,
       gross_salary: grossSalary,
       
-      // System variables
-      ...variables?.reduce((acc, variable) => {
-        acc[variable.name] = variable.default_value || 0
-        return acc
-      }, {} as Record<string, number>),
-      
-      // Employee overrides
-      ...overrides?.reduce((acc, override) => {
-        const variable = variables?.find(v => v.id === override.variable_id)
-        if (variable) {
-          acc[variable.name] = override.override_value
-        }
-        return acc
-      }, {} as Record<string, number>),
-      
-      // Custom variables from request
-      ...custom_variables,
-      
       // Payroll settings
       pf_rate: settings?.pf_rate || 12,
       esi_rate: settings?.esi_rate || 0.75,
-      esi_threshold: 21000, // ESI threshold amount
-    }
-
-    console.log('Variable context:', variableContext)
-
-    // Enhanced deduction calculations
-    // PF is calculated on basic salary only
-    const pfDeduction = (baseSalary * variableContext.pf_rate) / 100
-    
-    // ESI is calculated on gross salary but only if gross <= 21,000
-    const esiDeduction = grossSalary <= variableContext.esi_threshold ? 
-      (grossSalary * variableContext.esi_rate) / 100 : 0
-    
-    const totalDeductions = pfDeduction + esiDeduction + totalAdvances
-    const netSalary = grossSalary - totalDeductions
-
-    // Calculate step by step results
-    const calculationResults: Record<string, number> = {
-      base_salary: baseSalary,
-      hra_amount: hraAmount,
-      other_conv_amount: otherConvAmount,
-      overtime_amount: overtimeAmount,
-      gross_salary: grossSalary,
-      pf_deduction: pfDeduction,
-      esi_deduction: esiDeduction,
-      advances_deduction: totalAdvances,
-      total_deductions: totalDeductions,
-      net_salary: netSalary
+      esi_threshold: esiThreshold,
+      
+      // Custom variables from request
+      ...custom_variables,
     }
 
     const finalResults = {
       employee_id,
       employee_name: employee.name,
       month,
-      base_salary: baseSalary,
-      hra_amount: hraAmount,
-      other_conv_amount: otherConvAmount,
-      days_present,
+      base_salary: proRatedBaseSalary,
+      hra_amount: proRatedHra,
+      other_conv_amount: proRatedOtherConv,
+      days_present: validatedDaysPresent,
+      actual_days_worked: validatedDaysPresent,
+      working_days_in_month: workingDaysInMonth,
       overtime_hours: totalOvertimeHours,
       total_hours_worked: totalHoursWorked,
       overtime_amount: overtimeAmount,
       gross_salary: grossSalary,
       pf_deduction: pfDeduction,
       esi_deduction: esiDeduction,
-      esi_exempt: grossSalary > variableContext.esi_threshold,
+      esi_exempt: grossSalary > esiThreshold,
       advances_deduction: totalAdvances,
       total_deductions: totalDeductions,
       net_salary: netSalary,
       variable_context: variableContext,
-      calculation_breakdown: calculationResults,
-      formulas_used: formulas?.map(f => ({ id: f.id, name: f.name, type: f.formula_type }))
+      attendance_validation: {
+        has_attendance: (attendanceData?.length || 0) > 0,
+        attendance_records_count: attendanceData?.length || 0,
+        passed_days_present: days_present,
+        calculated_days_worked: validatedDaysPresent,
+        total_hours_worked: totalHoursWorked,
+        work_percentage: workingDaysInMonth > 0 ? (validatedDaysPresent / workingDaysInMonth) * 100 : 0
+      }
     }
 
     // Save audit trail
@@ -223,18 +255,23 @@ serve(async (req) => {
       .insert({
         employee_id,
         month: monthStart,
-        formula_snapshot: formulas,
         calculation_details: finalResults
       })
 
-    console.log('Enhanced calculation completed successfully')
+    console.log('✅ ENHANCED PAYROLL CALCULATION COMPLETED:', {
+      employee: employee.name,
+      month,
+      actualDaysWorked: validatedDaysPresent,
+      netSalary: netSalary.toFixed(2),
+      zeroSalary: netSalary === 0
+    })
 
     return new Response(JSON.stringify(finalResults), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
 
   } catch (error) {
-    console.error('Calculation error:', error)
+    console.error('❌ PAYROLL CALCULATION ERROR:', error)
     return new Response(
       JSON.stringify({ error: error.message }),
       { 
@@ -244,32 +281,3 @@ serve(async (req) => {
     )
   }
 })
-
-// Simple formula evaluator (for basic mathematical expressions)
-function evaluateFormula(expression: string, variables: Record<string, number>): number {
-  try {
-    // Replace variable names with their values
-    let processedExpression = expression
-    
-    // Sort variables by length (longest first) to avoid partial replacements
-    const sortedVariables = Object.keys(variables).sort((a, b) => b.length - a.length)
-    
-    for (const variable of sortedVariables) {
-      const regex = new RegExp(`\\b${variable}\\b`, 'g')
-      processedExpression = processedExpression.replace(regex, variables[variable].toString())
-    }
-    
-    // Basic safety check - only allow mathematical expressions
-    if (!/^[0-9+\-*/.() ]+$/.test(processedExpression)) {
-      throw new Error('Invalid formula expression')
-    }
-    
-    // Evaluate the expression
-    const result = Function(`"use strict"; return (${processedExpression})`)()
-    
-    return isNaN(result) ? 0 : Number(result.toFixed(2))
-  } catch (error) {
-    console.error('Formula evaluation error:', error)
-    return 0
-  }
-}

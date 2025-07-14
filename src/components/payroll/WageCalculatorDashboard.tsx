@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon, Download, Save, Calculator, Users, Building2 } from 'lucide-react';
+import { CalendarIcon, Download, Save, Calculator, Users, Building2, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
@@ -38,6 +37,12 @@ interface SalaryResult {
   advances_deduction: number;
   net_salary: number;
   month: string;
+  attendance_validation: {
+    has_attendance: boolean;
+    worked_days: number;
+    total_days_in_month: number;
+    work_percentage: number;
+  };
 }
 
 interface WageCalculatorDashboardProps {
@@ -58,13 +63,12 @@ export function WageCalculatorDashboard({ selectedBatchId, onSalaryGenerated }: 
   const [isSaving, setIsSaving] = useState(false);
   const [isLoadingUnits, setIsLoadingUnits] = useState(true);
   const [employeeCount, setEmployeeCount] = useState<number>(0);
+  const [validationWarnings, setValidationWarnings] = useState<string[]>([]);
 
-  // Fetch units on component mount
   useEffect(() => {
     fetchUnits();
   }, []);
 
-  // Update selected unit info when unit changes
   useEffect(() => {
     if (selectedUnit && units.length > 0) {
       const unitInfo = units.find(u => u.unit_id === selectedUnit);
@@ -127,6 +131,8 @@ export function WageCalculatorDashboard({ selectedBatchId, onSalaryGenerated }: 
     }
 
     setIsLoading(true);
+    const warnings: string[] = [];
+    
     try {
       // First, get employees for the selected unit
       const { data: employees, error: empError } = await supabase
@@ -149,7 +155,7 @@ export function WageCalculatorDashboard({ selectedBatchId, onSalaryGenerated }: 
       // Get employee IDs for attendance query
       const employeeIds = employees.map(emp => emp.id);
 
-      // Then, get attendance data for these employees within the date range
+      // Get attendance data for these employees within the date range
       const { data: attendanceData, error: attError } = await supabase
         .from('attendance')
         .select('*')
@@ -161,23 +167,76 @@ export function WageCalculatorDashboard({ selectedBatchId, onSalaryGenerated }: 
 
       console.log(`Found ${attendanceData?.length || 0} attendance records for the period`);
 
-      // Calculate salaries for each employee
+      // Get total working days in the month (excluding Sundays)
+      const totalDaysInMonth = new Date(dateRange.from.getFullYear(), dateRange.from.getMonth() + 1, 0).getDate();
+      const workingDaysInMonth = Math.floor(totalDaysInMonth * (6/7)); // Approximate working days
+
+      console.log(`📊 SALARY CALCULATION ANALYSIS:`, {
+        totalDaysInMonth,
+        workingDaysInMonth,
+        dateRange: {
+          from: dateRange.from.toISOString().split('T')[0],
+          to: dateRange.to.toISOString().split('T')[0]
+        }
+      });
+
+      // Calculate salaries for each employee with ATTENDANCE VALIDATION
       const results = await Promise.all(employees.map(async (employee) => {
         const employeeAttendance = attendanceData?.filter(att => att.employee_id === employee.id) || [];
-        // CRITICAL FIX: Only count days where hours_worked > 0 as "days present"
-        const totalDaysPresent = employeeAttendance.filter(att => (att.hours_worked || 0) > 0).length;
+        
+        // CRITICAL: Only count days where hours_worked > 0 as "days present"
+        const workedDays = employeeAttendance.filter(att => (att.hours_worked || 0) > 0);
+        const totalDaysPresent = workedDays.length;
         const totalHours = employeeAttendance.reduce((sum, att) => sum + (att.hours_worked || 0), 0);
         const overtimeHours = employeeAttendance.reduce((sum, att) => sum + (att.overtime_hours || 0), 0);
 
+        // ATTENDANCE VALIDATION
+        const hasAttendance = employeeAttendance.length > 0;
+        const workPercentage = workingDaysInMonth > 0 ? (totalDaysPresent / workingDaysInMonth) * 100 : 0;
+        
+        const attendanceValidation = {
+          has_attendance: hasAttendance,
+          worked_days: totalDaysPresent,
+          total_days_in_month: workingDaysInMonth,
+          work_percentage: workPercentage
+        };
+
+        // SALARY CALCULATION BASED ON ACTUAL DAYS WORKED
         const baseSalary = employee.base_salary || 0;
         const hraAmount = employee.hra_amount || 0;
         const otherConvAmount = employee.other_conv_amount || 0;
 
-        const grossSalary = baseSalary + hraAmount + otherConvAmount;
-        const overtimeAmount = (baseSalary / 30 / 8) * overtimeHours * 1.5;
+        // PRO-RATED SALARY CALCULATION
+        let proRatedBaseSalary = baseSalary;
+        let proRatedHra = hraAmount;
+        let proRatedOtherConv = otherConvAmount;
 
-        const pfDeduction = Math.min(grossSalary * 0.12, 1800);
-        const esiDeduction = grossSalary <= 21000 ? grossSalary * 0.0075 : 0;
+        // If employee has 0 days worked, salary should be 0 (unless on approved paid leave)
+        if (totalDaysPresent === 0) {
+          proRatedBaseSalary = 0;
+          proRatedHra = 0;
+          proRatedOtherConv = 0;
+          
+          warnings.push(`${employee.name}: 0 days worked - Salary set to ₹0`);
+        } else if (totalDaysPresent < workingDaysInMonth) {
+          // Pro-rate salary based on actual days worked
+          const workRatio = totalDaysPresent / workingDaysInMonth;
+          proRatedBaseSalary = baseSalary * workRatio;
+          proRatedHra = hraAmount * workRatio;
+          proRatedOtherConv = otherConvAmount * workRatio;
+          
+          warnings.push(`${employee.name}: ${totalDaysPresent}/${workingDaysInMonth} days worked - Pro-rated salary`);
+        }
+
+        // Overtime calculation (only if employee worked)
+        const overtimeAmount = totalDaysPresent > 0 ? (baseSalary / 30 / 8) * overtimeHours * 1.5 : 0;
+
+        // Gross salary calculation
+        const grossSalary = proRatedBaseSalary + proRatedHra + proRatedOtherConv + overtimeAmount;
+
+        // Deductions (only if employee worked)
+        const pfDeduction = totalDaysPresent > 0 ? Math.min(proRatedBaseSalary * 0.12, 1800) : 0;
+        const esiDeduction = (totalDaysPresent > 0 && grossSalary <= 21000) ? grossSalary * 0.0075 : 0;
 
         // Get advances for this employee in the date range
         const { data: advances } = await supabase
@@ -188,7 +247,17 @@ export function WageCalculatorDashboard({ selectedBatchId, onSalaryGenerated }: 
           .lte('advance_date', dateRange.to?.toISOString().split('T')[0]);
 
         const advancesDeduction = advances?.reduce((sum, adv) => sum + adv.advance_amount, 0) || 0;
-        const netSalary = grossSalary + overtimeAmount - pfDeduction - esiDeduction - advancesDeduction;
+        const netSalary = grossSalary - pfDeduction - esiDeduction - advancesDeduction;
+
+        console.log(`💰 SALARY CALC FOR ${employee.name}:`, {
+          totalDaysPresent,
+          workingDaysInMonth,
+          workPercentage: workPercentage.toFixed(1) + '%',
+          originalSalary: baseSalary,
+          proRatedSalary: proRatedBaseSalary.toFixed(2),
+          grossSalary: grossSalary.toFixed(2),
+          netSalary: netSalary.toFixed(2)
+        });
 
         return {
           employee_id: employee.id,
@@ -196,21 +265,31 @@ export function WageCalculatorDashboard({ selectedBatchId, onSalaryGenerated }: 
           uan_number: employee.uan_number || 'N/A',
           total_days_present: totalDaysPresent,
           total_hours_worked: totalHours,
-          base_salary: baseSalary,
-          hra_amount: hraAmount,
-          other_conv_amount: otherConvAmount,
+          base_salary: proRatedBaseSalary,
+          hra_amount: proRatedHra,
+          other_conv_amount: proRatedOtherConv,
           overtime_amount: overtimeAmount,
-          gross_salary: grossSalary + overtimeAmount,
+          gross_salary: grossSalary,
           pf_deduction: pfDeduction,
           esi_deduction: esiDeduction,
           advances_deduction: advancesDeduction,
           net_salary: netSalary,
-          month: format(dateRange.from || new Date(), 'yyyy-MM')
+          month: format(dateRange.from || new Date(), 'yyyy-MM'),
+          attendance_validation: attendanceValidation
         };
       }));
 
       setSalaryResults(results);
-      toast.success(`Calculated salaries for ${results.length} employees from ${selectedUnitInfo?.unit_name}`);
+      setValidationWarnings(warnings);
+      
+      // Count employees with issues
+      const zeroSalaryEmployees = results.filter(r => r.net_salary === 0).length;
+      const proRatedEmployees = results.filter(r => r.attendance_validation.work_percentage < 100 && r.attendance_validation.work_percentage > 0).length;
+      
+      toast.success(`Calculated salaries for ${results.length} employees from ${selectedUnitInfo?.unit_name}`, {
+        description: `${zeroSalaryEmployees} with ₹0 salary, ${proRatedEmployees} pro-rated`
+      });
+      
     } catch (error) {
       console.error('Error calculating salaries:', error);
       toast.error('Failed to calculate salaries. Please check the console for details.');
@@ -404,14 +483,35 @@ export function WageCalculatorDashboard({ selectedBatchId, onSalaryGenerated }: 
             )}
           </div>
 
+          {/* Validation Warnings */}
+          {validationWarnings.length > 0 && (
+            <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <div className="flex items-center gap-2 mb-2">
+                <AlertTriangle className="w-4 h-4 text-yellow-600" />
+                <h3 className="font-medium text-yellow-900">Salary Calculation Warnings</h3>
+              </div>
+              <div className="space-y-1 text-sm text-yellow-700">
+                {validationWarnings.map((warning, index) => (
+                  <p key={index}>• {warning}</p>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Calculation Summary */}
           {salaryResults.length > 0 && (
             <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
               <h3 className="font-medium text-green-900 mb-2">Calculation Summary</h3>
-              <div className="grid grid-cols-3 gap-4 text-sm">
+              <div className="grid grid-cols-4 gap-4 text-sm">
                 <div>
                   <p className="text-green-700">Employees Processed:</p>
                   <p className="font-medium text-green-900">{salaryResults.length}</p>
+                </div>
+                <div>
+                  <p className="text-green-700">Zero Salary Count:</p>
+                  <p className="font-medium text-green-900">
+                    {salaryResults.filter(r => r.net_salary === 0).length}
+                  </p>
                 </div>
                 <div>
                   <p className="text-green-700">Total Gross Amount:</p>
@@ -454,6 +554,9 @@ export function WageCalculatorDashboard({ selectedBatchId, onSalaryGenerated }: 
                       Hours Worked
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Work %
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Gross Salary
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -462,7 +565,7 @@ export function WageCalculatorDashboard({ selectedBatchId, onSalaryGenerated }: 
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       ESI Deduction
                     </th>
-                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Advance Deduction
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -472,7 +575,7 @@ export function WageCalculatorDashboard({ selectedBatchId, onSalaryGenerated }: 
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {salaryResults.map((result) => (
-                    <tr key={result.employee_id}>
+                    <tr key={result.employee_id} className={result.net_salary === 0 ? 'bg-red-50' : result.attendance_validation.work_percentage < 100 ? 'bg-yellow-50' : ''}>
                       <td className="px-6 py-4 whitespace-nowrap">
                         {result.employee_name}
                       </td>
@@ -480,10 +583,17 @@ export function WageCalculatorDashboard({ selectedBatchId, onSalaryGenerated }: 
                         {result.uan_number}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        {result.total_days_present}
+                        <span className={result.total_days_present === 0 ? 'text-red-600 font-medium' : ''}>
+                          {result.total_days_present}
+                        </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         {result.total_hours_worked}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={result.attendance_validation.work_percentage < 50 ? 'text-red-600' : result.attendance_validation.work_percentage < 100 ? 'text-yellow-600' : 'text-green-600'}>
+                          {result.attendance_validation.work_percentage.toFixed(1)}%
+                        </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         ₹{result.gross_salary.toLocaleString()}
@@ -498,7 +608,9 @@ export function WageCalculatorDashboard({ selectedBatchId, onSalaryGenerated }: 
                         ₹{result.advances_deduction.toLocaleString()}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        ₹{result.net_salary.toLocaleString()}
+                        <span className={result.net_salary === 0 ? 'text-red-600 font-medium' : 'text-green-600'}>
+                          ₹{result.net_salary.toLocaleString()}
+                        </span>
                       </td>
                     </tr>
                   ))}
