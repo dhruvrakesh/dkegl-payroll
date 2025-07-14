@@ -57,7 +57,7 @@ export const AttendanceCalendarView: React.FC<AttendanceCalendarViewProps> = ({
         monthEndObj: monthEnd.toISOString()
       });
       
-      // CRITICAL FIX: Direct query without potential RLS issues
+      // CRITICAL FIX: Use simpler query structure to avoid RLS issues
       const { data, error } = await supabase
         .from('attendance')
         .select(`
@@ -66,7 +66,7 @@ export const AttendanceCalendarView: React.FC<AttendanceCalendarViewProps> = ({
           attendance_date,
           hours_worked,
           overtime_hours,
-          payroll_employees!inner (
+          payroll_employees (
             name,
             unit_id
           ),
