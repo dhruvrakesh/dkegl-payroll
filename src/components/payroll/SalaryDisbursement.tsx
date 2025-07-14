@@ -95,6 +95,19 @@ export const SalaryDisbursement = () => {
         .order('month', { ascending: false });
 
       if (error) throw error;
+      
+      console.log('Salary records fetched:', {
+        totalRecords: data?.length || 0,
+        draftRecords: data?.filter(r => !r.disbursed_on).length || 0,
+        disbursedRecords: data?.filter(r => r.disbursed_on).length || 0,
+        sampleRecords: data?.slice(0, 3).map(r => ({ 
+          id: r.salary_id, 
+          employee: r.payroll_employees?.name, 
+          isDraft: !r.disbursed_on,
+          disbursed_on: r.disbursed_on 
+        }))
+      });
+      
       setSalaryRecords(data || []);
     } catch (error) {
       console.error('Error fetching salary records:', error);
@@ -300,6 +313,11 @@ export const SalaryDisbursement = () => {
   };
 
   const handleEditRecord = (record: SalaryRecord) => {
+    console.log('Opening edit dialog for record:', { 
+      salary_id: record.salary_id, 
+      isDraft: !record.disbursed_on,
+      disbursed_on: record.disbursed_on 
+    });
     setEditingRecord(record);
     setEditDialogOpen(true);
   };
@@ -345,6 +363,8 @@ export const SalaryDisbursement = () => {
   };
 
   const deleteSalaryRecord = async (salaryId: string) => {
+    if (!confirm('Are you sure you want to delete this salary record?')) return;
+
     try {
       const { error } = await supabase
         .from('salary_disbursement')
@@ -383,7 +403,7 @@ export const SalaryDisbursement = () => {
         <div>
           <h3 className="text-lg font-medium">Enhanced Salary Disbursement</h3>
           <p className="text-sm text-gray-600">
-            Manage salary calculations with Base + HRA + Other/Conv structure
+            Manage salary calculations with Base + HRA + Other/Conv structure ({salaryRecords.length} total records, {salaryRecords.filter(r => isDraftRecord(r)).length} drafts)
           </p>
         </div>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -546,7 +566,7 @@ export const SalaryDisbursement = () => {
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Edit Salary Record</DialogTitle>
+            <DialogTitle>Edit Draft Salary Record</DialogTitle>
           </DialogHeader>
           {editingRecord && (
             <div className="space-y-4">
@@ -574,8 +594,20 @@ export const SalaryDisbursement = () => {
                   })}
                 />
               </div>
+              <div>
+                <Label htmlFor="edit_net_salary">Net Salary</Label>
+                <Input
+                  id="edit_net_salary"
+                  type="number"
+                  value={editingRecord.net_salary}
+                  onChange={(e) => setEditingRecord({
+                    ...editingRecord,
+                    net_salary: parseFloat(e.target.value) || 0
+                  })}
+                />
+              </div>
               <div className="flex space-x-2">
-                <Button onClick={updateSalaryRecord}>Update</Button>
+                <Button onClick={updateSalaryRecord}>Update Record</Button>
                 <Button variant="outline" onClick={() => setEditDialogOpen(false)}>Cancel</Button>
               </div>
             </div>
@@ -595,69 +627,83 @@ export const SalaryDisbursement = () => {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {salaryRecords.map((record) => (
-            <TableRow key={record.salary_id}>
-              <TableCell className="font-medium">
-                {record.payroll_employees?.name || 'Unknown'}
-              </TableCell>
-              <TableCell>{new Date(record.month).toLocaleDateString('en-US', { year: 'numeric', month: 'long' })}</TableCell>
-              <TableCell>
-                <div className="text-xs space-y-1">
-                  <div>Base: ₹{record.base_salary.toLocaleString()}</div>
-                  {record.hra_amount > 0 && <div>HRA: ₹{record.hra_amount.toLocaleString()}</div>}
-                  {record.other_conv_amount > 0 && <div>Other: ₹{record.other_conv_amount.toLocaleString()}</div>}
-                  {record.overtime_amount > 0 && <div>OT: ₹{record.overtime_amount.toFixed(0)}</div>}
-                  <div className="font-semibold">Gross: ₹{record.gross_salary.toLocaleString()}</div>
-                  {record.esi_deduction === 0 && record.gross_salary > 21000 && (
-                    <Badge variant="secondary" className="text-xs">ESI Exempt</Badge>
-                  )}
-                </div>
-              </TableCell>
-              <TableCell className="font-bold">₹{record.net_salary.toLocaleString()}</TableCell>
-              <TableCell>
-                {record.disbursed_on ? (
-                  <Badge variant="default">
-                    Disbursed on {new Date(record.disbursed_on).toLocaleDateString()}
-                  </Badge>
-                ) : (
-                  <Badge variant="secondary">Draft</Badge>
-                )}
-              </TableCell>
-              <TableCell>
-                <div className="flex gap-2">
-                  {isDraftRecord(record) ? (
-                    <>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleEditRecord(record)}
-                      >
-                        <Edit className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => deleteSalaryRecord(record.salary_id)}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => markDisbursed(record.salary_id)}
-                      >
-                        Mark Disbursed
-                      </Button>
-                    </>
+          {salaryRecords.map((record) => {
+            const isDraft = isDraftRecord(record);
+            console.log(`Record ${record.salary_id} - isDraft: ${isDraft}, disbursed_on: ${record.disbursed_on}`);
+            
+            return (
+              <TableRow key={record.salary_id}>
+                <TableCell className="font-medium">
+                  {record.payroll_employees?.name || 'Unknown'}
+                </TableCell>
+                <TableCell>{new Date(record.month).toLocaleDateString('en-US', { year: 'numeric', month: 'long' })}</TableCell>
+                <TableCell>
+                  <div className="text-xs space-y-1">
+                    <div>Base: ₹{record.base_salary.toLocaleString()}</div>
+                    {record.hra_amount > 0 && <div>HRA: ₹{record.hra_amount.toLocaleString()}</div>}
+                    {record.other_conv_amount > 0 && <div>Other: ₹{record.other_conv_amount.toLocaleString()}</div>}
+                    {record.overtime_amount > 0 && <div>OT: ₹{record.overtime_amount.toFixed(0)}</div>}
+                    <div className="font-semibold">Gross: ₹{record.gross_salary.toLocaleString()}</div>
+                    {record.esi_deduction === 0 && record.gross_salary > 21000 && (
+                      <Badge variant="secondary" className="text-xs">ESI Exempt</Badge>
+                    )}
+                  </div>
+                </TableCell>
+                <TableCell className="font-bold">₹{record.net_salary.toLocaleString()}</TableCell>
+                <TableCell>
+                  {isDraft ? (
+                    <Badge variant="secondary">Draft</Badge>
                   ) : (
-                    <Badge variant="outline">Disbursed</Badge>
+                    <Badge variant="default">
+                      Disbursed on {new Date(record.disbursed_on).toLocaleDateString()}
+                    </Badge>
                   )}
-                </div>
-              </TableCell>
-            </TableRow>
-          ))}
+                </TableCell>
+                <TableCell>
+                  <div className="flex gap-2">
+                    {isDraft ? (
+                      <>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleEditRecord(record)}
+                          title="Edit draft record"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => deleteSalaryRecord(record.salary_id)}
+                          title="Delete draft record"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => markDisbursed(record.salary_id)}
+                          title="Mark as disbursed"
+                        >
+                          Mark Disbursed
+                        </Button>
+                      </>
+                    ) : (
+                      <Badge variant="outline" className="text-xs">Disbursed (Read-only)</Badge>
+                    )}
+                  </div>
+                </TableCell>
+              </TableRow>
+            );
+          })}
         </TableBody>
       </Table>
+      
+      {salaryRecords.length === 0 && (
+        <div className="text-center py-8 text-muted-foreground">
+          <p>No salary records found. Create some salary records to test the editing functionality.</p>
+        </div>
+      )}
     </div>
   );
 };
