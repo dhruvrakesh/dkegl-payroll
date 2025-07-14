@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Mail, Send, Clock, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { EMAIL_STATUS, MESSAGE_TYPES } from '@/config/constants';
+import { getStatusColor } from '@/config/utils';
 
 interface EmailQueueItem {
   id: string;
@@ -45,7 +47,7 @@ export const EmailQueue = () => {
     } catch (error) {
       console.error('Error fetching email queue:', error);
       toast({
-        title: 'Error',
+        title: MESSAGE_TYPES.ERROR,
         description: 'Failed to fetch email queue',
         variant: 'destructive',
       });
@@ -60,7 +62,7 @@ export const EmailQueue = () => {
       if (error) throw error;
 
       toast({
-        title: 'Success',
+        title: MESSAGE_TYPES.SUCCESS,
         description: 'Email queue processing triggered successfully',
       });
 
@@ -69,7 +71,7 @@ export const EmailQueue = () => {
     } catch (error) {
       console.error('Error processing email queue:', error);
       toast({
-        title: 'Error',
+        title: MESSAGE_TYPES.ERROR,
         description: 'Failed to process email queue',
         variant: 'destructive',
       });
@@ -80,31 +82,16 @@ export const EmailQueue = () => {
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'pending':
+      case EMAIL_STATUS.PENDING:
         return <Clock className="h-4 w-4" />;
-      case 'sending':
+      case EMAIL_STATUS.SENDING:
         return <AlertCircle className="h-4 w-4 animate-spin" />;
-      case 'sent':
+      case EMAIL_STATUS.SENT:
         return <CheckCircle className="h-4 w-4" />;
-      case 'failed':
+      case EMAIL_STATUS.FAILED:
         return <XCircle className="h-4 w-4" />;
       default:
         return <Clock className="h-4 w-4" />;
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'pending':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'sending':
-        return 'bg-blue-100 text-blue-800';
-      case 'sent':
-        return 'bg-green-100 text-green-800';
-      case 'failed':
-        return 'bg-red-100 text-red-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
     }
   };
 
@@ -119,10 +106,10 @@ export const EmailQueue = () => {
 
     return {
       total: emails.length,
-      pending: stats.pending || 0,
-      sending: stats.sending || 0,
-      sent: stats.sent || 0,
-      failed: stats.failed || 0,
+      pending: stats[EMAIL_STATUS.PENDING] || 0,
+      sending: stats[EMAIL_STATUS.SENDING] || 0,
+      sent: stats[EMAIL_STATUS.SENT] || 0,
+      failed: stats[EMAIL_STATUS.FAILED] || 0,
     };
   };
 

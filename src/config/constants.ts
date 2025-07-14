@@ -39,6 +39,13 @@ export const JOB_STATUS = {
   FAILED: 'failed',
 } as const;
 
+export const EMAIL_STATUS = {
+  PENDING: 'pending',
+  SENDING: 'sending',
+  SENT: 'sent',
+  FAILED: 'failed',
+} as const;
+
 export const TRANSFER_STATUS = {
   PENDING: 'pending',
   APPROVED: 'approved',
