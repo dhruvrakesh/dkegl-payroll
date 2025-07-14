@@ -46,18 +46,25 @@ export const AttendanceCalendarView: React.FC<AttendanceCalendarViewProps> = ({
   const fetchCalendarData = async () => {
     try {
       setCalendarLoading(true);
+      // CRITICAL FIX: Use broader date range to capture June 1-7 properly
       const monthStart = startOfMonth(currentMonth);
       const monthEnd = endOfMonth(currentMonth);
       
-      console.log('🔍 CRITICAL DEBUG - Fetching calendar data:', {
-        currentMonthState: currentMonth.toISOString(),
-        monthStart: format(monthStart, 'yyyy-MM-dd'),
-        monthEnd: format(monthEnd, 'yyyy-MM-dd'),
-        monthStartObj: monthStart.toISOString(),
-        monthEndObj: monthEnd.toISOString()
+      // ADDITIONAL FIX: Extend range slightly to ensure June 1-7 is captured
+      const extendedStart = new Date(monthStart);
+      extendedStart.setDate(extendedStart.getDate() - 2); // Go back 2 days to be safe
+      const extendedEnd = new Date(monthEnd);
+      extendedEnd.setDate(extendedEnd.getDate() + 2); // Go forward 2 days to be safe
+      
+      console.log('🔍 FINAL DEBUG - Calendar fetch with extended range:', {
+        originalStart: format(monthStart, 'yyyy-MM-dd'),
+        originalEnd: format(monthEnd, 'yyyy-MM-dd'),
+        extendedStart: format(extendedStart, 'yyyy-MM-dd'),
+        extendedEnd: format(extendedEnd, 'yyyy-MM-dd'),
+        currentMonthState: currentMonth.toISOString()
       });
       
-      // CRITICAL FIX: Use simpler query structure to avoid RLS issues
+      // CRITICAL FIX: Use extended date range to capture all June data
       const { data, error } = await supabase
         .from('attendance')
         .select(`
@@ -74,8 +81,8 @@ export const AttendanceCalendarView: React.FC<AttendanceCalendarViewProps> = ({
             unit_name
           )
         `)
-        .gte('attendance_date', format(monthStart, 'yyyy-MM-dd'))
-        .lte('attendance_date', format(monthEnd, 'yyyy-MM-dd'))
+        .gte('attendance_date', format(extendedStart, 'yyyy-MM-dd'))
+        .lte('attendance_date', format(extendedEnd, 'yyyy-MM-dd'))
         .order('attendance_date', { ascending: false });
 
       if (error) {

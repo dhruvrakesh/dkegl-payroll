@@ -164,7 +164,8 @@ export function WageCalculatorDashboard({ selectedBatchId, onSalaryGenerated }: 
       // Calculate salaries for each employee
       const results = await Promise.all(employees.map(async (employee) => {
         const employeeAttendance = attendanceData?.filter(att => att.employee_id === employee.id) || [];
-        const totalDays = employeeAttendance.length;
+        // CRITICAL FIX: Only count days where hours_worked > 0 as "days present"
+        const totalDaysPresent = employeeAttendance.filter(att => (att.hours_worked || 0) > 0).length;
         const totalHours = employeeAttendance.reduce((sum, att) => sum + (att.hours_worked || 0), 0);
         const overtimeHours = employeeAttendance.reduce((sum, att) => sum + (att.overtime_hours || 0), 0);
 
@@ -193,7 +194,7 @@ export function WageCalculatorDashboard({ selectedBatchId, onSalaryGenerated }: 
           employee_id: employee.id,
           employee_name: employee.name,
           uan_number: employee.uan_number || 'N/A',
-          total_days_present: totalDays,
+          total_days_present: totalDaysPresent,
           total_hours_worked: totalHours,
           base_salary: baseSalary,
           hra_amount: hraAmount,

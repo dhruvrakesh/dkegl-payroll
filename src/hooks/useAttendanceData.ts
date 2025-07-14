@@ -240,7 +240,10 @@ export const useAttendanceData = (filters: AttendanceFilters) => {
         }
         const empData = employeeMap.get(empId);
         empData.totalHours += record.hours_worked;
-        empData.totalDays += 1;
+        // CRITICAL FIX: Only count days with hours_worked > 0 as "days present"
+        if (record.hours_worked > 0) {
+          empData.totalDays += 1;
+        }
       });
 
       const employeeStats = Array.from(employeeMap.values()).map(emp => ({
