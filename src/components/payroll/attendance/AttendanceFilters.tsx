@@ -161,10 +161,15 @@ export const AttendanceFilters: React.FC<AttendanceFiltersProps> = ({
           >
             <SelectTrigger>
               <SelectValue placeholder="Select unit">
-                {filters.unitIds.length > 0 && (
+                {filters.unitIds.length === 0 ? (
                   <div className="flex items-center gap-2">
                     <Building2 className="w-4 h-4" />
-                    {units.find(u => u.unit_id === filters.unitIds[0])?.unit_name}
+                    All Units
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <Building2 className="w-4 h-4" />
+                    {units.find(u => u.unit_id === filters.unitIds[0])?.unit_name || 'Select unit'}
                   </div>
                 )}
               </SelectValue>

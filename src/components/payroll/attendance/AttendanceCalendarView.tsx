@@ -68,6 +68,12 @@ export const AttendanceCalendarView: React.FC<AttendanceCalendarViewProps> = ({
       if (error) throw error;
       
       console.log('Calendar data fetched:', data?.length, 'records');
+      console.log('Sample records for debugging:', data?.slice(0, 5)?.map(r => ({ 
+        date: r.attendance_date, 
+        employee: r.payroll_employees?.name, 
+        hours: r.hours_worked 
+      })));
+      
       setCalendarData(data || []);
     } catch (error) {
       console.error('Error fetching calendar data:', error);
@@ -99,9 +105,19 @@ export const AttendanceCalendarView: React.FC<AttendanceCalendarViewProps> = ({
     attendanceByDate.get(dateKey)!.push(record);
   });
 
+  console.log('AttendanceByDate Map:', Array.from(attendanceByDate.entries()).slice(0, 10));
+
   const getDayAttendance = (date: Date) => {
     const dateStr = format(date, 'yyyy-MM-dd');
     const dayRecords = attendanceByDate.get(dateStr) || [];
+    
+    // Debug logging for June 1-7
+    if (dateStr >= '2025-06-01' && dateStr <= '2025-06-07') {
+      console.log(`June Debug - ${dateStr}: Found ${dayRecords.length} records`, dayRecords.map(r => ({ 
+        employee: r.payroll_employees?.name || 'Unknown', 
+        hours: r.hours_worked 
+      })));
+    }
     
     // Enrich records with employee names if missing
     return dayRecords.map((record: Attendance) => ({
