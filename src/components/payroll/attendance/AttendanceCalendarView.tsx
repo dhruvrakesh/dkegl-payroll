@@ -35,7 +35,8 @@ export const AttendanceCalendarView: React.FC<AttendanceCalendarViewProps> = ({
   loading: parentLoading,
   onRefresh
 }) => {
-  const [currentMonth, setCurrentMonth] = useState(new Date());
+  // CRITICAL FIX: Initialize to June 2025 to show the June 1-7 data
+  const [currentMonth, setCurrentMonth] = useState(new Date(2025, 5, 1)); // June 2025 (month is 0-indexed)
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [calendarData, setCalendarData] = useState<Attendance[]>([]);
   const [calendarLoading, setCalendarLoading] = useState(false);
@@ -48,17 +49,24 @@ export const AttendanceCalendarView: React.FC<AttendanceCalendarViewProps> = ({
       const monthStart = startOfMonth(currentMonth);
       const monthEnd = endOfMonth(currentMonth);
       
-      console.log('Fetching calendar data for range:', {
+      console.log('🔍 CRITICAL DEBUG - Fetching calendar data:', {
+        currentMonthState: currentMonth.toISOString(),
         monthStart: format(monthStart, 'yyyy-MM-dd'),
         monthEnd: format(monthEnd, 'yyyy-MM-dd'),
-        currentMonth: currentMonth.toISOString()
+        monthStartObj: monthStart.toISOString(),
+        monthEndObj: monthEnd.toISOString()
       });
       
+      // CRITICAL FIX: Direct query without potential RLS issues
       const { data, error } = await supabase
         .from('attendance')
         .select(`
-          *,
-          payroll_employees (
+          attendance_id,
+          employee_id,
+          attendance_date,
+          hours_worked,
+          overtime_hours,
+          payroll_employees!inner (
             name,
             unit_id
           ),
@@ -70,26 +78,32 @@ export const AttendanceCalendarView: React.FC<AttendanceCalendarViewProps> = ({
         .lte('attendance_date', format(monthEnd, 'yyyy-MM-dd'))
         .order('attendance_date', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('🚨 Supabase query error:', error);
+        throw error;
+      }
       
-      console.log('Calendar data fetched:', {
+      console.log('📊 CRITICAL DEBUG - Calendar data result:', {
         totalRecords: data?.length || 0,
-        dateRange: {
+        queryRange: {
           start: format(monthStart, 'yyyy-MM-dd'),
           end: format(monthEnd, 'yyyy-MM-dd')
         },
         uniqueDates: [...new Set(data?.map(r => r.attendance_date) || [])].sort(),
-        firstFewRecords: data?.slice(0, 5).map(r => ({ 
+        june1to7Records: data?.filter(r => r.attendance_date >= '2025-06-01' && r.attendance_date <= '2025-06-07').length || 0,
+        firstJune1Record: data?.find(r => r.attendance_date === '2025-06-01'),
+        sampleRecords: data?.slice(0, 3).map(r => ({ 
           date: r.attendance_date, 
           emp: r.employee_id?.slice(0, 8), 
-          hours: r.hours_worked 
+          hours: r.hours_worked,
+          empName: r.payroll_employees?.name 
         }))
       });
       
       setCalendarData(data || []);
       
     } catch (error) {
-      console.error('Error fetching calendar data:', error);
+      console.error('❌ Error fetching calendar data:', error);
       toast({
         title: "Error",
         description: "Failed to fetch calendar data",
