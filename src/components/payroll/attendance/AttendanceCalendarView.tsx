@@ -50,7 +50,8 @@ export const AttendanceCalendarView: React.FC<AttendanceCalendarViewProps> = ({
       
       console.log('Fetching calendar data for range:', {
         monthStart: format(monthStart, 'yyyy-MM-dd'),
-        monthEnd: format(monthEnd, 'yyyy-MM-dd')
+        monthEnd: format(monthEnd, 'yyyy-MM-dd'),
+        currentMonth: currentMonth.toISOString()
       });
       
       const { data, error } = await supabase
@@ -73,8 +74,16 @@ export const AttendanceCalendarView: React.FC<AttendanceCalendarViewProps> = ({
       
       console.log('Calendar data fetched:', {
         totalRecords: data?.length || 0,
-        firstFewRecords: data?.slice(0, 10).map(r => ({ date: r.attendance_date, emp: r.employee_id, hours: r.hours_worked })),
-        uniqueDates: [...new Set(data?.map(r => r.attendance_date) || [])].sort()
+        dateRange: {
+          start: format(monthStart, 'yyyy-MM-dd'),
+          end: format(monthEnd, 'yyyy-MM-dd')
+        },
+        uniqueDates: [...new Set(data?.map(r => r.attendance_date) || [])].sort(),
+        firstFewRecords: data?.slice(0, 5).map(r => ({ 
+          date: r.attendance_date, 
+          emp: r.employee_id?.slice(0, 8), 
+          hours: r.hours_worked 
+        }))
       });
       
       setCalendarData(data || []);
@@ -103,27 +112,31 @@ export const AttendanceCalendarView: React.FC<AttendanceCalendarViewProps> = ({
   const calendarDays = eachDayOfInterval({ start: calendarStart, end: calendarEnd });
 
   // Group attendance records by date using ONLY calendar data (not filtered attendanceRecords)
+  // FIX: Use correct date format as keys
   const attendanceByDate = new Map<string, Attendance[]>();
   calendarData.forEach(record => {
-    const dateKey = record.attendance_date;
+    const dateKey = record.attendance_date; // This is already in YYYY-MM-DD format
     if (!attendanceByDate.has(dateKey)) {
       attendanceByDate.set(dateKey, []);
     }
     attendanceByDate.get(dateKey)!.push(record);
   });
 
-  // Debug logging for the Map to see what dates we have
+  // Fixed debug logging
   console.log('AttendanceByDate Map contents:', {
     totalKeys: attendanceByDate.size,
-    allKeys: Array.from(attendanceByDate.keys()).sort(),
-    june1to7: {
-      'June 1': attendanceByDate.get('2025-06-01')?.length || 0,
-      'June 2': attendanceByDate.get('2025-06-02')?.length || 0,
-      'June 3': attendanceByDate.get('2025-06-03')?.length || 0,
-      'June 4': attendanceByDate.get('2025-06-04')?.length || 0,
-      'June 5': attendanceByDate.get('2025-06-05')?.length || 0,
-      'June 6': attendanceByDate.get('2025-06-06')?.length || 0,
-      'June 7': attendanceByDate.get('2025-06-07')?.length || 0,
+    mapKeys: Array.from(attendanceByDate.keys()).sort(),
+    june1to7Keys: Array.from(attendanceByDate.keys()).filter(k => 
+      k >= '2025-06-01' && k <= '2025-06-07'
+    ),
+    june1to7Counts: {
+      '2025-06-01': attendanceByDate.get('2025-06-01')?.length || 0,
+      '2025-06-02': attendanceByDate.get('2025-06-02')?.length || 0,
+      '2025-06-03': attendanceByDate.get('2025-06-03')?.length || 0,
+      '2025-06-04': attendanceByDate.get('2025-06-04')?.length || 0,
+      '2025-06-05': attendanceByDate.get('2025-06-05')?.length || 0,
+      '2025-06-06': attendanceByDate.get('2025-06-06')?.length || 0,
+      '2025-06-07': attendanceByDate.get('2025-06-07')?.length || 0,
     }
   });
 
@@ -131,14 +144,18 @@ export const AttendanceCalendarView: React.FC<AttendanceCalendarViewProps> = ({
     const dateStr = format(date, 'yyyy-MM-dd');
     const dayRecords = attendanceByDate.get(dateStr) || [];
     
-    // Debug specific dates - only log June 1-7 for troubleshooting
+    // Only debug June 1-7 for troubleshooting
     if (dateStr >= '2025-06-01' && dateStr <= '2025-06-07') {
       console.log(`getDayAttendance for ${dateStr}:`, {
         dateStr,
         recordsFound: dayRecords.length,
-        firstRecord: dayRecords[0] ? { id: dayRecords[0].employee_id, hours: dayRecords[0].hours_worked } : null,
+        firstRecord: dayRecords[0] ? { 
+          id: dayRecords[0].employee_id?.slice(0, 8), 
+          hours: dayRecords[0].hours_worked,
+          date: dayRecords[0].attendance_date
+        } : null,
         mapHasKey: attendanceByDate.has(dateStr),
-        allMapKeys: Array.from(attendanceByDate.keys()).filter(k => k.startsWith('2025-06')).sort()
+        totalMapSize: attendanceByDate.size
       });
     }
     
