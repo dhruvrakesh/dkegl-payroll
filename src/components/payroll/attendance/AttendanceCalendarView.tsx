@@ -1,10 +1,11 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths } from 'date-fns';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 interface Attendance {
   attendance_id: string;
@@ -29,26 +30,73 @@ interface AttendanceCalendarViewProps {
 }
 
 export const AttendanceCalendarView: React.FC<AttendanceCalendarViewProps> = ({
-  attendanceRecords,
   employees,
-  loading,
+  loading: parentLoading,
   onRefresh
 }) => {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [calendarData, setCalendarData] = useState<Attendance[]>([]);
+  const [calendarLoading, setCalendarLoading] = useState(false);
+  const { toast } = useToast();
+
+  // Fetch calendar-specific data for the current month
+  const fetchCalendarData = async () => {
+    try {
+      setCalendarLoading(true);
+      const monthStart = startOfMonth(currentMonth);
+      const monthEnd = endOfMonth(currentMonth);
+      
+      console.log('Fetching calendar data for:', format(monthStart, 'yyyy-MM-dd'), 'to', format(monthEnd, 'yyyy-MM-dd'));
+      
+      const { data, error } = await supabase
+        .from('attendance')
+        .select(`
+          *,
+          payroll_employees (
+            name,
+            unit_id
+          ),
+          units (
+            unit_name
+          )
+        `)
+        .gte('attendance_date', format(monthStart, 'yyyy-MM-dd'))
+        .lte('attendance_date', format(monthEnd, 'yyyy-MM-dd'))
+        .order('attendance_date', { ascending: false });
+
+      if (error) throw error;
+      
+      console.log('Calendar data fetched:', data?.length, 'records');
+      setCalendarData(data || []);
+    } catch (error) {
+      console.error('Error fetching calendar data:', error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch calendar data",
+        variant: "destructive",
+      });
+    } finally {
+      setCalendarLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchCalendarData();
+  }, [currentMonth]);
 
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(currentMonth);
   const daysInMonth = eachDayOfInterval({ start: monthStart, end: monthEnd });
 
-  // Group attendance by date
-  const attendanceByDate = new Map();
-  attendanceRecords.forEach(record => {
-    const dateStr = format(new Date(record.attendance_date), 'yyyy-MM-dd');
-    if (!attendanceByDate.has(dateStr)) {
-      attendanceByDate.set(dateStr, []);
+  // Group attendance records by date using calendar data
+  const attendanceByDate = new Map<string, Attendance[]>();
+  calendarData.forEach(record => {
+    const dateKey = record.attendance_date;
+    if (!attendanceByDate.has(dateKey)) {
+      attendanceByDate.set(dateKey, []);
     }
-    attendanceByDate.get(dateStr).push(record);
+    attendanceByDate.get(dateKey)!.push(record);
   });
 
   const getDayAttendance = (date: Date) => {
@@ -87,8 +135,17 @@ export const AttendanceCalendarView: React.FC<AttendanceCalendarViewProps> = ({
   const previousMonth = () => setCurrentMonth(subMonths(currentMonth, 1));
   const nextMonth = () => setCurrentMonth(addMonths(currentMonth, 1));
 
-  if (loading) {
-    return <div className="flex items-center justify-center h-64">Loading calendar...</div>;
+  if (calendarLoading || parentLoading) {
+    return (
+      <Card>
+        <CardContent className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
+            <p className="text-muted-foreground">Loading attendance data...</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
   }
 
   return (

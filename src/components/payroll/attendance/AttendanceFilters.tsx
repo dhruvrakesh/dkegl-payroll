@@ -169,17 +169,23 @@ export const AttendanceFilters: React.FC<AttendanceFiltersProps> = ({
                 )}
               </SelectValue>
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="bg-background border shadow-md z-50">
               <SelectItem value="all-units">All Units</SelectItem>
-              {units.map((unit) => (
-                <SelectItem key={unit.unit_id} value={unit.unit_id}>
-                  <div className="flex items-center gap-2">
-                    <Building2 className="w-4 h-4" />
-                    <span>{unit.unit_name}</span>
-                    <span className="text-xs text-muted-foreground">({unit.unit_code})</span>
-                  </div>
-                </SelectItem>
-              ))}
+              {unitsLoading ? (
+                <div className="p-2 text-center text-muted-foreground">Loading units...</div>
+              ) : units.length === 0 ? (
+                <div className="p-2 text-center text-muted-foreground">No units found</div>
+              ) : (
+                units.map((unit) => (
+                  <SelectItem key={unit.unit_id} value={unit.unit_id}>
+                    <div className="flex items-center gap-2">
+                      <Building2 className="w-4 h-4" />
+                      <span>{unit.unit_name}</span>
+                      <span className="text-xs text-muted-foreground">({unit.unit_code})</span>
+                    </div>
+                  </SelectItem>
+                ))
+              )}
             </SelectContent>
           </Select>
         </div>
@@ -196,7 +202,7 @@ export const AttendanceFilters: React.FC<AttendanceFiltersProps> = ({
             <SelectTrigger>
               <SelectValue placeholder="Select employee" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="bg-background border shadow-md z-50">
               <SelectItem value="all-employees">
                 All Employees
                 {filters.unitIds.length > 0 && (
@@ -252,7 +258,7 @@ export const AttendanceFilters: React.FC<AttendanceFiltersProps> = ({
             <SelectTrigger>
               <SelectValue placeholder="Quick select" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="bg-background border shadow-md z-50">
               <SelectItem value="today">Today</SelectItem>
               <SelectItem value="week">Last 7 Days</SelectItem>
               <SelectItem value="month">This Month</SelectItem>
