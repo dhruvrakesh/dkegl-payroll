@@ -48,6 +48,11 @@ export const AttendanceCalendarView: React.FC<AttendanceCalendarViewProps> = ({
       const monthStart = startOfMonth(currentMonth);
       const monthEnd = endOfMonth(currentMonth);
       
+      console.log('Fetching calendar data for range:', {
+        monthStart: format(monthStart, 'yyyy-MM-dd'),
+        monthEnd: format(monthEnd, 'yyyy-MM-dd')
+      });
+      
       const { data, error } = await supabase
         .from('attendance')
         .select(`
@@ -65,6 +70,11 @@ export const AttendanceCalendarView: React.FC<AttendanceCalendarViewProps> = ({
         .order('attendance_date', { ascending: false });
 
       if (error) throw error;
+      
+      console.log('Calendar data fetched:', {
+        totalRecords: data?.length || 0,
+        firstFewRecords: data?.slice(0, 5).map(r => ({ date: r.attendance_date, emp: r.employee_id, hours: r.hours_worked }))
+      });
       
       setCalendarData(data || []);
       
@@ -101,9 +111,30 @@ export const AttendanceCalendarView: React.FC<AttendanceCalendarViewProps> = ({
     attendanceByDate.get(dateKey)!.push(record);
   });
 
+  // Debug logging for June 1-7 specifically
+  console.log('AttendanceByDate Map contents for June 1-7:', {
+    'June 1': attendanceByDate.get('2025-06-01')?.length || 0,
+    'June 2': attendanceByDate.get('2025-06-02')?.length || 0,
+    'June 3': attendanceByDate.get('2025-06-03')?.length || 0,
+    'June 4': attendanceByDate.get('2025-06-04')?.length || 0,
+    'June 5': attendanceByDate.get('2025-06-05')?.length || 0,
+    'June 6': attendanceByDate.get('2025-06-06')?.length || 0,
+    'June 7': attendanceByDate.get('2025-06-07')?.length || 0,
+    mapKeys: Array.from(attendanceByDate.keys()).slice(0, 10)
+  });
+
   const getDayAttendance = (date: Date) => {
     const dateStr = format(date, 'yyyy-MM-dd');
     const dayRecords = attendanceByDate.get(dateStr) || [];
+    
+    // Debug specific dates
+    if (dateStr.includes('2025-06-0') && parseInt(dateStr.split('-')[2]) <= 7) {
+      console.log(`getDayAttendance for ${dateStr}:`, {
+        dateStr,
+        recordsFound: dayRecords.length,
+        firstRecord: dayRecords[0] ? { id: dayRecords[0].employee_id, hours: dayRecords[0].hours_worked } : null
+      });
+    }
     
     // Enrich records with employee names if missing
     return dayRecords.map((record: Attendance) => ({

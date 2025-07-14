@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Calculator, Plus, Eye, AlertCircle } from 'lucide-react';
+import { Calculator, Plus, Eye, AlertCircle, Edit, Trash2 } from 'lucide-react';
 
 interface Employee {
   id: string;
@@ -50,6 +50,8 @@ export const SalaryDisbursement = () => {
   const [payrollSettings, setPayrollSettings] = useState<PayrollSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editingRecord, setEditingRecord] = useState<SalaryRecord | null>(null);
   const [calculatedSalary, setCalculatedSalary] = useState<any>(null);
   const [formData, setFormData] = useState({
     employee_id: '',
@@ -297,6 +299,80 @@ export const SalaryDisbursement = () => {
     }
   };
 
+  const handleEditRecord = (record: SalaryRecord) => {
+    setEditingRecord(record);
+    setEditDialogOpen(true);
+  };
+
+  const updateSalaryRecord = async () => {
+    if (!editingRecord) return;
+
+    try {
+      const { error } = await supabase
+        .from('salary_disbursement')
+        .update({
+          total_days_present: editingRecord.total_days_present,
+          base_salary: editingRecord.base_salary,
+          hra_amount: editingRecord.hra_amount,
+          other_conv_amount: editingRecord.other_conv_amount,
+          overtime_amount: editingRecord.overtime_amount,
+          gross_salary: editingRecord.gross_salary,
+          pf_deduction: editingRecord.pf_deduction,
+          esi_deduction: editingRecord.esi_deduction,
+          advances_deduction: editingRecord.advances_deduction,
+          net_salary: editingRecord.net_salary
+        })
+        .eq('salary_id', editingRecord.salary_id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Salary record updated successfully",
+      });
+
+      setEditDialogOpen(false);
+      setEditingRecord(null);
+      fetchSalaryRecords();
+    } catch (error) {
+      console.error('Error updating salary record:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update salary record",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const deleteSalaryRecord = async (salaryId: string) => {
+    try {
+      const { error } = await supabase
+        .from('salary_disbursement')
+        .delete()
+        .eq('salary_id', salaryId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Salary record deleted successfully",
+      });
+
+      fetchSalaryRecords();
+    } catch (error) {
+      console.error('Error deleting salary record:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete salary record",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const isDraftRecord = (record: SalaryRecord) => {
+    return !record.disbursed_on;
+  };
+
   if (loading) {
     return <div>Loading enhanced salary records...</div>;
   }
@@ -466,6 +542,47 @@ export const SalaryDisbursement = () => {
         </Dialog>
       </div>
 
+      {/* Edit Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Salary Record</DialogTitle>
+          </DialogHeader>
+          {editingRecord && (
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="edit_days_present">Days Present</Label>
+                <Input
+                  id="edit_days_present"
+                  type="number"
+                  value={editingRecord.total_days_present}
+                  onChange={(e) => setEditingRecord({
+                    ...editingRecord,
+                    total_days_present: parseInt(e.target.value) || 0
+                  })}
+                />
+              </div>
+              <div>
+                <Label htmlFor="edit_base_salary">Base Salary</Label>
+                <Input
+                  id="edit_base_salary"
+                  type="number"
+                  value={editingRecord.base_salary}
+                  onChange={(e) => setEditingRecord({
+                    ...editingRecord,
+                    base_salary: parseFloat(e.target.value) || 0
+                  })}
+                />
+              </div>
+              <div className="flex space-x-2">
+                <Button onClick={updateSalaryRecord}>Update</Button>
+                <Button variant="outline" onClick={() => setEditDialogOpen(false)}>Cancel</Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
       <Table>
         <TableHeader>
           <TableRow>
@@ -503,19 +620,39 @@ export const SalaryDisbursement = () => {
                     Disbursed on {new Date(record.disbursed_on).toLocaleDateString()}
                   </Badge>
                 ) : (
-                  <Badge variant="secondary">Pending</Badge>
+                  <Badge variant="secondary">Draft</Badge>
                 )}
               </TableCell>
               <TableCell>
-                {!record.disbursed_on && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => markDisbursed(record.salary_id)}
-                  >
-                    Mark Disbursed
-                  </Button>
-                )}
+                <div className="flex gap-2">
+                  {isDraftRecord(record) ? (
+                    <>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleEditRecord(record)}
+                      >
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => deleteSalaryRecord(record.salary_id)}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => markDisbursed(record.salary_id)}
+                      >
+                        Mark Disbursed
+                      </Button>
+                    </>
+                  ) : (
+                    <Badge variant="outline">Disbursed</Badge>
+                  )}
+                </div>
               </TableCell>
             </TableRow>
           ))}
