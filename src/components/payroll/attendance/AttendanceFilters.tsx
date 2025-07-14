@@ -52,16 +52,6 @@ export const AttendanceFilters: React.FC<AttendanceFiltersProps> = ({
     });
   };
 
-  // Set default to June 2025 data
-  const setJune2025Default = () => {
-    onFiltersChange({
-      ...filters,
-      dateRange: {
-        from: new Date(2025, 5, 1), // June 1, 2025
-        to: new Date(2025, 5, 30)   // June 30, 2025
-      }
-    });
-  };
 
   const hasActiveFilters = 
     filters.dateRange.from || 
@@ -81,17 +71,12 @@ export const AttendanceFilters: React.FC<AttendanceFiltersProps> = ({
           <Filter className="w-4 h-4" />
           <span className="font-medium">Filters</span>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={setJune2025Default}>
-            June 2025 Data
+        {hasActiveFilters && (
+          <Button variant="ghost" size="sm" onClick={clearFilters}>
+            <X className="w-4 h-4 mr-1" />
+            Clear All
           </Button>
-          {hasActiveFilters && (
-            <Button variant="ghost" size="sm" onClick={clearFilters}>
-              <X className="w-4 h-4 mr-1" />
-              Clear All
-            </Button>
-          )}
-        </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4">

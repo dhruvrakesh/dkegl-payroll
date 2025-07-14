@@ -44,11 +44,11 @@ export const AttendanceCalendarView: React.FC<AttendanceCalendarViewProps> = ({
   // Group attendance by date
   const attendanceByDate = new Map();
   attendanceRecords.forEach(record => {
-    const date = record.attendance_date;
-    if (!attendanceByDate.has(date)) {
-      attendanceByDate.set(date, []);
+    const dateStr = format(new Date(record.attendance_date), 'yyyy-MM-dd');
+    if (!attendanceByDate.has(dateStr)) {
+      attendanceByDate.set(dateStr, []);
     }
-    attendanceByDate.get(date).push(record);
+    attendanceByDate.get(dateStr).push(record);
   });
 
   const getDayAttendance = (date: Date) => {
