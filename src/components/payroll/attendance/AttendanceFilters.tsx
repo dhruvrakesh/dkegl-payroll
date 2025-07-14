@@ -6,9 +6,10 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { CalendarIcon, Filter, X } from 'lucide-react';
+import { CalendarIcon, Filter, X, Building2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { useUnitsData } from '@/hooks/useUnitsData';
 
 interface AttendanceFilters {
   dateRange: {
@@ -22,6 +23,8 @@ interface AttendanceFilters {
 interface Employee {
   id: string;
   name: string;
+  unit_id?: string;
+  active: boolean;
 }
 
 interface AttendanceFiltersProps {
@@ -35,6 +38,8 @@ export const AttendanceFilters: React.FC<AttendanceFiltersProps> = ({
   onFiltersChange,
   employees
 }) => {
+  const { units, loading: unitsLoading } = useUnitsData();
+
   const updateFilters = (updates: Partial<AttendanceFilters>) => {
     onFiltersChange({ ...filters, ...updates });
   };
@@ -53,6 +58,11 @@ export const AttendanceFilters: React.FC<AttendanceFiltersProps> = ({
     filters.employeeIds.length > 0 || 
     filters.unitIds.length > 0;
 
+  // Filter employees by selected units if any units are selected
+  const filteredEmployees = filters.unitIds.length > 0
+    ? employees.filter(emp => filters.unitIds.includes(emp.unit_id || ''))
+    : employees;
+
   return (
     <div className="bg-card border rounded-lg p-4 space-y-4">
       <div className="flex items-center justify-between">
@@ -68,7 +78,7 @@ export const AttendanceFilters: React.FC<AttendanceFiltersProps> = ({
         )}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         {/* Date From */}
         <div className="space-y-2">
           <Label>From Date</Label>
@@ -137,6 +147,42 @@ export const AttendanceFilters: React.FC<AttendanceFiltersProps> = ({
           </Popover>
         </div>
 
+        {/* Unit Selection */}
+        <div className="space-y-2">
+          <Label>Unit</Label>
+          <Select
+            value={filters.unitIds[0] || "all-units"}
+            onValueChange={(value) => updateFilters({
+              unitIds: value === "all-units" ? [] : [value],
+              // Clear employee filter when unit changes
+              employeeIds: []
+            })}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select unit">
+                {filters.unitIds.length > 0 && (
+                  <div className="flex items-center gap-2">
+                    <Building2 className="w-4 h-4" />
+                    {units.find(u => u.unit_id === filters.unitIds[0])?.unit_name}
+                  </div>
+                )}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all-units">All Units</SelectItem>
+              {units.map((unit) => (
+                <SelectItem key={unit.unit_id} value={unit.unit_id}>
+                  <div className="flex items-center gap-2">
+                    <Building2 className="w-4 h-4" />
+                    <span>{unit.unit_name}</span>
+                    <span className="text-xs text-muted-foreground">({unit.unit_code})</span>
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
         {/* Employee Selection */}
         <div className="space-y-2">
           <Label>Employee</Label>
@@ -150,8 +196,15 @@ export const AttendanceFilters: React.FC<AttendanceFiltersProps> = ({
               <SelectValue placeholder="Select employee" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all-employees">All Employees</SelectItem>
-              {employees.map((employee) => (
+              <SelectItem value="all-employees">
+                All Employees
+                {filters.unitIds.length > 0 && (
+                  <span className="text-xs text-muted-foreground ml-1">
+                    ({filteredEmployees.length} in selected unit)
+                  </span>
+                )}
+              </SelectItem>
+              {filteredEmployees.map((employee) => (
                 <SelectItem key={employee.id} value={employee.id}>
                   {employee.name}
                 </SelectItem>
@@ -203,6 +256,34 @@ export const AttendanceFilters: React.FC<AttendanceFiltersProps> = ({
           </Select>
         </div>
       </div>
+      
+      {/* Active Filters Summary */}
+      {hasActiveFilters && (
+        <div className="flex flex-wrap gap-2 pt-2 border-t">
+          <span className="text-sm text-muted-foreground">Active filters:</span>
+          {filters.dateRange.from && (
+            <span className="inline-flex items-center gap-1 px-2 py-1 bg-primary/10 text-primary text-xs rounded-md">
+              From: {format(filters.dateRange.from, "MMM dd")}
+            </span>
+          )}
+          {filters.dateRange.to && (
+            <span className="inline-flex items-center gap-1 px-2 py-1 bg-primary/10 text-primary text-xs rounded-md">
+              To: {format(filters.dateRange.to, "MMM dd")}
+            </span>
+          )}
+          {filters.unitIds.length > 0 && (
+            <span className="inline-flex items-center gap-1 px-2 py-1 bg-primary/10 text-primary text-xs rounded-md">
+              <Building2 className="w-3 h-3" />
+              {units.find(u => u.unit_id === filters.unitIds[0])?.unit_name}
+            </span>
+          )}
+          {filters.employeeIds.length > 0 && (
+            <span className="inline-flex items-center gap-1 px-2 py-1 bg-primary/10 text-primary text-xs rounded-md">
+              {employees.find(e => e.id === filters.employeeIds[0])?.name}
+            </span>
+          )}
+        </div>
+      )}
     </div>
   );
 };

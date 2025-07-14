@@ -8,7 +8,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Edit, Trash2, Search } from 'lucide-react';
+import { useUnitsData } from '@/hooks/useUnitsData';
+import { Plus, Edit, Trash2, Search, Building2 } from 'lucide-react';
 
 interface Attendance {
   attendance_id: string;
@@ -23,6 +24,8 @@ interface Attendance {
 interface Employee {
   id: string;
   name: string;
+  unit_id?: string;
+  active: boolean;
 }
 
 interface AttendanceTableViewProps {
@@ -41,6 +44,7 @@ export const AttendanceTableView: React.FC<AttendanceTableViewProps> = ({
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState<Attendance | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedUnitForForm, setSelectedUnitForForm] = useState<string>('');
   const [formData, setFormData] = useState({
     employee_id: '',
     attendance_date: '',
@@ -48,6 +52,7 @@ export const AttendanceTableView: React.FC<AttendanceTableViewProps> = ({
     overtime_hours: '0'
   });
   const { toast } = useToast();
+  const { units, loading: unitsLoading } = useUnitsData();
 
   const filteredRecords = attendanceRecords.filter(record => {
     const employeeName = record.payroll_employees?.name || '';
@@ -60,6 +65,11 @@ export const AttendanceTableView: React.FC<AttendanceTableViewProps> = ({
       record.attendance_date.includes(searchTerm)
     );
   });
+
+  // Filter employees by selected unit for the form
+  const filteredEmployeesForForm = selectedUnitForForm 
+    ? employees.filter(emp => emp.unit_id === selectedUnitForForm)
+    : employees;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -107,6 +117,7 @@ export const AttendanceTableView: React.FC<AttendanceTableViewProps> = ({
       
       setDialogOpen(false);
       setEditingRecord(null);
+      setSelectedUnitForForm('');
       setFormData({
         employee_id: '',
         attendance_date: '',
@@ -126,6 +137,11 @@ export const AttendanceTableView: React.FC<AttendanceTableViewProps> = ({
 
   const handleEdit = (record: Attendance) => {
     setEditingRecord(record);
+    // Find the employee's unit
+    const employee = employees.find(emp => emp.id === record.employee_id);
+    if (employee?.unit_id) {
+      setSelectedUnitForForm(employee.unit_id);
+    }
     setFormData({
       employee_id: record.employee_id,
       attendance_date: record.attendance_date,
@@ -160,6 +176,17 @@ export const AttendanceTableView: React.FC<AttendanceTableViewProps> = ({
     }
   };
 
+  const resetForm = () => {
+    setEditingRecord(null);
+    setSelectedUnitForForm('');
+    setFormData({
+      employee_id: '',
+      attendance_date: '',
+      hours_worked: '',
+      overtime_hours: '0'
+    });
+  };
+
   if (loading) {
     return <div>Loading attendance records...</div>;
   }
@@ -178,42 +205,77 @@ export const AttendanceTableView: React.FC<AttendanceTableViewProps> = ({
         
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
-            <Button onClick={() => {
-              setEditingRecord(null);
-              setFormData({
-                employee_id: '',
-                attendance_date: '',
-                hours_worked: '',
-                overtime_hours: '0'
-              });
-            }}>
+            <Button onClick={resetForm}>
               <Plus className="w-4 h-4 mr-2" />
               Record Attendance
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-w-md">
             <DialogHeader>
               <DialogTitle>{editingRecord ? 'Edit Attendance' : 'Record New Attendance'}</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
+                <Label htmlFor="unit_select">Select Unit First</Label>
+                <Select 
+                  value={selectedUnitForForm} 
+                  onValueChange={(value) => {
+                    setSelectedUnitForForm(value);
+                    // Reset employee selection when unit changes
+                    setFormData({ ...formData, employee_id: '' });
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choose unit to filter employees">
+                      {selectedUnitForForm && (
+                        <div className="flex items-center gap-2">
+                          <Building2 className="w-4 h-4" />
+                          {units.find(u => u.unit_id === selectedUnitForForm)?.unit_name}
+                        </div>
+                      )}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {units.map((unit) => (
+                      <SelectItem key={unit.unit_id} value={unit.unit_id}>
+                        <div className="flex items-center gap-2">
+                          <Building2 className="w-4 h-4" />
+                          <span>{unit.unit_name}</span>
+                          <span className="text-xs text-muted-foreground">({unit.unit_code})</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
                 <Label htmlFor="employee_id">Employee</Label>
                 <Select 
                   value={formData.employee_id} 
                   onValueChange={(value) => setFormData({ ...formData, employee_id: value })}
+                  disabled={!selectedUnitForForm}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select employee" />
+                    <SelectValue placeholder={
+                      selectedUnitForForm ? "Select employee from unit" : "Select unit first"
+                    } />
                   </SelectTrigger>
                   <SelectContent>
-                    {employees.map((employee) => (
+                    {filteredEmployeesForForm.map((employee) => (
                       <SelectItem key={employee.id} value={employee.id}>
                         {employee.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
+                {selectedUnitForForm && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Showing {filteredEmployeesForForm.length} employees from selected unit
+                  </p>
+                )}
               </div>
+              
               <div>
                 <Label htmlFor="attendance_date">Date</Label>
                 <Input
@@ -224,6 +286,7 @@ export const AttendanceTableView: React.FC<AttendanceTableViewProps> = ({
                   required
                 />
               </div>
+              
               <div>
                 <Label htmlFor="hours_worked">Hours Worked</Label>
                 <Input
@@ -237,6 +300,7 @@ export const AttendanceTableView: React.FC<AttendanceTableViewProps> = ({
                   required
                 />
               </div>
+              
               <div>
                 <Label htmlFor="overtime_hours">Overtime Hours</Label>
                 <Input
@@ -248,11 +312,12 @@ export const AttendanceTableView: React.FC<AttendanceTableViewProps> = ({
                   onChange={(e) => setFormData({ ...formData, overtime_hours: e.target.value })}
                 />
               </div>
+              
               <div className="flex justify-end space-x-2">
                 <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
                   Cancel
                 </Button>
-                <Button type="submit">
+                <Button type="submit" disabled={!formData.employee_id || !selectedUnitForForm}>
                   {editingRecord ? 'Update' : 'Record'}
                 </Button>
               </div>
@@ -269,6 +334,7 @@ export const AttendanceTableView: React.FC<AttendanceTableViewProps> = ({
         <TableHeader>
           <TableRow>
             <TableHead>Employee</TableHead>
+            <TableHead>Unit</TableHead>
             <TableHead>Date</TableHead>
             <TableHead>Hours Worked</TableHead>
             <TableHead>Overtime Hours</TableHead>
@@ -282,10 +348,18 @@ export const AttendanceTableView: React.FC<AttendanceTableViewProps> = ({
               <TableCell className="font-medium">
                 {record.payroll_employees?.name || 'Unknown'}
               </TableCell>
+              <TableCell>
+                <div className="flex items-center gap-1">
+                  <Building2 className="w-3 h-3 text-muted-foreground" />
+                  {record.units?.unit_name || 'N/A'}
+                </div>
+              </TableCell>
               <TableCell>{new Date(record.attendance_date).toLocaleDateString()}</TableCell>
               <TableCell>{record.hours_worked}</TableCell>
               <TableCell>{record.overtime_hours || 0}</TableCell>
-              <TableCell>{record.hours_worked + (record.overtime_hours || 0)}</TableCell>
+              <TableCell className="font-medium">
+                {record.hours_worked + (record.overtime_hours || 0)}
+              </TableCell>
               <TableCell>
                 <div className="flex space-x-2">
                   <Button

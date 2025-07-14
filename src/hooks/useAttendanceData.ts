@@ -16,6 +16,8 @@ interface Attendance {
 interface Employee {
   id: string;
   name: string;
+  unit_id?: string;
+  active: boolean;
 }
 
 interface AttendanceFilters {
@@ -27,8 +29,21 @@ interface AttendanceFilters {
   unitIds: string[];
 }
 
+interface UnitWiseData {
+  unitId: string;
+  unitName: string;
+  totalEmployees: number;
+  employeesWithAttendance: number;
+  totalHours: number;
+  totalOvertimeHours: number;
+  averageHours: number;
+  utilizationRate: number;
+}
+
 interface AggregatedData {
   totalEmployees: number;
+  totalActiveEmployees: number;
+  employeesWithAttendance: number;
   totalHours: number;
   totalOvertimeHours: number;
   averageHoursPerDay: number;
@@ -45,6 +60,7 @@ interface AggregatedData {
     totalDays: number;
     averageHours: number;
   }>;
+  unitWiseStats: UnitWiseData[];
 }
 
 export const useAttendanceData = (filters: AttendanceFilters) => {
@@ -53,12 +69,15 @@ export const useAttendanceData = (filters: AttendanceFilters) => {
   const [loading, setLoading] = useState(true);
   const [aggregatedData, setAggregatedData] = useState<AggregatedData>({
     totalEmployees: 0,
+    totalActiveEmployees: 0,
+    employeesWithAttendance: 0,
     totalHours: 0,
     totalOvertimeHours: 0,
     averageHoursPerDay: 0,
     attendanceRate: 0,
     dailyStats: [],
-    employeeStats: []
+    employeeStats: [],
+    unitWiseStats: []
   });
   const { toast } = useToast();
 
@@ -70,7 +89,8 @@ export const useAttendanceData = (filters: AttendanceFilters) => {
         .select(`
           *,
           payroll_employees (
-            name
+            name,
+            unit_id
           ),
           units (
             unit_name
@@ -96,7 +116,7 @@ export const useAttendanceData = (filters: AttendanceFilters) => {
       setAttendanceRecords(records);
       
       // Calculate aggregated data
-      calculateAggregatedData(records);
+      await calculateAggregatedData(records);
     } catch (error) {
       console.error('Error fetching attendance:', error);
       toast({
@@ -113,7 +133,7 @@ export const useAttendanceData = (filters: AttendanceFilters) => {
     try {
       const { data, error } = await supabase
         .from('payroll_employees')
-        .select('id, name')
+        .select('id, name, unit_id, active')
         .eq('active', true)
         .order('name');
 
@@ -124,80 +144,139 @@ export const useAttendanceData = (filters: AttendanceFilters) => {
     }
   };
 
-  const calculateAggregatedData = (records: Attendance[]) => {
-    if (records.length === 0) {
-      setAggregatedData({
-        totalEmployees: 0,
-        totalHours: 0,
-        totalOvertimeHours: 0,
-        averageHoursPerDay: 0,
-        attendanceRate: 0,
-        dailyStats: [],
-        employeeStats: []
-      });
-      return;
-    }
+  const calculateAggregatedData = async (records: Attendance[]) => {
+    try {
+      // Get total employee counts
+      const { data: allEmployees, error: empError } = await supabase
+        .from('payroll_employees')
+        .select('id, name, unit_id, active');
 
-    const uniqueEmployees = new Set(records.map(r => r.employee_id));
-    const totalEmployees = uniqueEmployees.size;
-    const totalHours = records.reduce((sum, r) => sum + r.hours_worked, 0);
-    const totalOvertimeHours = records.reduce((sum, r) => sum + (r.overtime_hours || 0), 0);
-    
-    // Calculate daily stats
-    const dailyMap = new Map();
-    records.forEach(record => {
-      const date = record.attendance_date;
-      if (!dailyMap.has(date)) {
-        dailyMap.set(date, { totalHours: 0, employeeCount: 0, employees: new Set() });
+      if (empError) throw empError;
+
+      // Get unit information
+      const { data: units, error: unitError } = await supabase
+        .from('units')
+        .select('unit_id, unit_name')
+        .eq('active', true);
+
+      if (unitError) throw unitError;
+
+      const totalEmployees = allEmployees?.length || 0;
+      const totalActiveEmployees = allEmployees?.filter(emp => emp.active)?.length || 0;
+      
+      if (records.length === 0) {
+        setAggregatedData({
+          totalEmployees,
+          totalActiveEmployees,
+          employeesWithAttendance: 0,
+          totalHours: 0,
+          totalOvertimeHours: 0,
+          averageHoursPerDay: 0,
+          attendanceRate: 0,
+          dailyStats: [],
+          employeeStats: [],
+          unitWiseStats: []
+        });
+        return;
       }
-      const dayData = dailyMap.get(date);
-      dayData.totalHours += record.hours_worked;
-      dayData.employees.add(record.employee_id);
-      dayData.employeeCount = dayData.employees.size;
-    });
 
-    const dailyStats = Array.from(dailyMap.entries()).map(([date, data]) => ({
-      date,
-      totalHours: data.totalHours,
-      employeeCount: data.employeeCount
-    })).sort((a, b) => a.date.localeCompare(b.date));
+      const uniqueEmployees = new Set(records.map(r => r.employee_id));
+      const employeesWithAttendance = uniqueEmployees.size;
+      const totalHours = records.reduce((sum, r) => sum + r.hours_worked, 0);
+      const totalOvertimeHours = records.reduce((sum, r) => sum + (r.overtime_hours || 0), 0);
+      
+      // Calculate daily stats
+      const dailyMap = new Map();
+      records.forEach(record => {
+        const date = record.attendance_date;
+        if (!dailyMap.has(date)) {
+          dailyMap.set(date, { totalHours: 0, employeeCount: 0, employees: new Set() });
+        }
+        const dayData = dailyMap.get(date);
+        dayData.totalHours += record.hours_worked;
+        dayData.employees.add(record.employee_id);
+        dayData.employeeCount = dayData.employees.size;
+      });
 
-    // Calculate employee stats
-    const employeeMap = new Map();
-    records.forEach(record => {
-      const empId = record.employee_id;
-      const empName = record.payroll_employees?.name || 'Unknown';
-      if (!employeeMap.has(empId)) {
-        employeeMap.set(empId, { 
-          employeeId: empId, 
-          employeeName: empName, 
-          totalHours: 0, 
-          totalDays: 0 
+      const dailyStats = Array.from(dailyMap.entries()).map(([date, data]) => ({
+        date,
+        totalHours: data.totalHours,
+        employeeCount: data.employeeCount
+      })).sort((a, b) => a.date.localeCompare(b.date));
+
+      // Calculate employee stats
+      const employeeMap = new Map();
+      records.forEach(record => {
+        const empId = record.employee_id;
+        const empName = record.payroll_employees?.name || 'Unknown';
+        if (!employeeMap.has(empId)) {
+          employeeMap.set(empId, { 
+            employeeId: empId, 
+            employeeName: empName, 
+            totalHours: 0, 
+            totalDays: 0 
+          });
+        }
+        const empData = employeeMap.get(empId);
+        empData.totalHours += record.hours_worked;
+        empData.totalDays += 1;
+      });
+
+      const employeeStats = Array.from(employeeMap.values()).map(emp => ({
+        ...emp,
+        averageHours: emp.totalDays > 0 ? emp.totalHours / emp.totalDays : 0
+      }));
+
+      // Calculate unit-wise stats
+      const unitWiseStats: UnitWiseData[] = [];
+      const unitMap = new Map(units?.map(u => [u.unit_id, u.unit_name]) || []);
+
+      for (const unit of units || []) {
+        const unitEmployees = allEmployees?.filter(emp => emp.unit_id === unit.unit_id) || [];
+        const unitAttendanceRecords = records.filter(record => {
+          const employee = allEmployees?.find(emp => emp.id === record.employee_id);
+          return employee?.unit_id === unit.unit_id;
+        });
+
+        const unitEmployeesWithAttendance = new Set(unitAttendanceRecords.map(r => r.employee_id)).size;
+        const unitTotalHours = unitAttendanceRecords.reduce((sum, r) => sum + r.hours_worked, 0);
+        const unitTotalOvertimeHours = unitAttendanceRecords.reduce((sum, r) => sum + (r.overtime_hours || 0), 0);
+        const unitAverageHours = unitAttendanceRecords.length > 0 ? unitTotalHours / unitAttendanceRecords.length : 0;
+        const utilizationRate = unitEmployees.length > 0 ? (unitEmployeesWithAttendance / unitEmployees.length) * 100 : 0;
+
+        unitWiseStats.push({
+          unitId: unit.unit_id,
+          unitName: unit.unit_name,
+          totalEmployees: unitEmployees.length,
+          employeesWithAttendance: unitEmployeesWithAttendance,
+          totalHours: unitTotalHours,
+          totalOvertimeHours: unitTotalOvertimeHours,
+          averageHours: unitAverageHours,
+          utilizationRate
         });
       }
-      const empData = employeeMap.get(empId);
-      empData.totalHours += record.hours_worked;
-      empData.totalDays += 1;
-    });
 
-    const employeeStats = Array.from(employeeMap.values()).map(emp => ({
-      ...emp,
-      averageHours: emp.totalDays > 0 ? emp.totalHours / emp.totalDays : 0
-    }));
+      const averageHoursPerDay = dailyStats.length > 0 
+        ? dailyStats.reduce((sum, day) => sum + day.totalHours, 0) / dailyStats.length 
+        : 0;
 
-    const averageHoursPerDay = dailyStats.length > 0 
-      ? dailyStats.reduce((sum, day) => sum + day.totalHours, 0) / dailyStats.length 
-      : 0;
+      const attendanceRate = totalActiveEmployees > 0 ? (employeesWithAttendance / totalActiveEmployees) * 100 : 0;
 
-    setAggregatedData({
-      totalEmployees,
-      totalHours,
-      totalOvertimeHours,
-      averageHoursPerDay,
-      attendanceRate: 0, // This would need more complex calculation based on expected vs actual attendance
-      dailyStats,
-      employeeStats
-    });
+      setAggregatedData({
+        totalEmployees,
+        totalActiveEmployees,
+        employeesWithAttendance,
+        totalHours,
+        totalOvertimeHours,
+        averageHoursPerDay,
+        attendanceRate,
+        dailyStats,
+        employeeStats,
+        unitWiseStats
+      });
+    } catch (error) {
+      console.error('Error calculating aggregated data:', error);
+    }
   };
 
   const refreshAttendance = () => {
