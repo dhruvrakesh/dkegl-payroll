@@ -74,6 +74,16 @@ export const AttendanceCalendarView: React.FC<AttendanceCalendarViewProps> = ({
     return new Set(dayAttendance.map((record: Attendance) => record.employee_id)).size;
   };
 
+  const getWorkingEmployeeCountForDay = (date: Date) => {
+    const dayAttendance = getDayAttendance(date);
+    return dayAttendance.filter((record: Attendance) => record.hours_worked > 0).length;
+  };
+
+  const isWeeklyOff = (date: Date) => {
+    const dayAttendance = getDayAttendance(date);
+    return dayAttendance.length > 0 && dayAttendance.every((record: Attendance) => record.hours_worked === 0);
+  };
+
   const previousMonth = () => setCurrentMonth(subMonths(currentMonth, 1));
   const nextMonth = () => setCurrentMonth(addMonths(currentMonth, 1));
 
@@ -122,7 +132,21 @@ export const AttendanceCalendarView: React.FC<AttendanceCalendarViewProps> = ({
               const dayAttendance = getDayAttendance(date);
               const totalHours = getTotalHoursForDay(date);
               const employeeCount = getEmployeeCountForDay(date);
+              const workingCount = getWorkingEmployeeCountForDay(date);
+              const weeklyOff = isWeeklyOff(date);
               const isSelected = selectedDate && isSameDay(date, selectedDate);
+              
+              // Determine visual styling based on day type
+              let dayStyle = '';
+              if (dayAttendance.length > 0) {
+                if (weeklyOff) {
+                  dayStyle = 'bg-blue-50 border-blue-200'; // Weekly off (all zero hours)
+                } else if (workingCount > 0) {
+                  dayStyle = 'bg-green-50 border-green-200'; // Regular work day
+                } else {
+                  dayStyle = 'bg-gray-50 border-gray-200'; // All employees on leave
+                }
+              }
               
               return (
                 <div
@@ -130,7 +154,7 @@ export const AttendanceCalendarView: React.FC<AttendanceCalendarViewProps> = ({
                   className={`
                     p-2 min-h-[80px] border rounded-lg cursor-pointer transition-colors
                     ${isSelected ? 'bg-primary/10 border-primary' : 'hover:bg-muted/50'}
-                    ${dayAttendance.length > 0 ? 'bg-green-50 border-green-200' : ''}
+                    ${dayStyle}
                   `}
                   onClick={() => setSelectedDate(isSelected ? null : date)}
                 >
@@ -139,12 +163,20 @@ export const AttendanceCalendarView: React.FC<AttendanceCalendarViewProps> = ({
                   </div>
                   {dayAttendance.length > 0 && (
                     <div className="space-y-1">
-                      <Badge variant="secondary" className="text-xs">
+                      <Badge 
+                        variant={weeklyOff ? "default" : workingCount > 0 ? "secondary" : "outline"} 
+                        className="text-xs"
+                      >
                         {employeeCount} emp
                       </Badge>
                       <div className="text-xs text-muted-foreground">
-                        {totalHours.toFixed(1)}h
+                        {weeklyOff ? 'Weekly Off' : `${totalHours.toFixed(1)}h`}
                       </div>
+                      {!weeklyOff && workingCount !== employeeCount && (
+                        <div className="text-xs text-orange-600">
+                          {employeeCount - workingCount} leave
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -164,26 +196,84 @@ export const AttendanceCalendarView: React.FC<AttendanceCalendarViewProps> = ({
           </CardHeader>
           <CardContent>
             {getDayAttendance(selectedDate).length > 0 ? (
-              <div className="space-y-3">
-                {getDayAttendance(selectedDate).map((record: Attendance) => (
-                  <div key={record.attendance_id} className="flex items-center justify-between p-3 border rounded-lg">
-                    <div>
-                      <div className="font-medium">{record.payroll_employees?.name || 'Unknown Employee'}</div>
-                      <div className="text-sm text-muted-foreground">
-                        {record.units?.unit_name || 'No Unit'}
+              (() => {
+                const dayRecords = getDayAttendance(selectedDate);
+                const workingRecords = dayRecords.filter(record => record.hours_worked > 0);
+                const leaveRecords = dayRecords.filter(record => record.hours_worked === 0);
+                const weeklyOff = isWeeklyOff(selectedDate);
+                
+                return (
+                  <div className="space-y-4">
+                    {/* Summary */}
+                    <div className="bg-muted/50 p-3 rounded-lg">
+                      <div className="text-sm font-medium">
+                        {weeklyOff ? 'Weekly Off' : `${workingRecords.length} working, ${leaveRecords.length} on leave`}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        Total: {dayRecords.length} employees • {getTotalHoursForDay(selectedDate).toFixed(1)} hours worked
                       </div>
                     </div>
-                    <div className="text-right">
-                      <div className="font-medium">{record.hours_worked}h</div>
-                      {record.overtime_hours > 0 && (
-                        <div className="text-sm text-orange-600">
-                          +{record.overtime_hours}h OT
+
+                    {/* Working employees */}
+                    {workingRecords.length > 0 && (
+                      <div>
+                        <h4 className="font-medium text-sm text-green-700 mb-2">Working ({workingRecords.length})</h4>
+                        <div className="space-y-2">
+                          {workingRecords.map((record: Attendance) => (
+                            <div key={record.attendance_id} className="flex items-center justify-between p-3 border border-green-200 bg-green-50 rounded-lg">
+                              <div>
+                                <div className="font-medium">{record.payroll_employees?.name || 'Unknown Employee'}</div>
+                                <div className="text-sm text-muted-foreground">
+                                  {record.units?.unit_name || 'No Unit'}
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <div className="font-medium text-green-700">{record.hours_worked}h</div>
+                                {record.overtime_hours > 0 && (
+                                  <div className="text-sm text-orange-600">
+                                    +{record.overtime_hours}h OT
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          ))}
                         </div>
-                      )}
-                    </div>
+                      </div>
+                    )}
+
+                    {/* Leave/Weekly off employees */}
+                    {leaveRecords.length > 0 && (
+                      <div>
+                        <h4 className="font-medium text-sm text-gray-600 mb-2">
+                          {weeklyOff ? 'Weekly Off' : 'On Leave'} ({leaveRecords.length})
+                        </h4>
+                        <div className="space-y-2">
+                          {leaveRecords.map((record: Attendance) => (
+                            <div key={record.attendance_id} className="flex items-center justify-between p-3 border border-gray-200 bg-gray-50 rounded-lg">
+                              <div>
+                                <div className="font-medium text-gray-700">{record.payroll_employees?.name || 'Unknown Employee'}</div>
+                                <div className="text-sm text-muted-foreground">
+                                  {record.units?.unit_name || 'No Unit'}
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <div className="font-medium text-gray-500">
+                                  {weeklyOff ? 'Weekly Off' : 'Leave'}
+                                </div>
+                                {record.overtime_hours > 0 && (
+                                  <div className="text-sm text-orange-600">
+                                    +{record.overtime_hours}h OT
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
-                ))}
-              </div>
+                );
+              })()
             ) : (
               <div className="text-center py-8 text-muted-foreground">
                 No attendance records for this date
