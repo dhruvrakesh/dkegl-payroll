@@ -9,20 +9,12 @@ import { AttendanceFilters } from './attendance/AttendanceFilters';
 import { AttendanceCsvUploader } from '../AttendanceCsvUploader';
 import { useAttendanceData } from '@/hooks/useAttendanceData';
 import { getDefaultAttendanceFilters } from '@/config/utils';
+import { AttendanceFilters as AttendanceFiltersType } from '@/config/types';
 import { Calendar, Users, BarChart3, Table, Upload } from 'lucide-react';
-
-export interface AttendanceFilters {
-  dateRange: {
-    from: Date | null;
-    to: Date | null;
-  };
-  employeeIds: string[];
-  unitIds: string[];
-}
 
 export const AttendanceManagement = () => {
   const [activeView, setActiveView] = useState('summary');
-  const [filters, setFilters] = useState<AttendenceFilters>(getDefaultAttendanceFilters());
+  const [filters, setFilters] = useState<AttendanceFiltersType>(getDefaultAttendanceFilters());
 
   const { 
     attendanceRecords, 

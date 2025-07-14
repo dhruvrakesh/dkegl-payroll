@@ -24,3 +24,20 @@ export type MessageType = typeof MESSAGE_TYPES[keyof typeof MESSAGE_TYPES];
 export type FilterValue = typeof FILTER_VALUES[keyof typeof FILTER_VALUES];
 export type BatchPeriod = typeof BATCH_PERIODS[keyof typeof BATCH_PERIODS];
 export type QuickDateRange = typeof QUICK_DATE_RANGES[keyof typeof QUICK_DATE_RANGES];
+
+// Attendance-related types
+export interface AttendanceFilters {
+  dateRange: {
+    from: Date | null;
+    to: Date | null;
+  };
+  employeeIds: string[];
+  unitIds: string[];
+}
+
+export interface Employee {
+  id: string;
+  name: string;
+  unit_id?: string;
+  active: boolean;
+}

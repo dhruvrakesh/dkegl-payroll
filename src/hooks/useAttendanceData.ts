@@ -1,7 +1,7 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { AttendanceFilters, Employee } from '@/config/types';
 
 interface Attendance {
   attendance_id: string;
@@ -11,22 +11,6 @@ interface Attendance {
   overtime_hours: number;
   payroll_employees?: { name: string };
   units?: { unit_name: string };
-}
-
-interface Employee {
-  id: string;
-  name: string;
-  unit_id?: string;
-  active: boolean;
-}
-
-interface AttendanceFilters {
-  dateRange: {
-    from: Date | null;
-    to: Date | null;
-  };
-  employeeIds: string[];
-  unitIds: string[];
 }
 
 interface UnitWiseData {

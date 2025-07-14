@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,26 +12,11 @@ import { cn } from '@/lib/utils';
 import { useUnitsData } from '@/hooks/useUnitsData';
 import { FILTER_VALUES, QUICK_DATE_RANGES } from '@/config/constants';
 import { getDefaultAttendanceFilters } from '@/config/utils';
-
-interface AttendanceFilters {
-  dateRange: {
-    from: Date | null;
-    to: Date | null;
-  };
-  employeeIds: string[];
-  unitIds: string[];
-}
-
-interface Employee {
-  id: string;
-  name: string;
-  unit_id?: string;
-  active: boolean;
-}
+import { AttendanceFilters as AttendanceFiltersType, Employee } from '@/config/types';
 
 interface AttendanceFiltersProps {
-  filters: AttendanceFilters;
-  onFiltersChange: (filters: AttendanceFilters) => void;
+  filters: AttendanceFiltersType;
+  onFiltersChange: (filters: AttendanceFiltersType) => void;
   employees: Employee[];
 }
 
@@ -41,7 +27,7 @@ export const AttendanceFilters: React.FC<AttendanceFiltersProps> = ({
 }) => {
   const { units, loading: unitsLoading } = useUnitsData();
 
-  const updateFilters = (updates: Partial<AttendanceFilters>) => {
+  const updateFilters = (updates: Partial<AttendanceFiltersType>) => {
     onFiltersChange({ ...filters, ...updates });
   };
 
