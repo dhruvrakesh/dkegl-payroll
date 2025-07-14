@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
@@ -7,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { InteractiveGraphControls } from './InteractiveGraphControls';
 import { InteractiveGraphView } from './InteractiveGraphView';
+import { GraphFilters } from '@/hooks/useGraphData';
 
 interface UnitWiseData {
   unitId: string;
@@ -53,12 +55,21 @@ export const AttendanceSummaryView: React.FC<AttendanceSummaryViewProps> = ({
 }) => {
   const [isUnitDetailsOpen, setIsUnitDetailsOpen] = useState(false);
   const [isInteractiveGraphOpen, setIsInteractiveGraphOpen] = useState(true);
-  const [graphFilters, setGraphFilters] = useState({
+  
+  // Set default filters to show June 2025 data
+  const [graphFilters, setGraphFilters] = useState<GraphFilters>({
     unitIds: [],
-    dateRange: { from: null, to: null },
-    chartType: 'bar' as const,
-    period: 'daily' as const
+    dateRange: { 
+      from: new Date(2025, 5, 1), // June 1, 2025
+      to: new Date(2025, 5, 30)   // June 30, 2025
+    },
+    chartType: 'bar',
+    period: 'daily'
   });
+
+  const handleFiltersChange = (filters: GraphFilters) => {
+    setGraphFilters(filters);
+  };
 
   if (loading) {
     return (
@@ -171,7 +182,7 @@ export const AttendanceSummaryView: React.FC<AttendanceSummaryViewProps> = ({
             <CardContent>
               <InteractiveGraphControls 
                 filters={graphFilters}
-                onFiltersChange={setGraphFilters}
+                onFiltersChange={handleFiltersChange}
               />
               <div className="mt-6">
                 <InteractiveGraphView filters={graphFilters} />

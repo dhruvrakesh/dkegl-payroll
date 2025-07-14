@@ -21,6 +21,8 @@ export interface GraphData {
   }>;
   trendData: Array<{
     date: string;
+    totalHours: number;
+    employeeCount: number;
     [unitName: string]: number | string;
   }>;
   distributionData: Array<{

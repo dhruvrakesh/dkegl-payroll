@@ -9,16 +9,7 @@ import { CalendarIcon, BarChart3, LineChart, PieChart, TrendingUp } from 'lucide
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useUnitsData } from '@/hooks/useUnitsData';
-
-interface GraphFilters {
-  unitIds: string[];
-  dateRange: {
-    from: Date | null;
-    to: Date | null;
-  };
-  chartType: 'line' | 'bar' | 'stacked' | 'comparison';
-  period: 'daily' | 'weekly' | 'monthly';
-}
+import { GraphFilters } from '@/hooks/useGraphData';
 
 interface InteractiveGraphControlsProps {
   filters: GraphFilters;
@@ -41,13 +32,6 @@ export const InteractiveGraphControls: React.FC<InteractiveGraphControlsProps> =
     updateFilters({
       dateRange: { from, to: today }
     });
-  };
-
-  const chartTypeIcons = {
-    line: LineChart,
-    bar: BarChart3,
-    stacked: PieChart,
-    comparison: TrendingUp
   };
 
   return (
@@ -88,7 +72,7 @@ export const InteractiveGraphControls: React.FC<InteractiveGraphControlsProps> =
             <label className="text-sm font-medium">Chart Type</label>
             <Select
               value={filters.chartType}
-              onValueChange={(value: any) => updateFilters({ chartType: value })}
+              onValueChange={(value: 'line' | 'bar' | 'stacked' | 'comparison') => updateFilters({ chartType: value })}
             >
               <SelectTrigger>
                 <SelectValue />
@@ -127,7 +111,7 @@ export const InteractiveGraphControls: React.FC<InteractiveGraphControlsProps> =
             <label className="text-sm font-medium">Period</label>
             <Select
               value={filters.period}
-              onValueChange={(value: any) => updateFilters({ period: value })}
+              onValueChange={(value: 'daily' | 'weekly' | 'monthly') => updateFilters({ period: value })}
             >
               <SelectTrigger>
                 <SelectValue />
