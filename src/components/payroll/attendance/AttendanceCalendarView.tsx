@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -40,14 +41,16 @@ export const AttendanceCalendarView: React.FC<AttendanceCalendarViewProps> = ({
   const [calendarLoading, setCalendarLoading] = useState(false);
   const { toast } = useToast();
 
-  // Fetch calendar-specific data for the current month
+  // Fetch calendar-specific data for the current month - INDEPENDENT of parent filters
   const fetchCalendarData = async () => {
     try {
       setCalendarLoading(true);
       const monthStart = startOfMonth(currentMonth);
       const monthEnd = endOfMonth(currentMonth);
       
+      console.log('=== CALENDAR DATA FETCH DEBUG ===');
       console.log('Fetching calendar data for:', format(monthStart, 'yyyy-MM-dd'), 'to', format(monthEnd, 'yyyy-MM-dd'));
+      console.log('Current month:', format(currentMonth, 'MMMM yyyy'));
       
       const { data, error } = await supabase
         .from('attendance')
@@ -67,14 +70,29 @@ export const AttendanceCalendarView: React.FC<AttendanceCalendarViewProps> = ({
 
       if (error) throw error;
       
-      console.log('Calendar data fetched:', data?.length, 'records');
-      console.log('Sample records for debugging:', data?.slice(0, 5)?.map(r => ({ 
-        date: r.attendance_date, 
-        employee: r.payroll_employees?.name, 
-        hours: r.hours_worked 
-      })));
+      console.log('Raw calendar data fetched:', data?.length, 'records');
+      
+      // Specific debug for June 1-7, 2025
+      const june1to7 = data?.filter(r => {
+        const date = r.attendance_date;
+        return date >= '2025-06-01' && date <= '2025-06-07';
+      }) || [];
+      
+      console.log('June 1-7 records in fetched data:', june1to7.length);
+      june1to7.forEach(record => {
+        console.log(`June Debug - ${record.attendance_date}: Employee ${record.payroll_employees?.name || 'Unknown'}, Hours: ${record.hours_worked}`);
+      });
+      
+      // Debug June 8 specifically
+      const june8 = data?.filter(r => r.attendance_date === '2025-06-08') || [];
+      console.log('June 8 records:', june8.length);
+      june8.forEach(record => {
+        console.log(`June 8 Debug - Employee ${record.payroll_employees?.name || 'Unknown'}, Hours: ${record.hours_worked}`);
+      });
       
       setCalendarData(data || []);
+      console.log('Calendar data state updated with', data?.length || 0, 'records');
+      
     } catch (error) {
       console.error('Error fetching calendar data:', error);
       toast({
@@ -98,7 +116,7 @@ export const AttendanceCalendarView: React.FC<AttendanceCalendarViewProps> = ({
   const calendarEnd = endOfWeek(monthEnd, { weekStartsOn: 0 });
   const calendarDays = eachDayOfInterval({ start: calendarStart, end: calendarEnd });
 
-  // Group attendance records by date using calendar data
+  // Group attendance records by date using ONLY calendar data (not filtered attendanceRecords)
   const attendanceByDate = new Map<string, Attendance[]>();
   calendarData.forEach(record => {
     const dateKey = record.attendance_date;
@@ -108,18 +126,28 @@ export const AttendanceCalendarView: React.FC<AttendanceCalendarViewProps> = ({
     attendanceByDate.get(dateKey)!.push(record);
   });
 
-  console.log('AttendanceByDate Map:', Array.from(attendanceByDate.entries()).slice(0, 10));
+  console.log('=== ATTENDANCE BY DATE MAP DEBUG ===');
+  console.log('Total dates in map:', attendanceByDate.size);
+  
+  // Debug June 1-7 specifically in the map
+  for (let day = 1; day <= 7; day++) {
+    const dateKey = `2025-06-${day.toString().padStart(2, '0')}`;
+    const records = attendanceByDate.get(dateKey) || [];
+    console.log(`June ${day} (${dateKey}): ${records.length} records in map`);
+  }
 
   const getDayAttendance = (date: Date) => {
     const dateStr = format(date, 'yyyy-MM-dd');
     const dayRecords = attendanceByDate.get(dateStr) || [];
     
-    // Debug logging for June 1-7
+    // Enhanced debug logging for June 1-7
     if (dateStr >= '2025-06-01' && dateStr <= '2025-06-07') {
-      console.log(`June Debug - ${dateStr}: Found ${dayRecords.length} records`, dayRecords.map(r => ({ 
-        employee: r.payroll_employees?.name || 'Unknown', 
-        hours: r.hours_worked 
-      })));
+      console.log(`=== GET DAY ATTENDANCE DEBUG ===`);
+      console.log(`Date: ${dateStr} (${format(date, 'EEEE')})`);
+      console.log(`Records found: ${dayRecords.length}`);
+      dayRecords.forEach((record, index) => {
+        console.log(`  Record ${index + 1}: Employee ${record.payroll_employees?.name || 'Unknown'}, Hours: ${record.hours_worked}`);
+      });
     }
     
     // Enrich records with employee names if missing
@@ -194,6 +222,13 @@ export const AttendanceCalendarView: React.FC<AttendanceCalendarViewProps> = ({
           </div>
         </CardHeader>
         <CardContent>
+          {/* Debug Info */}
+          <div className="mb-4 p-2 bg-gray-50 rounded text-xs">
+            <div>Calendar Data Records: {calendarData.length}</div>
+            <div>Calendar Days: {calendarDays.length}</div>
+            <div>Attendance Map Size: {attendanceByDate.size}</div>
+          </div>
+          
           {/* Calendar Grid */}
           <div className="grid grid-cols-7 gap-2">
             {/* Day headers */}
@@ -212,6 +247,17 @@ export const AttendanceCalendarView: React.FC<AttendanceCalendarViewProps> = ({
               const workingCount = getWorkingEmployeeCountForDay(date);
               const weeklyOff = isWeeklyOff(date);
               const isSelected = selectedDate && isSameDay(date, selectedDate);
+              
+              // Debug for June 1-7 rendering
+              const dateStr = format(date, 'yyyy-MM-dd');
+              if (dateStr >= '2025-06-01' && dateStr <= '2025-06-07') {
+                console.log(`=== RENDER DEBUG ${dateStr} ===`);
+                console.log(`isCurrentMonth: ${isCurrentMonth}`);
+                console.log(`dayAttendance.length: ${dayAttendance.length}`);
+                console.log(`employeeCount: ${employeeCount}`);
+                console.log(`totalHours: ${totalHours}`);
+                console.log(`weeklyOff: ${weeklyOff}`);
+              }
               
               // Determine visual styling based on day type
               let dayStyle = '';
@@ -255,6 +301,12 @@ export const AttendanceCalendarView: React.FC<AttendanceCalendarViewProps> = ({
                           {employeeCount - workingCount} leave
                         </div>
                       )}
+                    </div>
+                  )}
+                  {/* Debug display for June 1-7 */}
+                  {dateStr >= '2025-06-01' && dateStr <= '2025-06-07' && (
+                    <div className="text-xs text-red-500 mt-1">
+                      DBG: {dayAttendance.length}r
                     </div>
                   )}
                 </div>
