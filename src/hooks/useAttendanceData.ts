@@ -97,15 +97,37 @@ export const useAttendanceData = (filters: AttendanceFilters) => {
           )
         `);
 
-      // Apply filters
+      // Apply date filters
       if (filters.dateRange.from) {
         query = query.gte('attendance_date', filters.dateRange.from.toISOString().split('T')[0]);
       }
       if (filters.dateRange.to) {
         query = query.lte('attendance_date', filters.dateRange.to.toISOString().split('T')[0]);
       }
+
+      // Apply employee filters
       if (filters.employeeIds.length > 0) {
         query = query.in('employee_id', filters.employeeIds);
+      }
+
+      // Apply unit filters by first getting employees from selected units
+      if (filters.unitIds.length > 0) {
+        const { data: unitEmployees, error: unitEmpError } = await supabase
+          .from('payroll_employees')
+          .select('id')
+          .in('unit_id', filters.unitIds);
+
+        if (unitEmpError) throw unitEmpError;
+
+        const employeeIds = unitEmployees?.map(emp => emp.id) || [];
+        if (employeeIds.length > 0) {
+          query = query.in('employee_id', employeeIds);
+        } else {
+          // No employees in selected units, return empty result
+          setAttendanceRecords([]);
+          await calculateAggregatedData([]);
+          return;
+        }
       }
 
       const { data, error } = await query.order('attendance_date', { ascending: false });

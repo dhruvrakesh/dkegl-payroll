@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
@@ -6,6 +5,8 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, LineCh
 import { Users, Clock, TrendingUp, Calendar, Building2, ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { InteractiveGraphControls } from './InteractiveGraphControls';
+import { InteractiveGraphView } from './InteractiveGraphView';
 
 interface UnitWiseData {
   unitId: string;
@@ -51,6 +52,13 @@ export const AttendanceSummaryView: React.FC<AttendanceSummaryViewProps> = ({
   loading
 }) => {
   const [isUnitDetailsOpen, setIsUnitDetailsOpen] = useState(false);
+  const [isInteractiveGraphOpen, setIsInteractiveGraphOpen] = useState(true);
+  const [graphFilters, setGraphFilters] = useState({
+    unitIds: [],
+    dateRange: { from: null, to: null },
+    chartType: 'bar' as const,
+    period: 'daily' as const
+  });
 
   if (loading) {
     return (
@@ -134,6 +142,44 @@ export const AttendanceSummaryView: React.FC<AttendanceSummaryViewProps> = ({
           </CardContent>
         </Card>
       </div>
+
+      {/* Interactive Graph Section */}
+      <Collapsible open={isInteractiveGraphOpen} onOpenChange={setIsInteractiveGraphOpen}>
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <TrendingUp className="h-5 w-5" />
+                  Interactive Analytics Dashboard
+                </CardTitle>
+                <CardDescription>Customize your data visualization with filters and chart types</CardDescription>
+              </div>
+              <CollapsibleTrigger asChild>
+                <Button variant="ghost" size="sm">
+                  {isInteractiveGraphOpen ? (
+                    <ChevronUp className="h-4 w-4" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4" />
+                  )}
+                  {isInteractiveGraphOpen ? 'Hide' : 'Show'} Interactive Graphs
+                </Button>
+              </CollapsibleTrigger>
+            </div>
+          </CardHeader>
+          <CollapsibleContent className="space-y-4">
+            <CardContent>
+              <InteractiveGraphControls 
+                filters={graphFilters}
+                onFiltersChange={setGraphFilters}
+              />
+              <div className="mt-6">
+                <InteractiveGraphView filters={graphFilters} />
+              </div>
+            </CardContent>
+          </CollapsibleContent>
+        </Card>
+      </Collapsible>
 
       {/* Unit-wise Summary Section */}
       <Card>
