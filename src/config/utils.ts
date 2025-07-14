@@ -37,3 +37,23 @@ export const getToastVariant = (messageType: string) => {
       return 'default';
   }
 };
+
+// Date utility functions for attendance filters
+export const getCurrentMonthRange = () => {
+  const today = new Date();
+  const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+  const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+  
+  return {
+    from: firstDay,
+    to: lastDay
+  };
+};
+
+export const getDefaultAttendanceFilters = () => {
+  return {
+    dateRange: getCurrentMonthRange(),
+    employeeIds: [],
+    unitIds: []
+  };
+};

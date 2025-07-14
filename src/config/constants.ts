@@ -1,4 +1,3 @@
-
 // Filter Constants
 export const FILTER_VALUES = {
   ALL_UNITS: 'all-units',
@@ -51,6 +50,13 @@ export const TRANSFER_STATUS = {
   APPROVED: 'approved',
   REJECTED: 'rejected',
   COMPLETED: 'completed',
+} as const;
+
+// Date Range Defaults
+export const DEFAULT_DATE_RANGE_TYPE = {
+  CURRENT_MONTH: 'current_month',
+  LAST_30_DAYS: 'last_30_days',
+  CUSTOM: 'custom',
 } as const;
 
 // Variable Types (from Supabase)

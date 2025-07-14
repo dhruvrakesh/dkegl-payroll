@@ -10,6 +10,7 @@ import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useUnitsData } from '@/hooks/useUnitsData';
 import { FILTER_VALUES, QUICK_DATE_RANGES } from '@/config/constants';
+import { getDefaultAttendanceFilters } from '@/config/utils';
 
 interface AttendanceFilters {
   dateRange: {
@@ -45,11 +46,8 @@ export const AttendanceFilters: React.FC<AttendanceFiltersProps> = ({
   };
 
   const clearFilters = () => {
-    onFiltersChange({
-      dateRange: { from: null, to: null },
-      employeeIds: [],
-      unitIds: []
-    });
+    // Reset to intelligent defaults instead of null values
+    onFiltersChange(getDefaultAttendanceFilters());
   };
 
   const hasActiveFilters = 
@@ -73,7 +71,7 @@ export const AttendanceFilters: React.FC<AttendanceFiltersProps> = ({
         {hasActiveFilters && (
           <Button variant="ghost" size="sm" onClick={clearFilters}>
             <X className="w-4 h-4 mr-1" />
-            Clear All
+            Reset to Current Month
           </Button>
         )}
       </div>
