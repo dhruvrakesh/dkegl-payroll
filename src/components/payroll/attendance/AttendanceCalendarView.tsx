@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -55,10 +54,10 @@ export const AttendanceCalendarView: React.FC<AttendanceCalendarViewProps> = ({
         startDate,
         endDate,
         currentMonthState: currentMonth.toISOString(),
-        queryMethod: 'hardcoded dates'
+        queryMethod: 'hardcoded dates with no limit'
       });
       
-      // SURGICAL FIX: Direct query with hardcoded dates to eliminate any date calculation issues
+      // SURGICAL FIX: Remove limit and change ordering to ensure ALL June records are fetched
       const { data, error } = await supabase
         .from('attendance')
         .select(`
@@ -77,7 +76,7 @@ export const AttendanceCalendarView: React.FC<AttendanceCalendarViewProps> = ({
         `)
         .gte('attendance_date', startDate)
         .lte('attendance_date', endDate)
-        .order('attendance_date', { ascending: false });
+        .order('attendance_date', { ascending: true }); // Changed to ASC to get June 1-7 first
 
       if (error) {
         console.error('🚨 Supabase query error:', error);
@@ -90,10 +89,17 @@ export const AttendanceCalendarView: React.FC<AttendanceCalendarViewProps> = ({
         uniqueDates: [...new Set(data?.map(r => r.attendance_date) || [])].sort(),
         june1to9Records: data?.filter(r => r.attendance_date >= '2025-06-01' && r.attendance_date <= '2025-06-09').length || 0,
         june1to9Dates: [...new Set(data?.filter(r => r.attendance_date >= '2025-06-01' && r.attendance_date <= '2025-06-09').map(r => r.attendance_date) || [])].sort(),
+        june1to7Records: data?.filter(r => r.attendance_date >= '2025-06-01' && r.attendance_date <= '2025-06-07').length || 0,
+        june1to7Dates: [...new Set(data?.filter(r => r.attendance_date >= '2025-06-01' && r.attendance_date <= '2025-06-07').map(r => r.attendance_date) || [])].sort(),
         firstRecordSample: data?.[0] ? { 
           date: data[0].attendance_date, 
           emp: data[0].employee_id?.slice(0, 8), 
           hours: data[0].hours_worked 
+        } : null,
+        lastRecordSample: data?.[data.length - 1] ? { 
+          date: data[data.length - 1].attendance_date, 
+          emp: data[data.length - 1].employee_id?.slice(0, 8), 
+          hours: data[data.length - 1].hours_worked 
         } : null
       });
       
@@ -139,7 +145,10 @@ export const AttendanceCalendarView: React.FC<AttendanceCalendarViewProps> = ({
     mapKeys: Array.from(attendanceByDate.keys()).sort(),
     june1to9Keys: Array.from(attendanceByDate.keys()).filter(k => 
       k >= '2025-06-01' && k <= '2025-06-09'
-    ),
+    ).sort(),
+    june1to7Keys: Array.from(attendanceByDate.keys()).filter(k => 
+      k >= '2025-06-01' && k <= '2025-06-07'
+    ).sort(),
     june1to9Counts: {
       '2025-06-01': attendanceByDate.get('2025-06-01')?.length || 0,
       '2025-06-02': attendanceByDate.get('2025-06-02')?.length || 0,
