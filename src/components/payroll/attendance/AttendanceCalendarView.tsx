@@ -23,22 +23,32 @@ interface Employee {
   name: string;
 }
 
+interface AttendanceFilters {
+  dateRange: {
+    from: Date | null;
+    to: Date | null;
+  };
+  employeeIds: string[];
+  unitIds: string[];
+}
+
 interface AttendanceCalendarViewProps {
   attendanceRecords: Attendance[];
   employees: Employee[];
   loading: boolean;
   onRefresh: () => void;
+  filters: AttendanceFilters;
 }
 
 export const AttendanceCalendarView: React.FC<AttendanceCalendarViewProps> = ({
+  attendanceRecords,
   employees,
   loading: parentLoading,
-  onRefresh
+  onRefresh,
+  filters
 }) => {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-  const [calendarData, setCalendarData] = useState<Attendance[]>([]);
-  const [calendarLoading, setCalendarLoading] = useState(false);
   const [debugInfo, setDebugInfo] = useState<any>(null);
   const { toast } = useToast();
 
@@ -110,86 +120,29 @@ export const AttendanceCalendarView: React.FC<AttendanceCalendarViewProps> = ({
     }
   };
 
-  // Fetch calendar-specific data for the current month - FULLY DYNAMIC
-  const fetchCalendarData = async () => {
-    try {
-      setCalendarLoading(true);
-      
-      // DYNAMIC MONTH CALCULATION - No hardcoded dates
-      const monthStart = startOfMonth(currentMonth);
-      const monthEnd = endOfMonth(currentMonth);
-      const startDate = format(monthStart, 'yyyy-MM-dd');
-      const endDate = format(monthEnd, 'yyyy-MM-dd');
-      
-      console.log('🔍 FETCHING CALENDAR DATA:', {
-        currentMonth: format(currentMonth, 'MMMM yyyy'),
-        monthStart: format(monthStart, 'yyyy-MM-dd'),
-        monthEnd: format(monthEnd, 'yyyy-MM-dd'),
-        startDate,
-        endDate
-      });
-      
-      // Fetch ALL records for the month (no limit)
-      const { data, error } = await supabase
-        .from('attendance')
-        .select(`
-          attendance_id,
-          employee_id,
-          attendance_date,
-          hours_worked,
-          overtime_hours,
-          payroll_employees (
-            name,
-            unit_id
-          ),
-          units (
-            unit_name
-          )
-        `)
-        .gte('attendance_date', startDate)
-        .lte('attendance_date', endDate)
-        .order('attendance_date', { ascending: true });
-
-      if (error) {
-        console.error('🚨 Supabase query error:', error);
-        throw error;
-      }
-      
-      console.log('📊 CALENDAR DATA RESULT:', {
-        monthName: format(currentMonth, 'MMMM yyyy'),
-        totalRecords: data?.length || 0,
-        dateRange: { start: startDate, end: endDate },
-        uniqueDates: [...new Set(data?.map(r => r.attendance_date) || [])].sort(),
-        sampleRecords: data?.slice(0, 3).map(r => ({
-          date: r.attendance_date,
-          employee: r.employee_id?.slice(0, 8),
-          hours: r.hours_worked
-        })) || []
-      });
-      
-      setCalendarData(data || []);
-      
-      // Auto-investigate if current month is June 2024
-      if (format(currentMonth, 'yyyy-MM') === '2024-06') {
-        await investigateDatabase();
-      }
-      
-    } catch (error) {
-      console.error('❌ Error fetching calendar data:', error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch calendar data",
-        variant: "destructive",
-      });
-    } finally {
-      setCalendarLoading(false);
-    }
-  };
-
-  // Re-fetch data whenever currentMonth changes
+  // Log when filters or records change
   useEffect(() => {
-    fetchCalendarData();
-  }, [currentMonth]);
+    console.log('📅 CALENDAR DATA UPDATE:', {
+      currentMonth: format(currentMonth, 'MMMM yyyy'),
+      totalRecords: attendanceRecords.length,
+      activeFilters: {
+        dateRange: filters.dateRange,
+        employeeIds: filters.employeeIds,
+        unitIds: filters.unitIds
+      },
+      uniqueDates: [...new Set(attendanceRecords.map(r => r.attendance_date))].sort(),
+      sampleRecords: attendanceRecords.slice(0, 3).map(r => ({
+        date: r.attendance_date,
+        employee: r.employee_id?.slice(0, 8),
+        hours: r.hours_worked
+      }))
+    });
+
+    // Auto-investigate if current month is June 2024
+    if (format(currentMonth, 'yyyy-MM') === '2024-06') {
+      investigateDatabase();
+    }
+  }, [attendanceRecords, filters, currentMonth]);
 
   // Generate proper calendar grid with correct day alignment
   const monthStart = startOfMonth(currentMonth);
@@ -198,9 +151,15 @@ export const AttendanceCalendarView: React.FC<AttendanceCalendarViewProps> = ({
   const calendarEnd = endOfWeek(monthEnd, { weekStartsOn: 0 });
   const calendarDays = eachDayOfInterval({ start: calendarStart, end: calendarEnd });
 
-  // Group attendance records by date using ONLY calendar data
+  // Filter attendance records for the current month and apply filters
+  const currentMonthRecords = attendanceRecords.filter(record => {
+    const recordDate = new Date(record.attendance_date);
+    return recordDate >= monthStart && recordDate <= monthEnd;
+  });
+
+  // Group filtered attendance records by date
   const attendanceByDate = new Map<string, Attendance[]>();
-  calendarData.forEach(record => {
+  currentMonthRecords.forEach(record => {
     const dateKey = record.attendance_date; // This is already in YYYY-MM-DD format
     if (!attendanceByDate.has(dateKey)) {
       attendanceByDate.set(dateKey, []);
@@ -241,11 +200,18 @@ export const AttendanceCalendarView: React.FC<AttendanceCalendarViewProps> = ({
     return dayAttendance.length > 0 && dayAttendance.every((record: Attendance) => record.hours_worked === 0);
   };
 
-  // DYNAMIC NAVIGATION: These functions will now properly trigger re-fetch
-  const previousMonth = () => setCurrentMonth(subMonths(currentMonth, 1));
-  const nextMonth = () => setCurrentMonth(addMonths(currentMonth, 1));
+  // Navigation functions that trigger filter refresh
+  const previousMonth = () => {
+    setCurrentMonth(subMonths(currentMonth, 1));
+    onRefresh(); // Trigger data refresh with current filters
+  };
+  
+  const nextMonth = () => {
+    setCurrentMonth(addMonths(currentMonth, 1));
+    onRefresh(); // Trigger data refresh with current filters
+  };
 
-  if (calendarLoading || parentLoading) {
+  if (parentLoading) {
     return (
       <Card>
         <CardContent className="flex items-center justify-center h-64">
@@ -283,6 +249,30 @@ export const AttendanceCalendarView: React.FC<AttendanceCalendarViewProps> = ({
                   {debugInfo.uniqueJuneDates.join(', ')}
                 </div>
               </details>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Filter Status Display */}
+      {(filters.unitIds.length > 0 || filters.employeeIds.length > 0) && (
+        <Card className="border-blue-200 bg-blue-50">
+          <CardContent className="p-3">
+            <div className="text-sm text-blue-700">
+              <strong>Active Filters:</strong>
+              {filters.unitIds.length > 0 && (
+                <span className="ml-2 px-2 py-1 bg-blue-100 rounded text-xs">
+                  {filters.unitIds.length} Unit(s) Selected
+                </span>
+              )}
+              {filters.employeeIds.length > 0 && (
+                <span className="ml-2 px-2 py-1 bg-blue-100 rounded text-xs">
+                  {filters.employeeIds.length} Employee(s) Selected
+                </span>
+              )}
+              <span className="ml-2 text-xs">
+                Showing {currentMonthRecords.length} records for {format(currentMonth, 'MMMM yyyy')}
+              </span>
             </div>
           </CardContent>
         </Card>

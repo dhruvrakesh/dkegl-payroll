@@ -89,6 +89,7 @@ export const AttendanceManagement = () => {
             employees={employees}
             loading={loading}
             onRefresh={refreshAttendance}
+            filters={filters}
           />
         </TabsContent>
 
