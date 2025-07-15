@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, ChevronLeft, ChevronRight, Plus, UserCheck, Coffee, Plane, Heart, XCircle } from 'lucide-react';
+import { Calendar, ChevronLeft, ChevronRight, Plus, UserCheck, Coffee, Plane, Heart, XCircle, Clock } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isSameMonth } from 'date-fns';
 import { Attendance, Employee, AttendanceFilters } from '@/config/types';
 import { AttendanceStatusLegend } from './AttendanceStatusLegend';
@@ -104,7 +104,7 @@ export const AttendanceCalendarView: React.FC<AttendanceCalendarViewProps> = ({
       case 'CASUAL_LEAVE': return Plane;
       case 'EARNED_LEAVE': return Heart;
       case 'UNPAID_LEAVE': return XCircle;
-      default: return null;
+      default: return Clock; // Always return a valid icon component
     }
   };
 
@@ -207,7 +207,7 @@ export const AttendanceCalendarView: React.FC<AttendanceCalendarViewProps> = ({
                                 const colorClass = getStatusColor(status);
                                 return (
                                   <div key={status} className={`flex items-center gap-1 text-xs ${colorClass}`}>
-                                    {Icon && <Icon className="w-3 h-3" />}
+                                    <Icon className="w-3 h-3" />
                                     <span>{count}</span>
                                   </div>
                                 );
