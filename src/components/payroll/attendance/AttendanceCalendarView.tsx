@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, ChevronLeft, ChevronRight, Plus, UserCheck, Coffee, Plane, Heart, XCircle, Clock } from 'lucide-react';
+import { Calendar, ChevronLeft, ChevronRight, Plus, UserCheck, Coffee, Plane, Heart, XCircle, Clock, type LucideIcon } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isSameMonth } from 'date-fns';
 import { Attendance, Employee, AttendanceFilters } from '@/config/types';
 import { AttendanceStatusLegend } from './AttendanceStatusLegend';
@@ -97,14 +97,14 @@ export const AttendanceCalendarView: React.FC<AttendanceCalendarViewProps> = ({
     }
   };
 
-  const getStatusIcon = (status: string) => {
+  const getStatusIcon = (status: string): LucideIcon => {
     switch (status) {
       case 'PRESENT': return UserCheck;
       case 'WEEKLY_OFF': return Coffee;
       case 'CASUAL_LEAVE': return Plane;
       case 'EARNED_LEAVE': return Heart;
       case 'UNPAID_LEAVE': return XCircle;
-      default: return Clock; // Always return a valid icon component
+      default: return Clock;
     }
   };
 
