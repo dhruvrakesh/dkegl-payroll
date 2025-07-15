@@ -29,6 +29,15 @@ export const AttendanceCalendarView: React.FC<AttendanceCalendarViewProps> = ({
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
 
+  // Status to icon mapping for proper TypeScript inference
+  const STATUS_ICONS = {
+    'PRESENT': UserCheck,
+    'WEEKLY_OFF': Coffee,
+    'CASUAL_LEAVE': Plane,
+    'EARNED_LEAVE': Heart,
+    'UNPAID_LEAVE': XCircle
+  } as const;
+
   // Generate calendar days for the current month
   const monthStart = startOfMonth(currentDate);
   const monthEnd = endOfMonth(currentDate);
@@ -95,17 +104,6 @@ export const AttendanceCalendarView: React.FC<AttendanceCalendarViewProps> = ({
       case 'EARNED_LEAVE': return 'bg-amber-50 border-amber-200';
       case 'UNPAID_LEAVE': return 'bg-red-50 border-red-200';
       default: return 'bg-background';
-    }
-  };
-
-  const getStatusIcon = (status: string): LucideIcon => {
-    switch (status) {
-      case 'PRESENT': return UserCheck;
-      case 'WEEKLY_OFF': return Coffee;
-      case 'CASUAL_LEAVE': return Plane;
-      case 'EARNED_LEAVE': return Heart;
-      case 'UNPAID_LEAVE': return XCircle;
-      default: return Clock;
     }
   };
 
@@ -205,9 +203,10 @@ export const AttendanceCalendarView: React.FC<AttendanceCalendarViewProps> = ({
                             <div className="space-y-1">
                               {Object.entries(stats.statusCounts).map(([status, count]) => {
                                 const colorClass = getStatusColor(status);
+                                const IconComponent = STATUS_ICONS[status as keyof typeof STATUS_ICONS] || Clock;
                                 return (
                                   <div key={status} className={`flex items-center gap-1 text-xs ${colorClass}`}>
-                                    {React.createElement(getStatusIcon(status), { className: "w-3 h-3" })}
+                                    <IconComponent className="w-3 h-3" />
                                     <span>{count}</span>
                                   </div>
                                 );
