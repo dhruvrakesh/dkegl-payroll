@@ -3,3 +3,6 @@ project_id = "xltzaggnwhqskxkrzdqo"
 
 [functions.get-attendance-template]
 verify_jwt = false
+
+[functions.get-leave-balance-template]
+verify_jwt = false
