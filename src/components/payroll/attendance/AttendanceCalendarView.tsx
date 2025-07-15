@@ -203,11 +203,11 @@ export const AttendanceCalendarView: React.FC<AttendanceCalendarViewProps> = ({
                             {/* Status breakdown */}
                             <div className="space-y-1">
                               {Object.entries(stats.statusCounts).map(([status, count]) => {
-                                const Icon = getStatusIcon(status);
+                                const StatusIcon = getStatusIcon(status);
                                 const colorClass = getStatusColor(status);
                                 return (
                                   <div key={status} className={`flex items-center gap-1 text-xs ${colorClass}`}>
-                                    <Icon className="w-3 h-3" />
+                                    {React.createElement(StatusIcon, { className: "w-3 h-3" })}
                                     <span>{count}</span>
                                   </div>
                                 );
