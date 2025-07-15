@@ -208,7 +208,7 @@ export const AttendanceCalendarView: React.FC<AttendanceCalendarViewProps> = ({
                                 const colorClass = getStatusColor(status);
                                 return (
                                   <div key={status} className={`flex items-center gap-1 text-xs ${colorClass}`}>
-                                    <StatusIcon className="w-3 h-3" />
+                                    {React.createElement(StatusIcon, { className: "w-3 h-3" })}
                                     <span>{count}</span>
                                   </div>
                                 );
