@@ -1,17 +1,8 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { AttendanceFilters, Employee } from '@/config/types';
-
-interface Attendance {
-  attendance_id: string;
-  employee_id: string;
-  attendance_date: string;
-  hours_worked: number;
-  overtime_hours: number;
-  payroll_employees?: { name: string };
-  units?: { unit_name: string };
-}
+import { AttendanceFilters, Employee, Attendance, AttendanceStatus } from '@/config/types';
 
 interface UnitWiseData {
   unitId: string;

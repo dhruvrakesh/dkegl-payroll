@@ -25,6 +25,21 @@ export type FilterValue = typeof FILTER_VALUES[keyof typeof FILTER_VALUES];
 export type BatchPeriod = typeof BATCH_PERIODS[keyof typeof BATCH_PERIODS];
 export type QuickDateRange = typeof QUICK_DATE_RANGES[keyof typeof QUICK_DATE_RANGES];
 
+// Attendance Status type
+export type AttendanceStatus = 'PRESENT' | 'WEEKLY_OFF' | 'CASUAL_LEAVE' | 'EARNED_LEAVE' | 'UNPAID_LEAVE';
+
+// Unified Attendance interface
+export interface Attendance {
+  attendance_id: string;
+  employee_id: string;
+  attendance_date: string;
+  hours_worked: number;
+  overtime_hours?: number;
+  status: AttendanceStatus;
+  payroll_employees?: { name: string };
+  units?: { unit_name: string };
+}
+
 // Attendance-related types
 export interface AttendanceFilters {
   dateRange: {

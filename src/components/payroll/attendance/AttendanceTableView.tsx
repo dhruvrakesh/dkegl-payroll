@@ -10,25 +10,8 @@ import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useUnitsData } from '@/hooks/useUnitsData';
+import { Attendance, Employee, AttendanceStatus } from '@/config/types';
 import { Plus, Edit, Trash2, Search, Building2, Calendar, Clock, Coffee, Plane, Home } from 'lucide-react';
-
-interface Attendance {
-  attendance_id: string;
-  employee_id: string;
-  attendance_date: string;
-  hours_worked: number;
-  overtime_hours: number;
-  status: 'PRESENT' | 'WEEKLY_OFF' | 'CASUAL_LEAVE' | 'EARNED_LEAVE' | 'UNPAID_LEAVE';
-  payroll_employees?: { name: string };
-  units?: { unit_name: string };
-}
-
-interface Employee {
-  id: string;
-  name: string;
-  unit_id?: string;
-  active: boolean;
-}
 
 interface AttendanceTableViewProps {
   attendanceRecords: Attendance[];
@@ -38,11 +21,11 @@ interface AttendanceTableViewProps {
 }
 
 const attendanceStatusOptions = [
-  { value: 'PRESENT', label: 'Present', icon: Clock, color: 'bg-green-100 text-green-800' },
-  { value: 'WEEKLY_OFF', label: 'Weekly Off', icon: Coffee, color: 'bg-blue-100 text-blue-800' },
-  { value: 'CASUAL_LEAVE', label: 'Casual Leave', icon: Home, color: 'bg-yellow-100 text-yellow-800' },
-  { value: 'EARNED_LEAVE', label: 'Earned Leave', icon: Plane, color: 'bg-purple-100 text-purple-800' },
-  { value: 'UNPAID_LEAVE', label: 'Unpaid Leave', icon: Calendar, color: 'bg-red-100 text-red-800' }
+  { value: 'PRESENT' as const, label: 'Present', icon: Clock, color: 'bg-green-100 text-green-800' },
+  { value: 'WEEKLY_OFF' as const, label: 'Weekly Off', icon: Coffee, color: 'bg-blue-100 text-blue-800' },
+  { value: 'CASUAL_LEAVE' as const, label: 'Casual Leave', icon: Home, color: 'bg-yellow-100 text-yellow-800' },
+  { value: 'EARNED_LEAVE' as const, label: 'Earned Leave', icon: Plane, color: 'bg-purple-100 text-purple-800' },
+  { value: 'UNPAID_LEAVE' as const, label: 'Unpaid Leave', icon: Calendar, color: 'bg-red-100 text-red-800' }
 ];
 
 export const AttendanceTableView: React.FC<AttendanceTableViewProps> = ({
@@ -60,7 +43,7 @@ export const AttendanceTableView: React.FC<AttendanceTableViewProps> = ({
     attendance_date: '',
     hours_worked: '',
     overtime_hours: '0',
-    status: 'PRESENT' as const
+    status: 'PRESENT' as AttendanceStatus
   });
   const { toast } = useToast();
   const { units, loading: unitsLoading } = useUnitsData();
@@ -318,7 +301,7 @@ export const AttendanceTableView: React.FC<AttendanceTableViewProps> = ({
                 <Label htmlFor="status">Attendance Status</Label>
                 <Select 
                   value={formData.status} 
-                  onValueChange={(value: 'PRESENT' | 'WEEKLY_OFF' | 'CASUAL_LEAVE' | 'EARNED_LEAVE' | 'UNPAID_LEAVE') => {
+                  onValueChange={(value: AttendanceStatus) => {
                     setFormData({ 
                       ...formData, 
                       status: value,

@@ -20,9 +20,9 @@ interface LeaveBalance {
   payroll_employees?: {
     name: string;
     unit_id?: string;
-  };
-  units?: {
-    unit_name: string;
+    units?: {
+      unit_name: string;
+    };
   };
 }
 

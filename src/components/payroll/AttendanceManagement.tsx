@@ -9,7 +9,7 @@ import { AttendanceFilters } from './attendance/AttendanceFilters';
 import { AttendanceCsvUploader } from '../AttendanceCsvUploader';
 import { useAttendanceData } from '@/hooks/useAttendanceData';
 import { getDefaultAttendanceFilters } from '@/config/utils';
-import { AttendanceFilters as AttendanceFiltersType } from '@/config/types';
+import { AttendanceFilters as AttendanceFiltersType, Employee } from '@/config/types';
 import { Calendar, Users, BarChart3, Table, Upload } from 'lucide-react';
 
 export const AttendanceManagement = () => {
