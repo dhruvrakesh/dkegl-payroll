@@ -6,21 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { ChevronDown, ChevronRight, Edit, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
-
-interface Attendance {
-  attendance_id: string;
-  employee_id: string;
-  attendance_date: string;
-  hours_worked: number;
-  overtime_hours: number;
-  payroll_employees?: { name: string };
-  units?: { unit_name: string };
-}
-
-interface Employee {
-  id: string;
-  name: string;
-}
+import { Attendance, Employee } from '@/config/types';
 
 interface AttendanceEmployeeViewProps {
   attendanceRecords: Attendance[];
@@ -166,7 +152,7 @@ export const AttendanceEmployeeView: React.FC<AttendanceEmployeeViewProps> = ({
                           <div className="flex items-center gap-4">
                             <div className="text-right">
                               <div className="font-medium">{record.hours_worked}h</div>
-                              {record.overtime_hours > 0 && (
+                              {(record.overtime_hours || 0) > 0 && (
                                 <div className="text-sm text-orange-600">
                                   +{record.overtime_hours}h OT
                                 </div>
