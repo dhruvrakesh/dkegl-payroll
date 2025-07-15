@@ -3909,6 +3909,10 @@ export type Database = {
         }
         Returns: string
       }
+      upsert_leave_balances_from_csv: {
+        Args: { rows: Json }
+        Returns: Json
+      }
       upsert_process_log: {
         Args: {
           p_uiorn: string

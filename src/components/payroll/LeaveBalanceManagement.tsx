@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -7,9 +6,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Edit, RefreshCw, Users, Calendar } from 'lucide-react';
+import { Plus, Edit, RefreshCw, Users, Calendar, Upload, ChevronDown } from 'lucide-react';
+import { LeaveBalanceCsvUploader } from './LeaveBalanceCsvUploader';
 
 interface LeaveBalance {
   id: string;
@@ -44,6 +45,7 @@ export const LeaveBalanceManagement = () => {
     casual_leave_balance: 12,
     earned_leave_balance: 0
   });
+  const [csvUploaderOpen, setCsvUploaderOpen] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -329,6 +331,23 @@ export const LeaveBalanceManagement = () => {
               </Dialog>
             </div>
           </div>
+
+          {/* Bulk Upload Section */}
+          <Collapsible open={csvUploaderOpen} onOpenChange={setCsvUploaderOpen}>
+            <CollapsibleTrigger asChild>
+              <Button variant="outline" className="w-full justify-between mb-4">
+                <span className="flex items-center gap-2">
+                  <Upload className="w-4 h-4" />
+                  Bulk Upload via CSV
+                </span>
+                <ChevronDown className={`w-4 h-4 transition-transform ${csvUploaderOpen ? 'rotate-180' : ''}`} />
+              </Button>
+            </CollapsibleTrigger>
+            
+            <CollapsibleContent className="mb-6">
+              <LeaveBalanceCsvUploader onUploadSuccess={fetchLeaveBalances} />
+            </CollapsibleContent>
+          </Collapsible>
 
           <Table>
             <TableHeader>
