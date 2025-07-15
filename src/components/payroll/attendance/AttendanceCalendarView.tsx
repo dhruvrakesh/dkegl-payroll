@@ -1,12 +1,10 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Calendar, ChevronLeft, ChevronRight, Plus, UserCheck, Coffee, Plane, Heart, XCircle, Clock } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isSameMonth } from 'date-fns';
-import { Attendance, Employee, AttendanceFilters } from '@/config/types';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isSameMonth, startOfWeek, endOfWeek } from 'date-fns';
+import { Attendance, Employee, AttendanceFilters, AttendanceStatus } from '@/config/types';
 import { AttendanceStatusLegend } from './AttendanceStatusLegend';
 import { AttendanceDayDetails } from './AttendanceDayDetails';
 
@@ -18,68 +16,64 @@ interface AttendanceCalendarViewProps {
   filters: AttendanceFilters;
 }
 
+// This object map replaces the old getStatusIcon function for a type-safe implementation.
+const STATUS_ICONS: Record<AttendanceStatus, LucideIcon> = {
+  'PRESENT': UserCheck,
+  'WEEKLY_OFF': Coffee,
+  'CASUAL_LEAVE': Plane,
+  'EARNED_LEAVE': Heart,
+  'UNPAID_LEAVE': XCircle,
+};
+
 export const AttendanceCalendarView: React.FC<AttendanceCalendarViewProps> = ({
   attendanceRecords,
   employees,
   loading,
-  onRefresh,
-  filters
 }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
 
-  // Status to icon mapping for proper TypeScript inference
-  const STATUS_ICONS = {
-    'PRESENT': UserCheck,
-    'WEEKLY_OFF': Coffee,
-    'CASUAL_LEAVE': Plane,
-    'EARNED_LEAVE': Heart,
-    'UNPAID_LEAVE': XCircle
-  } as const;
-
-  // Generate calendar days for the current month
+  // Generate calendar days, including padding for weeks to ensure full rows.
   const monthStart = startOfMonth(currentDate);
   const monthEnd = endOfMonth(currentDate);
-  const calendarDays = eachDayOfInterval({ start: monthStart, end: monthEnd });
+  const calendarStart = startOfWeek(monthStart);
+  const calendarEnd = endOfWeek(monthEnd);
+  const calendarDays = eachDayOfInterval({ start: calendarStart, end: calendarEnd });
 
-  // Group attendance records by date
-  const attendanceByDate = new Map();
+  // Group attendance records by date for efficient lookup.
+  const attendanceByDate = new Map<string, Attendance[]>();
   attendanceRecords.forEach(record => {
-    const date = record.attendance_date;
-    if (!attendanceByDate.has(date)) {
-      attendanceByDate.set(date, []);
+    // Normalize date to YYYY-MM-DD format to prevent timezone issues.
+    const dateKey = format(new Date(record.attendance_date), 'yyyy-MM-dd');
+    if (!attendanceByDate.has(dateKey)) {
+      attendanceByDate.set(dateKey, []);
     }
-    attendanceByDate.get(date).push(record);
+    attendanceByDate.get(dateKey)?.push(record);
   });
 
   const navigateMonth = (direction: 'prev' | 'next') => {
     setCurrentDate(prev => {
       const newDate = new Date(prev);
-      if (direction === 'prev') {
-        newDate.setMonth(prev.getMonth() - 1);
-      } else {
-        newDate.setMonth(prev.getMonth() + 1);
-      }
+      newDate.setMonth(prev.getMonth() + (direction === 'prev' ? -1 : 1));
       return newDate;
     });
   };
 
-  const getAttendanceForDate = (date: Date) => {
+  const getAttendanceForDate = (date: Date): Attendance[] => {
     const dateString = format(date, 'yyyy-MM-dd');
     return attendanceByDate.get(dateString) || [];
   };
 
   const getDayStats = (date: Date) => {
     const dayAttendance = getAttendanceForDate(date);
-    
-    // Group by status
     const statusCounts = dayAttendance.reduce((acc, record) => {
-      acc[record.status] = (acc[record.status] || 0) + 1;
+      const status = record.status as AttendanceStatus;
+      acc[status] = (acc[status] || 0) + 1;
       return acc;
-    }, {} as Record<string, number>);
+    }, {} as Record<AttendanceStatus, number>);
 
-    const totalHours = dayAttendance.reduce((sum, record) => sum + record.hours_worked, 0);
+    const totalHours = dayAttendance.reduce((sum, record) => sum + (record.hours_worked || 0), 0);
     const totalOvertime = dayAttendance.reduce((sum, record) => sum + (record.overtime_hours || 0), 0);
     
     return {
@@ -92,10 +86,8 @@ export const AttendanceCalendarView: React.FC<AttendanceCalendarViewProps> = ({
   };
 
   const getDayCellBackground = (statusCounts: Record<string, number>) => {
-    // Determine primary status for background color
-    const maxStatus = Object.entries(statusCounts).reduce((max, [status, count]) => 
-      count > max.count ? { status, count } : max
-    , { status: '', count: 0 });
+    if (Object.keys(statusCounts).length === 0) return 'bg-background';
+    const maxStatus = Object.entries(statusCounts).reduce((max, [status, count]) => count > max.count ? { status, count } : max, { status: '', count: 0 });
 
     switch (maxStatus.status) {
       case 'PRESENT': return 'bg-green-50 border-green-200';
@@ -107,14 +99,13 @@ export const AttendanceCalendarView: React.FC<AttendanceCalendarViewProps> = ({
     }
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: AttendanceStatus) => {
     switch (status) {
       case 'PRESENT': return 'text-green-600';
       case 'WEEKLY_OFF': return 'text-blue-600';
       case 'CASUAL_LEAVE': return 'text-purple-600';
       case 'EARNED_LEAVE': return 'text-amber-600';
       case 'UNPAID_LEAVE': return 'text-red-600';
-      default: return 'text-gray-600';
     }
   };
 
@@ -131,7 +122,6 @@ export const AttendanceCalendarView: React.FC<AttendanceCalendarViewProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* Calendar Header */}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -140,40 +130,24 @@ export const AttendanceCalendarView: React.FC<AttendanceCalendarViewProps> = ({
               {format(currentDate, 'MMMM yyyy')}
             </CardTitle>
             <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={() => navigateMonth('prev')}>
-                <ChevronLeft className="w-4 h-4" />
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => navigateMonth('next')}>
-                <ChevronRight className="w-4 h-4" />
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => setCurrentDate(new Date())}>
-                Today
-              </Button>
+              <Button variant="outline" size="sm" onClick={() => navigateMonth('prev')}><ChevronLeft className="w-4 h-4" /></Button>
+              <Button variant="outline" size="sm" onClick={() => setCurrentDate(new Date())}>Today</Button>
+              <Button variant="outline" size="sm" onClick={() => navigateMonth('next')}><ChevronRight className="w-4 h-4" /></Button>
             </div>
           </div>
         </CardHeader>
       </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* Status Legend */}
-        <div className="lg:col-span-1">
-          <AttendanceStatusLegend />
-        </div>
-
-        {/* Calendar Grid */}
+        <div className="lg:col-span-1"><AttendanceStatusLegend /></div>
         <div className="lg:col-span-3">
           <Card>
             <CardContent className="p-4">
-              {/* Day Headers */}
               <div className="grid grid-cols-7 gap-2 mb-4">
                 {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-                  <div key={day} className="p-2 text-center font-medium text-muted-foreground">
-                    {day}
-                  </div>
+                  <div key={day} className="p-2 text-center font-medium text-sm text-muted-foreground">{day}</div>
                 ))}
               </div>
-
-              {/* Calendar Days */}
               <div className="grid grid-cols-7 gap-2">
                 {calendarDays.map(day => {
                   const stats = getDayStats(day);
@@ -184,51 +158,36 @@ export const AttendanceCalendarView: React.FC<AttendanceCalendarViewProps> = ({
                   return (
                     <div
                       key={day.toISOString()}
-                      className={`
-                        min-h-[120px] p-2 border rounded-lg cursor-pointer transition-all duration-200
-                        ${isCurrentMonth ? cellBackground : 'bg-muted/50'}
-                        ${isToday ? 'ring-2 ring-primary' : ''}
-                        hover:shadow-md hover:scale-[1.02]
-                      `}
-                      onClick={() => handleDayClick(day, stats.records)}
+                      className={`min-h-[120px] p-2 border rounded-lg cursor-pointer transition-all duration-200 ${!isCurrentMonth ? 'bg-muted/30 text-muted-foreground' : cellBackground} ${isToday ? 'ring-2 ring-primary' : ''} hover:shadow-md hover:scale-[1.02]`}
+                      onClick={() => isCurrentMonth && handleDayClick(day, stats.records)}
                     >
                       <div className="flex flex-col h-full">
-                        <div className={`text-sm font-medium mb-2 ${!isCurrentMonth ? 'text-muted-foreground' : ''}`}>
-                          {format(day, 'd')}
-                        </div>
-                        
-                        {stats.employeeCount > 0 && (
+                        <div className="text-sm font-medium mb-2">{format(day, 'd')}</div>
+                        {isCurrentMonth && stats.employeeCount > 0 && (
                           <div className="space-y-1 flex-1">
-                            {/* Status breakdown */}
                             <div className="space-y-1">
                               {Object.entries(stats.statusCounts).map(([status, count]) => {
-                                const colorClass = getStatusColor(status);
-                                const IconComponent = STATUS_ICONS[status as keyof typeof STATUS_ICONS] || Clock;
+                                // This is the corrected, type-safe implementation
+                                const IconComponent = STATUS_ICONS[status as AttendanceStatus] || Clock;
+                                const colorClass = getStatusColor(status as AttendanceStatus);
                                 return (
-                                  <div key={status} className={`flex items-center gap-1 text-xs ${colorClass}`}>
+                                  <div key={status} className={`flex items-center gap-1 text-xs font-medium ${colorClass}`}>
                                     <IconComponent className="w-3 h-3" />
                                     <span>{count}</span>
                                   </div>
                                 );
                               })}
                             </div>
-                            
-                            {/* Hours summary for present days */}
                             {stats.totalHours > 0 && (
-                              <div className="text-xs text-muted-foreground mt-2">
+                              <div className="text-xs text-muted-foreground mt-2 pt-1 border-t">
                                 {stats.totalHours}h
-                                {stats.totalOvertime > 0 && (
-                                  <span className="text-orange-600"> +{stats.totalOvertime}h OT</span>
-                                )}
+                                {stats.totalOvertime > 0 && <span className="text-orange-600"> +{stats.totalOvertime}h OT</span>}
                               </div>
                             )}
                           </div>
                         )}
-                        
-                        {stats.employeeCount === 0 && isCurrentMonth && (
-                          <div className="flex-1 flex items-center justify-center">
-                            <Plus className="w-4 h-4 text-muted-foreground/50" />
-                          </div>
+                        {isCurrentMonth && stats.employeeCount === 0 && (
+                          <div className="flex-1 flex items-center justify-center"><Plus className="w-4 h-4 text-muted-foreground/50" /></div>
                         )}
                       </div>
                     </div>
@@ -239,44 +198,7 @@ export const AttendanceCalendarView: React.FC<AttendanceCalendarViewProps> = ({
           </Card>
         </div>
       </div>
-
-      {/* Summary Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-2xl font-bold">
-              {attendanceRecords.length}
-            </div>
-            <div className="text-sm text-muted-foreground">
-              Total Records This Month
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-2xl font-bold">
-              {attendanceRecords.reduce((sum, record) => sum + record.hours_worked, 0).toLocaleString()}
-            </div>
-            <div className="text-sm text-muted-foreground">
-              Total Hours Worked
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-2xl font-bold">
-              {attendanceRecords.reduce((sum, record) => sum + (record.overtime_hours || 0), 0).toLocaleString()}
-            </div>
-            <div className="text-sm text-muted-foreground">
-              Total Overtime Hours
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Day Details Dialog */}
+      
       <AttendanceDayDetails
         open={detailsOpen}
         onOpenChange={setDetailsOpen}
