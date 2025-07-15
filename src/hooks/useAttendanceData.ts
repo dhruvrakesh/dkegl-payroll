@@ -59,6 +59,8 @@ export const useAttendanceData = (filters: AttendanceFilters) => {
   const fetchAttendanceRecords = async () => {
     try {
       setLoading(true);
+      console.log('Fetching attendance records with filters:', filters);
+      
       let query = supabase
         .from('attendance')
         .select(`
@@ -105,18 +107,42 @@ export const useAttendanceData = (filters: AttendanceFilters) => {
         }
       }
 
-      // Remove default 1000 row limit to fetch all records
-      const { data, error } = await query
-        .order('attendance_date', { ascending: false })
-        .limit(10000); // Set high limit to ensure we get all records
+      // CRITICAL FIX: Use pagination to fetch ALL records
+      const allRecords: Attendance[] = [];
+      let hasMore = true;
+      let offset = 0;
+      const batchSize = 1000;
 
-      if (error) throw error;
-      
-      const records = data || [];
-      setAttendanceRecords(records);
+      while (hasMore) {
+        console.log(`Fetching batch: offset=${offset}, limit=${batchSize}`);
+        
+        const { data, error, count } = await query
+          .range(offset, offset + batchSize - 1)
+          .order('attendance_date', { ascending: false });
+
+        if (error) throw error;
+        
+        const records = data || [];
+        console.log(`Fetched ${records.length} records in this batch`);
+        
+        allRecords.push(...records);
+
+        // Check if we have more records
+        hasMore = records.length === batchSize;
+        offset += batchSize;
+
+        // Safety check to prevent infinite loops
+        if (offset > 50000) {
+          console.warn('Breaking pagination loop at 50k records for safety');
+          break;
+        }
+      }
+
+      console.log(`Total records fetched: ${allRecords.length}`);
+      setAttendanceRecords(allRecords);
       
       // Calculate aggregated data
-      await calculateAggregatedData(records);
+      await calculateAggregatedData(allRecords);
     } catch (error) {
       console.error('Error fetching attendance:', error);
       toast({

@@ -28,13 +28,13 @@ export type QuickDateRange = typeof QUICK_DATE_RANGES[keyof typeof QUICK_DATE_RA
 // Attendance Status type
 export type AttendanceStatus = 'PRESENT' | 'WEEKLY_OFF' | 'CASUAL_LEAVE' | 'EARNED_LEAVE' | 'UNPAID_LEAVE';
 
-// Unified Attendance interface
+// Unified Attendance interface - SINGLE SOURCE OF TRUTH
 export interface Attendance {
   attendance_id: string;
   employee_id: string;
   attendance_date: string;
   hours_worked: number;
-  overtime_hours?: number;
+  overtime_hours?: number; // Made optional to match database schema
   status: AttendanceStatus;
   payroll_employees?: { name: string };
   units?: { unit_name: string };

@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AttendanceTableView } from './attendance/AttendanceTableView';
 import { AttendanceCalendarView } from './attendance/AttendanceCalendarView';
