@@ -7,13 +7,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Settings } from 'lucide-react';
+import { Settings, IndianRupee } from 'lucide-react';
 
 interface PayrollSetting {
   setting_id: string;
   effective_from: string;
   pf_rate: number;
   esi_rate: number;
+  lwf_amount: number;
   created_at: string;
 }
 
@@ -23,7 +24,8 @@ export const PayrollSettings = () => {
   const [formData, setFormData] = useState({
     effective_from: '',
     pf_rate: '',
-    esi_rate: ''
+    esi_rate: '',
+    lwf_amount: ''
   });
   const { toast } = useToast();
 
@@ -59,7 +61,8 @@ export const PayrollSettings = () => {
       const submitData = {
         effective_from: formData.effective_from,
         pf_rate: parseFloat(formData.pf_rate),
-        esi_rate: parseFloat(formData.esi_rate)
+        esi_rate: parseFloat(formData.esi_rate),
+        lwf_amount: parseFloat(formData.lwf_amount)
       };
 
       const { error } = await supabase
@@ -76,7 +79,8 @@ export const PayrollSettings = () => {
       setFormData({
         effective_from: '',
         pf_rate: '',
-        esi_rate: ''
+        esi_rate: '',
+        lwf_amount: ''
       });
       fetchSettings();
     } catch (error) {
@@ -99,15 +103,15 @@ export const PayrollSettings = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Settings className="w-5 h-5" />
-            Update Payroll Settings
+            Enhanced Payroll Settings
           </CardTitle>
           <CardDescription>
-            Configure PF and ESI rates. New rates will be effective from the specified date.
+            Configure PF rate, ESI rate, and LWF amount. New rates will be effective from the specified date.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-4 gap-4">
               <div>
                 <Label htmlFor="effective_from">Effective From</Label>
                 <Input
@@ -142,7 +146,23 @@ export const PayrollSettings = () => {
                   max="100"
                   value={formData.esi_rate}
                   onChange={(e) => setFormData({ ...formData, esi_rate: e.target.value })}
-                  placeholder="3.25"
+                  placeholder="0.75"
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="lwf_amount" className="flex items-center gap-1">
+                  <IndianRupee className="w-3 h-3" />
+                  LWF Amount (Fixed)
+                </Label>
+                <Input
+                  id="lwf_amount"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={formData.lwf_amount}
+                  onChange={(e) => setFormData({ ...formData, lwf_amount: e.target.value })}
+                  placeholder="20.00"
                   required
                 />
               </div>
@@ -168,6 +188,7 @@ export const PayrollSettings = () => {
                 <TableHead>Effective From</TableHead>
                 <TableHead>PF Rate (%)</TableHead>
                 <TableHead>ESI Rate (%)</TableHead>
+                <TableHead>LWF Amount (₹)</TableHead>
                 <TableHead>Created At</TableHead>
               </TableRow>
             </TableHeader>
@@ -179,6 +200,10 @@ export const PayrollSettings = () => {
                   </TableCell>
                   <TableCell>{setting.pf_rate}%</TableCell>
                   <TableCell>{setting.esi_rate}%</TableCell>
+                  <TableCell className="flex items-center gap-1">
+                    <IndianRupee className="w-3 h-3" />
+                    {setting.lwf_amount}
+                  </TableCell>
                   <TableCell>{new Date(setting.created_at).toLocaleDateString()}</TableCell>
                 </TableRow>
               ))}

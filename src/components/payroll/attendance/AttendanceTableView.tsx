@@ -6,10 +6,11 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useUnitsData } from '@/hooks/useUnitsData';
-import { Plus, Edit, Trash2, Search, Building2 } from 'lucide-react';
+import { Plus, Edit, Trash2, Search, Building2, Calendar, Clock, Coffee, Plane, Home } from 'lucide-react';
 
 interface Attendance {
   attendance_id: string;
@@ -17,6 +18,7 @@ interface Attendance {
   attendance_date: string;
   hours_worked: number;
   overtime_hours: number;
+  status: 'PRESENT' | 'WEEKLY_OFF' | 'CASUAL_LEAVE' | 'EARNED_LEAVE' | 'UNPAID_LEAVE';
   payroll_employees?: { name: string };
   units?: { unit_name: string };
 }
@@ -35,6 +37,14 @@ interface AttendanceTableViewProps {
   onRefresh: () => void;
 }
 
+const attendanceStatusOptions = [
+  { value: 'PRESENT', label: 'Present', icon: Clock, color: 'bg-green-100 text-green-800' },
+  { value: 'WEEKLY_OFF', label: 'Weekly Off', icon: Coffee, color: 'bg-blue-100 text-blue-800' },
+  { value: 'CASUAL_LEAVE', label: 'Casual Leave', icon: Home, color: 'bg-yellow-100 text-yellow-800' },
+  { value: 'EARNED_LEAVE', label: 'Earned Leave', icon: Plane, color: 'bg-purple-100 text-purple-800' },
+  { value: 'UNPAID_LEAVE', label: 'Unpaid Leave', icon: Calendar, color: 'bg-red-100 text-red-800' }
+];
+
 export const AttendanceTableView: React.FC<AttendanceTableViewProps> = ({
   attendanceRecords,
   employees,
@@ -49,7 +59,8 @@ export const AttendanceTableView: React.FC<AttendanceTableViewProps> = ({
     employee_id: '',
     attendance_date: '',
     hours_worked: '',
-    overtime_hours: '0'
+    overtime_hours: '0',
+    status: 'PRESENT' as const
   });
   const { toast } = useToast();
   const { units, loading: unitsLoading } = useUnitsData();
@@ -66,16 +77,17 @@ export const AttendanceTableView: React.FC<AttendanceTableViewProps> = ({
     );
   });
 
-  // Filter employees by selected unit for the form
   const filteredEmployeesForForm = selectedUnitForForm 
     ? employees.filter(emp => emp.unit_id === selectedUnitForForm)
     : employees;
+
+  // Check if hours should be enabled based on status
+  const shouldEnableHours = formData.status === 'PRESENT';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     try {
-      // Get employee's unit_id
       const { data: employeeData, error: employeeError } = await supabase
         .from('payroll_employees')
         .select('unit_id')
@@ -87,8 +99,9 @@ export const AttendanceTableView: React.FC<AttendanceTableViewProps> = ({
       const submitData = {
         employee_id: formData.employee_id,
         attendance_date: formData.attendance_date,
-        hours_worked: parseFloat(formData.hours_worked),
-        overtime_hours: parseFloat(formData.overtime_hours),
+        hours_worked: shouldEnableHours ? parseFloat(formData.hours_worked) : 0,
+        overtime_hours: shouldEnableHours ? parseFloat(formData.overtime_hours) : 0,
+        status: formData.status,
         unit_id: employeeData.unit_id
       };
 
@@ -122,7 +135,8 @@ export const AttendanceTableView: React.FC<AttendanceTableViewProps> = ({
         employee_id: '',
         attendance_date: '',
         hours_worked: '',
-        overtime_hours: '0'
+        overtime_hours: '0',
+        status: 'PRESENT'
       });
       onRefresh();
     } catch (error) {
@@ -137,7 +151,6 @@ export const AttendanceTableView: React.FC<AttendanceTableViewProps> = ({
 
   const handleEdit = (record: Attendance) => {
     setEditingRecord(record);
-    // Find the employee's unit
     const employee = employees.find(emp => emp.id === record.employee_id);
     if (employee?.unit_id) {
       setSelectedUnitForForm(employee.unit_id);
@@ -146,7 +159,8 @@ export const AttendanceTableView: React.FC<AttendanceTableViewProps> = ({
       employee_id: record.employee_id,
       attendance_date: record.attendance_date,
       hours_worked: record.hours_worked.toString(),
-      overtime_hours: record.overtime_hours?.toString() || '0'
+      overtime_hours: record.overtime_hours?.toString() || '0',
+      status: record.status || 'PRESENT'
     });
     setDialogOpen(true);
   };
@@ -183,8 +197,22 @@ export const AttendanceTableView: React.FC<AttendanceTableViewProps> = ({
       employee_id: '',
       attendance_date: '',
       hours_worked: '',
-      overtime_hours: '0'
+      overtime_hours: '0',
+      status: 'PRESENT'
     });
+  };
+
+  const getStatusBadge = (status: string) => {
+    const statusOption = attendanceStatusOptions.find(opt => opt.value === status);
+    if (!statusOption) return <Badge variant="secondary">{status}</Badge>;
+    
+    const Icon = statusOption.icon;
+    return (
+      <Badge className={statusOption.color}>
+        <Icon className="w-3 h-3 mr-1" />
+        {statusOption.label}
+      </Badge>
+    );
   };
 
   if (loading) {
@@ -221,7 +249,6 @@ export const AttendanceTableView: React.FC<AttendanceTableViewProps> = ({
                   value={selectedUnitForForm} 
                   onValueChange={(value) => {
                     setSelectedUnitForForm(value);
-                    // Reset employee selection when unit changes
                     setFormData({ ...formData, employee_id: '' });
                   }}
                 >
@@ -286,6 +313,39 @@ export const AttendanceTableView: React.FC<AttendanceTableViewProps> = ({
                   required
                 />
               </div>
+
+              <div>
+                <Label htmlFor="status">Attendance Status</Label>
+                <Select 
+                  value={formData.status} 
+                  onValueChange={(value: 'PRESENT' | 'WEEKLY_OFF' | 'CASUAL_LEAVE' | 'EARNED_LEAVE' | 'UNPAID_LEAVE') => {
+                    setFormData({ 
+                      ...formData, 
+                      status: value,
+                      // Reset hours when not present
+                      hours_worked: value === 'PRESENT' ? formData.hours_worked : '0',
+                      overtime_hours: value === 'PRESENT' ? formData.overtime_hours : '0'
+                    });
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {attendanceStatusOptions.map((option) => {
+                      const Icon = option.icon;
+                      return (
+                        <SelectItem key={option.value} value={option.value}>
+                          <div className="flex items-center gap-2">
+                            <Icon className="w-4 h-4" />
+                            {option.label}
+                          </div>
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
               
               <div>
                 <Label htmlFor="hours_worked">Hours Worked</Label>
@@ -297,8 +357,14 @@ export const AttendanceTableView: React.FC<AttendanceTableViewProps> = ({
                   max="24"
                   value={formData.hours_worked}
                   onChange={(e) => setFormData({ ...formData, hours_worked: e.target.value })}
-                  required
+                  disabled={!shouldEnableHours}
+                  required={shouldEnableHours}
                 />
+                {!shouldEnableHours && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Hours automatically set to 0 for {formData.status.toLowerCase().replace('_', ' ')}
+                  </p>
+                )}
               </div>
               
               <div>
@@ -310,6 +376,7 @@ export const AttendanceTableView: React.FC<AttendanceTableViewProps> = ({
                   min="0"
                   value={formData.overtime_hours}
                   onChange={(e) => setFormData({ ...formData, overtime_hours: e.target.value })}
+                  disabled={!shouldEnableHours}
                 />
               </div>
               
@@ -336,6 +403,7 @@ export const AttendanceTableView: React.FC<AttendanceTableViewProps> = ({
             <TableHead>Employee</TableHead>
             <TableHead>Unit</TableHead>
             <TableHead>Date</TableHead>
+            <TableHead>Status</TableHead>
             <TableHead>Hours Worked</TableHead>
             <TableHead>Overtime Hours</TableHead>
             <TableHead>Total Hours</TableHead>
@@ -355,6 +423,9 @@ export const AttendanceTableView: React.FC<AttendanceTableViewProps> = ({
                 </div>
               </TableCell>
               <TableCell>{new Date(record.attendance_date).toLocaleDateString()}</TableCell>
+              <TableCell>
+                {getStatusBadge(record.status || 'PRESENT')}
+              </TableCell>
               <TableCell>{record.hours_worked}</TableCell>
               <TableCell>{record.overtime_hours || 0}</TableCell>
               <TableCell className="font-medium">

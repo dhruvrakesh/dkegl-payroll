@@ -699,6 +699,7 @@ export type Database = {
           employee_id: string
           hours_worked: number
           overtime_hours: number | null
+          status: Database["public"]["Enums"]["attendance_status"]
           unit_id: string | null
           updated_at: string | null
         }
@@ -709,6 +710,7 @@ export type Database = {
           employee_id: string
           hours_worked: number
           overtime_hours?: number | null
+          status?: Database["public"]["Enums"]["attendance_status"]
           unit_id?: string | null
           updated_at?: string | null
         }
@@ -719,6 +721,7 @@ export type Database = {
           employee_id?: string
           hours_worked?: number
           overtime_hours?: number | null
+          status?: Database["public"]["Enums"]["attendance_status"]
           unit_id?: string | null
           updated_at?: string | null
         }
@@ -1242,6 +1245,38 @@ export type Database = {
           to_email?: string
         }
         Relationships: []
+      }
+      employee_leave_balances: {
+        Row: {
+          casual_leave_balance: number
+          earned_leave_balance: number
+          employee_id: string
+          id: string
+          year: number
+        }
+        Insert: {
+          casual_leave_balance?: number
+          earned_leave_balance?: number
+          employee_id: string
+          id?: string
+          year?: number
+        }
+        Update: {
+          casual_leave_balance?: number
+          earned_leave_balance?: number
+          employee_id?: string
+          id?: string
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_leave_balances_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_employees"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       employee_variable_overrides: {
         Row: {
@@ -2667,6 +2702,7 @@ export type Database = {
           created_at: string | null
           effective_from: string
           esi_rate: number
+          lwf_amount: number
           pf_rate: number
           setting_id: string
           updated_at: string | null
@@ -2675,6 +2711,7 @@ export type Database = {
           created_at?: string | null
           effective_from: string
           esi_rate: number
+          lwf_amount?: number
           pf_rate: number
           setting_id?: string
           updated_at?: string | null
@@ -2683,6 +2720,7 @@ export type Database = {
           created_at?: string | null
           effective_from?: string
           esi_rate?: number
+          lwf_amount?: number
           pf_rate?: number
           setting_id?: string
           updated_at?: string | null
@@ -3890,6 +3928,12 @@ export type Database = {
     Enums: {
       asset_condition: "new" | "good" | "fair" | "poor"
       asset_status: "active" | "maintenance" | "retired" | "disposed"
+      attendance_status:
+        | "PRESENT"
+        | "WEEKLY_OFF"
+        | "CASUAL_LEAVE"
+        | "EARNED_LEAVE"
+        | "UNPAID_LEAVE"
       formula_type: "gross_salary" | "deductions" | "net_salary" | "allowances"
       media_type: "audio" | "video"
       process_stage:
@@ -4046,6 +4090,13 @@ export const Constants = {
     Enums: {
       asset_condition: ["new", "good", "fair", "poor"],
       asset_status: ["active", "maintenance", "retired", "disposed"],
+      attendance_status: [
+        "PRESENT",
+        "WEEKLY_OFF",
+        "CASUAL_LEAVE",
+        "EARNED_LEAVE",
+        "UNPAID_LEAVE",
+      ],
       formula_type: ["gross_salary", "deductions", "net_salary", "allowances"],
       media_type: ["audio", "video"],
       process_stage: [

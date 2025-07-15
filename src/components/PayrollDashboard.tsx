@@ -11,6 +11,7 @@ import { PayrollSettings } from './payroll/PayrollSettings';
 import { AuditLogs } from './payroll/AuditLogs';
 import { BulkPayrollOperations } from './payroll/BulkPayrollOperations';
 import { EmailQueue } from './payroll/EmailQueue';
+import { LeaveBalanceManagement } from './payroll/LeaveBalanceManagement';
 
 export function PayrollDashboard() {
   const [activeTab, setActiveTab] = useState('salary');
@@ -18,15 +19,16 @@ export function PayrollDashboard() {
   return (
     <div className="container mx-auto p-6">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Payroll Management System</h1>
-        <p className="text-muted-foreground">Comprehensive payroll management with batch processing and audit trails</p>
+        <h1 className="text-3xl font-bold mb-2">Enhanced Payroll Management System</h1>
+        <p className="text-muted-foreground">Comprehensive payroll management with Total Paid Days calculation, leave balance tracking, and enhanced audit trails</p>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-9">
+        <TabsList className="grid w-full grid-cols-10">
           <TabsTrigger value="salary">Salary Management</TabsTrigger>
           <TabsTrigger value="employees">Employees</TabsTrigger>
           <TabsTrigger value="attendance">Attendance</TabsTrigger>
+          <TabsTrigger value="leave-balance">Leave Balance</TabsTrigger>
           <TabsTrigger value="units">Units</TabsTrigger>
           <TabsTrigger value="advances">Advances</TabsTrigger>
           <TabsTrigger value="formulas">Formulas</TabsTrigger>
@@ -45,6 +47,10 @@ export function PayrollDashboard() {
 
         <TabsContent value="attendance" className="space-y-6">
           <AttendanceManagement />
+        </TabsContent>
+
+        <TabsContent value="leave-balance" className="space-y-6">
+          <LeaveBalanceManagement />
         </TabsContent>
 
         <TabsContent value="units" className="space-y-6">
