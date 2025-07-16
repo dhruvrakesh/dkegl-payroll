@@ -1,6 +1,8 @@
 
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useAuth } from '@/hooks/useAuth';
 import { Header } from './layout/Header';
 import { EmployeesManagement } from './payroll/EmployeesManagement';
 import { AttendanceManagement } from './payroll/AttendanceManagement';
@@ -13,9 +15,50 @@ import { AuditLogs } from './payroll/AuditLogs';
 import { BulkPayrollOperations } from './payroll/BulkPayrollOperations';
 import { EmailQueue } from './payroll/EmailQueue';
 import { LeaveBalanceManagement } from './payroll/LeaveBalanceManagement';
+import { UserManagement } from './payroll/UserManagement';
+import { Users } from 'lucide-react';
 
 export function PayrollDashboard() {
+  const { user, profile, loading, hasRole } = useAuth();
   const [activeTab, setActiveTab] = useState('salary');
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Authentication Required</h2>
+          <p className="text-gray-600">Please log in to access the payroll system.</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!profile?.is_approved) {
+    return (
+      <div className="min-h-screen">
+        <Header />
+        <div className="flex items-center justify-center p-8">
+          <Card>
+            <CardHeader>
+              <CardTitle>Account Pending Approval</CardTitle>
+              <CardDescription>
+                Your account is pending approval from an administrator. 
+                Please wait for approval before accessing the system.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -27,7 +70,7 @@ export function PayrollDashboard() {
         </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-10">
+        <TabsList className={`grid w-full ${hasRole('admin') ? 'grid-cols-11' : 'grid-cols-10'}`}>
           <TabsTrigger value="salary">Salary Management</TabsTrigger>
           <TabsTrigger value="employees">Employees</TabsTrigger>
           <TabsTrigger value="attendance">Attendance</TabsTrigger>
@@ -38,6 +81,12 @@ export function PayrollDashboard() {
           <TabsTrigger value="settings">Settings</TabsTrigger>
           <TabsTrigger value="bulk">Bulk Operations</TabsTrigger>
           <TabsTrigger value="audit">Audit & Logs</TabsTrigger>
+          {hasRole('admin') && (
+            <TabsTrigger value="users" className="flex items-center gap-2">
+              <Users className="h-4 w-4" />
+              Users
+            </TabsTrigger>
+          )}
         </TabsList>
 
         <TabsContent value="salary" className="space-y-6">
@@ -79,6 +128,10 @@ export function PayrollDashboard() {
 
         <TabsContent value="audit" className="space-y-6">
           <AuditLogs />
+        </TabsContent>
+
+        <TabsContent value="users" className="space-y-6">
+          <UserManagement />
         </TabsContent>
       </Tabs>
       </div>
