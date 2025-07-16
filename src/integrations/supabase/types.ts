@@ -775,6 +775,33 @@ export type Database = {
         }
         Relationships: []
       }
+      attendance_bulk_updates: {
+        Row: {
+          affected_records: number
+          batch_id: string
+          created_at: string | null
+          id: string
+          reason: string
+          user_id: string | null
+        }
+        Insert: {
+          affected_records?: number
+          batch_id?: string
+          created_at?: string | null
+          id?: string
+          reason: string
+          user_id?: string | null
+        }
+        Update: {
+          affected_records?: number
+          batch_id?: string
+          created_at?: string | null
+          id?: string
+          reason?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       audit_gaps: {
         Row: {
           audit_requirement_id: number | null
@@ -3764,6 +3791,20 @@ export type Database = {
           viscosity_cps: number
         }[]
       }
+      get_user_jobs_safe: {
+        Args: { p_user_id: string }
+        Returns: {
+          id: string
+          prompt_id: string
+          user_id: string
+          status: string
+          progress: number
+          result_url: string
+          created_at: string
+          updated_at: string
+          prompt_data: Json
+        }[]
+      }
       gtrgm_compress: {
         Args: { "": unknown }
         Returns: unknown
@@ -3891,6 +3932,10 @@ export type Database = {
       text_to_bytea: {
         Args: { data: string }
         Returns: string
+      }
+      update_attendance_from_csv: {
+        Args: { rows: Json; update_reason: string }
+        Returns: Json
       }
       update_leave_balance: {
         Args: { emp_id: string; days_used: number }

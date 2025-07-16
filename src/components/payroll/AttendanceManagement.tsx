@@ -7,10 +7,12 @@ import { AttendanceEmployeeView } from './attendance/AttendanceEmployeeView';
 import { AttendanceSummaryView } from './attendance/AttendanceSummaryView';
 import { AttendanceFilters } from './attendance/AttendanceFilters';
 import { AttendanceCsvUploader } from '../AttendanceCsvUploader';
+import { AttendanceBulkUpdater } from '../AttendanceBulkUpdater';
+import { AttendanceBulkUpdateHistory } from './AttendanceBulkUpdateHistory';
 import { useAttendanceData } from '@/hooks/useAttendanceData';
 import { getDefaultAttendanceFilters } from '@/config/utils';
 import { AttendanceFilters as AttendanceFiltersType, Employee } from '@/config/types';
-import { Calendar, Users, BarChart3, Table, Upload } from 'lucide-react';
+import { Calendar, Users, BarChart3, Table, Upload, Edit, History } from 'lucide-react';
 
 export const AttendanceManagement = () => {
   const [activeView, setActiveView] = useState('summary');
@@ -42,7 +44,7 @@ export const AttendanceManagement = () => {
       />
 
       <Tabs value={activeView} onValueChange={setActiveView} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-7">
           <TabsTrigger value="summary" className="flex items-center gap-2">
             <BarChart3 className="w-4 h-4" />
             Summary
@@ -62,6 +64,14 @@ export const AttendanceManagement = () => {
           <TabsTrigger value="upload" className="flex items-center gap-2">
             <Upload className="w-4 h-4" />
             Bulk Upload
+          </TabsTrigger>
+          <TabsTrigger value="bulk-update" className="flex items-center gap-2">
+            <Edit className="w-4 h-4" />
+            Bulk Update
+          </TabsTrigger>
+          <TabsTrigger value="history" className="flex items-center gap-2">
+            <History className="w-4 h-4" />
+            History
           </TabsTrigger>
         </TabsList>
 
@@ -102,6 +112,14 @@ export const AttendanceManagement = () => {
 
         <TabsContent value="upload">
           <AttendanceCsvUploader onUploadSuccess={handleCsvUploadSuccess} />
+        </TabsContent>
+
+        <TabsContent value="bulk-update">
+          <AttendanceBulkUpdater onUpdateSuccess={handleCsvUploadSuccess} />
+        </TabsContent>
+
+        <TabsContent value="history">
+          <AttendanceBulkUpdateHistory />
         </TabsContent>
       </Tabs>
     </div>
