@@ -1,4 +1,4 @@
-import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
+import { useState, useEffect, createContext, useContext, ReactNode, useCallback } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -9,6 +9,8 @@ interface Profile {
   employee_id: string;
   role: 'admin' | 'hr' | 'manager' | 'employee';
   is_approved: boolean;
+  created_at?: string;
+  updated_at?: string;
 }
 
 interface AuthContextType {
@@ -16,10 +18,13 @@ interface AuthContextType {
   session: Session | null;
   profile: Profile | null;
   loading: boolean;
+  error: string | null;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signUp: (email: string, password: string, fullName: string, role?: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
   hasRole: (role: string) => boolean;
+  isAdmin: () => boolean;
+  refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -29,35 +34,61 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
+
+  // Profile fetching function
+  const fetchProfile = useCallback(async (userId: string) => {
+    try {
+      setError(null);
+      const { data: profileData, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .maybeSingle();
+      
+      if (error) {
+        console.error('Error fetching profile:', error);
+        setError(`Profile fetch error: ${error.message}`);
+        return null;
+      }
+      
+      if (profileData) {
+        const typedProfile: Profile = {
+          ...profileData,
+          role: profileData.role as 'admin' | 'hr' | 'manager' | 'employee'
+        };
+        setProfile(typedProfile);
+        return typedProfile;
+      }
+      return null;
+    } catch (err) {
+      console.error('Unexpected error fetching profile:', err);
+      setError('Unexpected error fetching profile');
+      return null;
+    }
+  }, []);
+
+  const refreshProfile = useCallback(async () => {
+    if (user?.id) {
+      await fetchProfile(user.id);
+    }
+  }, [user?.id, fetchProfile]);
 
   useEffect(() => {
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
+        setError(null);
         
         if (session?.user) {
-          // Fetch user profile
-          setTimeout(async () => {
-            const { data: profileData, error } = await supabase
-              .from('profiles')
-              .select('*')
-              .eq('id', session.user.id)
-              .single();
-            
-            if (error) {
-              console.error('Error fetching profile:', error);
-            } else {
-              // Type assertion to ensure the role is one of the expected values
-              const typedProfile: Profile = {
-                ...profileData,
-                role: profileData.role as 'admin' | 'hr' | 'manager' | 'employee'
-              };
-              setProfile(typedProfile);
-            }
-            setLoading(false);
+          // Defer profile fetching to avoid recursion
+          setTimeout(() => {
+            fetchProfile(session.user.id).finally(() => {
+              setLoading(false);
+            });
           }, 0);
         } else {
           setProfile(null);
@@ -76,7 +107,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [fetchProfile]);
 
   const signIn = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({
@@ -137,16 +168,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return profile?.role === role || false;
   };
 
+  const isAdmin = (): boolean => {
+    return profile?.role === 'admin' || user?.email === 'info@dkenterprises.co.in' || false;
+  };
+
   return (
     <AuthContext.Provider value={{
       user,
       session,
       profile,
       loading,
+      error,
       signIn,
       signUp,
       signOut,
       hasRole,
+      isAdmin,
+      refreshProfile,
     }}>
       {children}
     </AuthContext.Provider>

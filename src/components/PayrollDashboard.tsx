@@ -15,11 +15,11 @@ import { AuditLogs } from './payroll/AuditLogs';
 import { BulkPayrollOperations } from './payroll/BulkPayrollOperations';
 import { EmailQueue } from './payroll/EmailQueue';
 import { LeaveBalanceManagement } from './payroll/LeaveBalanceManagement';
-import { UserManagement } from './payroll/UserManagement';
+import { AdminDashboard } from './admin/AdminDashboard';
 import { Users } from 'lucide-react';
 
 export function PayrollDashboard() {
-  const { user, profile, loading, hasRole } = useAuth();
+  const { user, profile, loading, hasRole, isAdmin } = useAuth();
   const [activeTab, setActiveTab] = useState('salary');
 
   if (loading) {
@@ -131,7 +131,7 @@ export function PayrollDashboard() {
         </TabsContent>
 
         <TabsContent value="users" className="space-y-6">
-          <UserManagement />
+          <AdminDashboard />
         </TabsContent>
       </Tabs>
       </div>

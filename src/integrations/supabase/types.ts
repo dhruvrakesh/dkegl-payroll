@@ -143,6 +143,45 @@ export type Database = {
         }
         Relationships: []
       }
+      admin_audit_log: {
+        Row: {
+          action: string
+          admin_id: string | null
+          created_at: string | null
+          id: string
+          ip_address: unknown | null
+          new_data: Json | null
+          old_data: Json | null
+          target_id: string | null
+          target_table: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          action: string
+          admin_id?: string | null
+          created_at?: string | null
+          id?: string
+          ip_address?: unknown | null
+          new_data?: Json | null
+          old_data?: Json | null
+          target_id?: string | null
+          target_table?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          action?: string
+          admin_id?: string | null
+          created_at?: string | null
+          id?: string
+          ip_address?: unknown | null
+          new_data?: Json | null
+          old_data?: Json | null
+          target_id?: string | null
+          target_table?: string | null
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
       advances: {
         Row: {
           advance_amount: number
@@ -607,7 +646,7 @@ export type Database = {
           category_id: string | null
           condition: Database["public"]["Enums"]["asset_condition"] | null
           created_at: string | null
-          created_by: string | null
+          created_by: string
           current_value: number | null
           description: string | null
           id: string
@@ -631,7 +670,7 @@ export type Database = {
           category_id?: string | null
           condition?: Database["public"]["Enums"]["asset_condition"] | null
           created_at?: string | null
-          created_by?: string | null
+          created_by: string
           current_value?: number | null
           description?: string | null
           id?: string
@@ -655,7 +694,7 @@ export type Database = {
           category_id?: string | null
           condition?: Database["public"]["Enums"]["asset_condition"] | null
           created_at?: string | null
-          created_by?: string | null
+          created_by?: string
           current_value?: number | null
           description?: string | null
           id?: string
