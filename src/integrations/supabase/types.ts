@@ -1312,6 +1312,30 @@ export type Database = {
         }
         Relationships: []
       }
+      employee_code_sequences: {
+        Row: {
+          created_at: string | null
+          id: string
+          last_sequence: number
+          unit_code: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          last_sequence?: number
+          unit_code: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          last_sequence?: number
+          unit_code?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       employee_leave_balances: {
         Row: {
           casual_leave_balance: number
@@ -2668,6 +2692,7 @@ export type Database = {
           active: boolean | null
           base_salary: number
           created_at: string | null
+          employee_code: string | null
           hra_amount: number | null
           id: string
           joining_date: string
@@ -2683,6 +2708,7 @@ export type Database = {
           active?: boolean | null
           base_salary: number
           created_at?: string | null
+          employee_code?: string | null
           hra_amount?: number | null
           id?: string
           joining_date: string
@@ -2698,6 +2724,7 @@ export type Database = {
           active?: boolean | null
           base_salary?: number
           created_at?: string | null
+          employee_code?: string | null
           hra_amount?: number | null
           id?: string
           joining_date?: string
@@ -3811,8 +3838,35 @@ export type Database = {
         Args: { log_id: string }
         Returns: undefined
       }
+      enhanced_employee_lookup: {
+        Args: { p_employee_identifier: string }
+        Returns: {
+          employee_id: string
+          employee_name: string
+          uan_number: string
+          employee_code: string
+          unit_id: string
+        }[]
+      }
+      export_employee_master: {
+        Args: { p_unit_id?: string }
+        Returns: {
+          employee_code: string
+          employee_name: string
+          uan_number: string
+          unit_code: string
+          unit_name: string
+          joining_date: string
+          base_salary: number
+          active: boolean
+        }[]
+      }
       generate_asset_code: {
         Args: { p_location_code: string; p_category_code: string }
+        Returns: string
+      }
+      generate_employee_code: {
+        Args: { p_unit_id: string }
         Returns: string
       }
       get_current_user_role: {
@@ -3924,6 +3978,10 @@ export type Database = {
         Returns: undefined
       }
       insert_attendance_from_csv: {
+        Args: { rows: Json }
+        Returns: Json
+      }
+      insert_attendance_from_csv_enhanced: {
         Args: { rows: Json }
         Returns: Json
       }

@@ -10,12 +10,13 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Edit, Trash2, Calculator } from 'lucide-react';
+import { Plus, Edit, Trash2, Calculator, Download, FileSpreadsheet } from 'lucide-react';
 
 interface Employee {
   id: string;
   name: string;
   uan_number: string;
+  employee_code?: string;
   unit_id: string;
   joining_date: string;
   base_salary: number;
@@ -24,7 +25,7 @@ interface Employee {
   pan_number: string;
   aadhaar_number: string;
   active: boolean;
-  units?: { unit_name: string };
+  units?: { unit_name: string; unit_code: string };
 }
 
 interface Unit {
@@ -65,7 +66,8 @@ export const EmployeesManagement = () => {
         .select(`
           *,
           units (
-            unit_name
+            unit_name,
+            unit_code
           )
         `)
         .order('created_at', { ascending: false });
@@ -243,6 +245,60 @@ export const EmployeesManagement = () => {
     }
   };
 
+  const downloadEmployeeMaster = async () => {
+    try {
+      const { data, error } = await supabase.rpc('export_employee_master');
+      
+      if (error) throw error;
+
+      // Convert to CSV
+      const csvHeaders = [
+        'Employee Code',
+        'Employee Name', 
+        'UAN Number',
+        'Unit Code',
+        'Unit Name',
+        'Joining Date',
+        'Base Salary',
+        'Active'
+      ];
+
+      const csvRows = data.map((emp: any) => [
+        emp.employee_code || '',
+        emp.employee_name || '',
+        emp.uan_number || '',
+        emp.unit_code || '',
+        emp.unit_name || '',
+        emp.joining_date || '',
+        emp.base_salary || '',
+        emp.active ? 'Yes' : 'No'
+      ]);
+
+      const csvContent = [csvHeaders, ...csvRows]
+        .map(row => row.map(field => `"${field}"`).join(','))
+        .join('\n');
+
+      // Download file
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `employee_master_${new Date().toISOString().split('T')[0]}.csv`;
+      link.click();
+
+      toast({
+        title: "Success",
+        description: "Employee master downloaded successfully",
+      });
+    } catch (error) {
+      console.error('Error downloading employee master:', error);
+      toast({
+        title: "Error",
+        description: "Failed to download employee master",
+        variant: "destructive",
+      });
+    }
+  };
+
   if (loading) {
     return <div>Loading employees...</div>;
   }
@@ -253,7 +309,15 @@ export const EmployeesManagement = () => {
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <h3 className="text-lg font-medium">Enhanced Employee Management</h3>
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <div className="flex gap-2">
+          <Button 
+            variant="outline" 
+            onClick={downloadEmployeeMaster}
+          >
+            <Download className="w-4 h-4 mr-2" />
+            Download Master
+          </Button>
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
             <Button onClick={() => {
               setEditingEmployee(null);
@@ -409,11 +473,13 @@ export const EmployeesManagement = () => {
             </form>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       <Table>
         <TableHeader>
           <TableRow>
+            <TableHead>Employee Code</TableHead>
             <TableHead>Name</TableHead>
             <TableHead>UAN Number</TableHead>
             <TableHead>Unit</TableHead>
@@ -428,6 +494,13 @@ export const EmployeesManagement = () => {
             const totalSal = employee.base_salary + (employee.hra_amount || 0) + (employee.other_conv_amount || 0);
             return (
               <TableRow key={employee.id}>
+                <TableCell>
+                  <div className="font-mono text-sm">
+                    {employee.employee_code || (
+                      <Badge variant="secondary">Generating...</Badge>
+                    )}
+                  </div>
+                </TableCell>
                 <TableCell className="font-medium">{employee.name}</TableCell>
                 <TableCell>{employee.uan_number}</TableCell>
                 <TableCell>{employee.units?.unit_name || '-'}</TableCell>

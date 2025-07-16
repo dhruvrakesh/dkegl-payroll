@@ -160,8 +160,8 @@ export const AttendanceCsvUploader = ({ onUploadSuccess }: AttendanceCsvUploader
               return;
             }
 
-            // Call the RPC function to get detailed response
-            const { data: result, error: rpcError } = await (supabase.rpc as any)('insert_attendance_from_csv', {
+            // Call the enhanced RPC function to get detailed response
+            const { data: result, error: rpcError } = await (supabase.rpc as any)('insert_attendance_from_csv_enhanced', {
               rows: results.data as any
             });
 
