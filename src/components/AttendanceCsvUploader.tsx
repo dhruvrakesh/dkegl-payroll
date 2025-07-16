@@ -228,10 +228,10 @@ export const AttendanceCsvUploader = ({ onUploadSuccess }: AttendanceCsvUploader
   };
 
   const handleDownloadTemplate = () => {
-    // Create a link to the edge function endpoint using the direct URL
+    // Create a link to the enhanced edge function endpoint
     const link = document.createElement('a');
-    link.href = 'https://xltzaggnwhqskxkrzdqo.supabase.co/functions/v1/get-attendance-template';
-    link.download = 'attendance_template.csv';
+    link.href = 'https://xltzaggnwhqskxkrzdqo.supabase.co/functions/v1/get-attendance-template-enhanced';
+    link.download = 'attendance_template_enhanced.csv';
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -284,7 +284,7 @@ export const AttendanceCsvUploader = ({ onUploadSuccess }: AttendanceCsvUploader
               className="flex items-center gap-2"
             >
               <Download className="w-4 h-4" />
-              Download Template
+              Download Enhanced Template
             </Button>
           </div>
 
@@ -325,14 +325,25 @@ export const AttendanceCsvUploader = ({ onUploadSuccess }: AttendanceCsvUploader
             )}
           </Button>
 
-          <div className="text-sm text-muted-foreground">
-            <p className="font-medium mb-1">CSV Format Requirements:</p>
-            <ul className="list-disc list-inside space-y-1">
-              <li>Required columns: employee_code, date, hours_worked, overtime_hours, unit_code</li>
-              <li>Hours worked: 0-24 hours</li>
-              <li>Overtime hours: 0 or positive numbers</li>
-              <li>Date format: YYYY-MM-DD</li>
-            </ul>
+          <div className="text-sm text-muted-foreground space-y-3">
+            <div>
+              <p className="font-medium mb-1">✨ Enhanced CSV Upload with Employee Codes:</p>
+              <ul className="list-disc list-inside space-y-1">
+                <li><strong>Use Employee Codes</strong> (EMP-PAN-0001) for 100% accuracy</li>
+                <li>UAN numbers still supported but avoid Excel scientific notation</li>
+                <li>Download employee master to get correct codes for your unit</li>
+                <li>Template includes real employee codes from your system</li>
+              </ul>
+            </div>
+            <div>
+              <p className="font-medium mb-1">CSV Format Requirements:</p>
+              <ul className="list-disc list-inside space-y-1">
+                <li>Required columns: employee_code, date, hours_worked, overtime_hours, unit_code</li>
+                <li>Hours worked: 0-24 hours</li>
+                <li>Overtime hours: 0 or positive numbers</li>
+                <li>Date format: YYYY-MM-DD or DD-MM-YYYY</li>
+              </ul>
+            </div>
           </div>
         </CardContent>
       </Card>

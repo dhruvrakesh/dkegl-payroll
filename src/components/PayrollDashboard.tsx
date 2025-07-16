@@ -15,6 +15,7 @@ import { AuditLogs } from './payroll/AuditLogs';
 import { BulkPayrollOperations } from './payroll/BulkPayrollOperations';
 import { EmailQueue } from './payroll/EmailQueue';
 import { LeaveBalanceManagement } from './payroll/LeaveBalanceManagement';
+import { EmployeeCodeStatus } from './payroll/EmployeeCodeStatus';
 import { AdminDashboard } from './admin/AdminDashboard';
 import { Users } from 'lucide-react';
 
@@ -94,6 +95,7 @@ export function PayrollDashboard() {
         </TabsContent>
 
         <TabsContent value="employees" className="space-y-6">
+          <EmployeeCodeStatus />
           <EmployeesManagement />
         </TabsContent>
 
