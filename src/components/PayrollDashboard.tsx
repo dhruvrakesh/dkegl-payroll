@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Header } from './layout/Header';
 import { EmployeesManagement } from './payroll/EmployeesManagement';
 import { AttendanceManagement } from './payroll/AttendanceManagement';
 import { UnitsManagement } from './payroll/UnitsManagement';
@@ -17,11 +18,13 @@ export function PayrollDashboard() {
   const [activeTab, setActiveTab] = useState('salary');
 
   return (
-    <div className="container mx-auto p-6">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Enhanced Payroll Management System</h1>
-        <p className="text-muted-foreground">Comprehensive payroll management with Total Paid Days calculation, leave balance tracking, and enhanced audit trails</p>
-      </div>
+    <div className="min-h-screen bg-gray-50">
+      <Header />
+      <div className="container mx-auto p-6">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold mb-2">Enhanced Payroll Management System</h1>
+          <p className="text-muted-foreground">Comprehensive payroll management with Total Paid Days calculation, leave balance tracking, and enhanced audit trails</p>
+        </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList className="grid w-full grid-cols-10">
@@ -78,6 +81,7 @@ export function PayrollDashboard() {
           <AuditLogs />
         </TabsContent>
       </Tabs>
+      </div>
     </div>
   );
 }
