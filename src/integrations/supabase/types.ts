@@ -2140,6 +2140,50 @@ export type Database = {
           },
         ]
       }
+      leave_balance_history: {
+        Row: {
+          attendance_date: string
+          balance_after: number
+          balance_before: number
+          created_at: string | null
+          created_by: string | null
+          days_used: number
+          employee_id: string
+          id: string
+          leave_type: string
+        }
+        Insert: {
+          attendance_date: string
+          balance_after?: number
+          balance_before?: number
+          created_at?: string | null
+          created_by?: string | null
+          days_used?: number
+          employee_id: string
+          id?: string
+          leave_type: string
+        }
+        Update: {
+          attendance_date?: string
+          balance_after?: number
+          balance_before?: number
+          created_at?: string | null
+          created_by?: string | null
+          days_used?: number
+          employee_id?: string
+          id?: string
+          leave_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leave_balance_history_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       leave_requests: {
         Row: {
           approved_at: string | null
@@ -4697,6 +4741,17 @@ export type Database = {
       bytea_to_text: {
         Args: { data: string }
         Returns: string
+      }
+      check_attendance_data_consistency: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          employee_name: string
+          attendance_date: string
+          current_status: string
+          hours_worked: number
+          suggested_status: string
+          reason: string
+        }[]
       }
       check_duplicate_process_log: {
         Args: {

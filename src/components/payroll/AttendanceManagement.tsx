@@ -9,10 +9,11 @@ import { AttendanceFilters } from './attendance/AttendanceFilters';
 import { AttendanceCsvUploader } from '../AttendanceCsvUploader';
 import { AttendanceBulkUpdater } from '../AttendanceBulkUpdater';
 import { AttendanceBulkUpdateHistory } from './AttendanceBulkUpdateHistory';
+import { AttendanceDataFixSummary } from './AttendanceDataFixSummary';
 import { useAttendanceData } from '@/hooks/useAttendanceData';
 import { getDefaultAttendanceFilters } from '@/config/utils';
 import { AttendanceFilters as AttendanceFiltersType, Employee } from '@/config/types';
-import { Calendar, Users, BarChart3, Table, Upload, Edit, History } from 'lucide-react';
+import { Calendar, Users, BarChart3, Table, Upload, Edit, History, CheckCircle } from 'lucide-react';
 
 export const AttendanceManagement = () => {
   const [activeView, setActiveView] = useState('summary');
@@ -44,7 +45,7 @@ export const AttendanceManagement = () => {
       />
 
       <Tabs value={activeView} onValueChange={setActiveView} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-7">
+        <TabsList className="grid w-full grid-cols-8">
           <TabsTrigger value="summary" className="flex items-center gap-2">
             <BarChart3 className="w-4 h-4" />
             Summary
@@ -72,6 +73,10 @@ export const AttendanceManagement = () => {
           <TabsTrigger value="history" className="flex items-center gap-2">
             <History className="w-4 h-4" />
             History
+          </TabsTrigger>
+          <TabsTrigger value="data-fix" className="flex items-center gap-2">
+            <CheckCircle className="w-4 h-4" />
+            Data Fix
           </TabsTrigger>
         </TabsList>
 
@@ -120,6 +125,10 @@ export const AttendanceManagement = () => {
 
         <TabsContent value="history">
           <AttendanceBulkUpdateHistory />
+        </TabsContent>
+
+        <TabsContent value="data-fix">
+          <AttendanceDataFixSummary />
         </TabsContent>
       </Tabs>
     </div>

@@ -88,6 +88,25 @@ export const AttendanceTableView: React.FC<AttendanceTableViewProps> = ({
         unit_id: employeeData.unit_id
       };
 
+      // Validation to prevent inconsistent data
+      if (submitData.status === 'PRESENT' && submitData.hours_worked === 0) {
+        toast({
+          title: "Data Validation Error",
+          description: "Cannot mark employee as PRESENT with 0 hours worked. Please use appropriate leave status.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (['CASUAL_LEAVE', 'EARNED_LEAVE', 'UNPAID_LEAVE', 'WEEKLY_OFF'].includes(submitData.status) && submitData.hours_worked > 0) {
+        toast({
+          title: "Data Validation Error",
+          description: "Cannot have hours worked for leave status. Hours will be set to 0.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       if (editingRecord) {
         const { error } = await supabase
           .from('attendance')
