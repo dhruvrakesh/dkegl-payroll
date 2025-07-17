@@ -17,6 +17,7 @@ import { EmailQueue } from './payroll/EmailQueue';
 import { LeaveBalanceManagement } from './payroll/LeaveBalanceManagement';
 import { LeaveBalanceValidator } from './payroll/LeaveBalanceValidator';
 import { SundayOvertimeManager } from './payroll/SundayOvertimeManager';
+import PanchkulaWageCalculator from './payroll/PanchkulaWageCalculator';
 import { EmployeeCodeStatus } from './payroll/EmployeeCodeStatus';
 import { AdminDashboard } from './admin/AdminDashboard';
 import { Users, AlertTriangle, Coffee } from 'lucide-react';
@@ -73,8 +74,9 @@ export function PayrollDashboard() {
         </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className={`grid w-full ${hasRole('admin') ? 'grid-cols-13' : 'grid-cols-12'}`}>
+        <TabsList className={`grid w-full ${hasRole('admin') ? 'grid-cols-14' : 'grid-cols-13'}`}>
           <TabsTrigger value="salary">Salary Management</TabsTrigger>
+          <TabsTrigger value="panchkula">Panchkula Calculator</TabsTrigger>
           <TabsTrigger value="employees">Employees</TabsTrigger>
           <TabsTrigger value="attendance">Attendance</TabsTrigger>
           <TabsTrigger value="leave-balance">Leave Balance</TabsTrigger>
@@ -102,6 +104,10 @@ export function PayrollDashboard() {
 
         <TabsContent value="salary" className="space-y-6">
           <EnhancedSalaryDisbursement />
+        </TabsContent>
+
+        <TabsContent value="panchkula" className="space-y-6">
+          <PanchkulaWageCalculator />
         </TabsContent>
 
         <TabsContent value="employees" className="space-y-6">

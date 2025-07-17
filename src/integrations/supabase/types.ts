@@ -292,6 +292,13 @@ export type Database = {
             foreignKeyName: "advances_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
+            referencedRelation: "panchkula_payroll_calculation"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "advances_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
             referencedRelation: "payroll_calculation_enhanced"
             referencedColumns: ["employee_id"]
           },
@@ -938,6 +945,13 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "attendance_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "panchkula_payroll_calculation"
+            referencedColumns: ["employee_id"]
+          },
           {
             foreignKeyName: "attendance_employee_id_fkey"
             columns: ["employee_id"]
@@ -1803,6 +1817,13 @@ export type Database = {
             foreignKeyName: "employee_leave_balances_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
+            referencedRelation: "panchkula_payroll_calculation"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "employee_leave_balances_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
             referencedRelation: "payroll_calculation_enhanced"
             referencedColumns: ["employee_id"]
           },
@@ -1844,6 +1865,13 @@ export type Database = {
           variable_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "employee_variable_overrides_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "panchkula_payroll_calculation"
+            referencedColumns: ["employee_id"]
+          },
           {
             foreignKeyName: "employee_variable_overrides_employee_id_fkey"
             columns: ["employee_id"]
@@ -2642,6 +2670,13 @@ export type Database = {
           leave_type?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "leave_balance_history_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "panchkula_payroll_calculation"
+            referencedColumns: ["employee_id"]
+          },
           {
             foreignKeyName: "leave_balance_history_employee_id_fkey"
             columns: ["employee_id"]
@@ -3889,6 +3924,13 @@ export type Database = {
             foreignKeyName: "payroll_calculation_audit_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
+            referencedRelation: "panchkula_payroll_calculation"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "payroll_calculation_audit_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
             referencedRelation: "payroll_calculation_enhanced"
             referencedColumns: ["employee_id"]
           },
@@ -4009,8 +4051,11 @@ export type Database = {
         Row: {
           created_at: string | null
           effective_from: string
+          el_accrual_ratio: number | null
           esi_rate: number
           lwf_amount: number
+          max_el_carryforward: number | null
+          monthly_cl_accrual: number | null
           pf_rate: number
           setting_id: string
           sunday_overtime_multiplier: number | null
@@ -4019,8 +4064,11 @@ export type Database = {
         Insert: {
           created_at?: string | null
           effective_from: string
+          el_accrual_ratio?: number | null
           esi_rate: number
           lwf_amount?: number
+          max_el_carryforward?: number | null
+          monthly_cl_accrual?: number | null
           pf_rate: number
           setting_id?: string
           sunday_overtime_multiplier?: number | null
@@ -4029,8 +4077,11 @@ export type Database = {
         Update: {
           created_at?: string | null
           effective_from?: string
+          el_accrual_ratio?: number | null
           esi_rate?: number
           lwf_amount?: number
+          max_el_carryforward?: number | null
+          monthly_cl_accrual?: number | null
           pf_rate?: number
           setting_id?: string
           sunday_overtime_multiplier?: number | null
@@ -4525,6 +4576,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "salary_batches"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "salary_disbursement_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "panchkula_payroll_calculation"
+            referencedColumns: ["employee_id"]
           },
           {
             foreignKeyName: "salary_disbursement_employee_id_fkey"
@@ -5548,6 +5606,24 @@ export type Database = {
       }
     }
     Views: {
+      panchkula_payroll_calculation: {
+        Row: {
+          base_salary: number | null
+          calculation_date: string | null
+          casual_leave_balance: number | null
+          earned_leave_balance: number | null
+          employee_code: string | null
+          employee_id: string | null
+          employee_name: string | null
+          hra_amount: number | null
+          joining_date: string | null
+          other_conv_amount: number | null
+          uan_number: string | null
+          unit_code: string | null
+          unit_name: string | null
+        }
+        Relationships: []
+      }
       payroll_calculation_enhanced: {
         Row: {
           base_salary: number | null
@@ -5660,9 +5736,37 @@ export type Database = {
       }
     }
     Functions: {
+      accrue_monthly_leaves: {
+        Args: { p_year: number; p_month: number }
+        Returns: number
+      }
       bytea_to_text: {
         Args: { data: string }
         Returns: string
+      }
+      calculate_panchkula_salary: {
+        Args: {
+          p_employee_id: string
+          p_month: string
+          p_basic_salary: number
+          p_hra_amount: number
+          p_other_allowances?: number
+        }
+        Returns: {
+          basic_earned: number
+          hra_earned: number
+          other_earned: number
+          gross_salary: number
+          epf_deduction: number
+          esi_deduction: number
+          lwf_deduction: number
+          total_deductions: number
+          net_salary: number
+          paid_days: number
+          present_days: number
+          weekly_offs: number
+          leave_days: number
+        }[]
       }
       check_attendance_data_consistency: {
         Args: Record<PropertyKey, never>
@@ -5687,6 +5791,10 @@ export type Database = {
         Returns: boolean
       }
       cleanup_stuck_jobs: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
+      correct_sunday_attendance: {
         Args: Record<PropertyKey, never>
         Returns: number
       }
@@ -6065,6 +6173,15 @@ export type Database = {
       urlencode: {
         Args: { data: Json } | { string: string } | { string: string }
         Returns: string
+      }
+      validate_leave_consumption: {
+        Args: {
+          p_employee_id: string
+          p_leave_type: Database["public"]["Enums"]["attendance_status"]
+          p_leave_date: string
+          p_days?: number
+        }
+        Returns: boolean
       }
     }
     Enums: {
