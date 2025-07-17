@@ -143,6 +143,80 @@ export type Database = {
         }
         Relationships: []
       }
+      adhesive_coating: {
+        Row: {
+          adhesion_strength: number | null
+          adhesive_specification: string | null
+          coat_weight_variance: number | null
+          coating_speed: number | null
+          coating_type: string
+          coating_weight: number | null
+          coating_width: number | null
+          completed_at: string | null
+          created_at: string | null
+          curing_parameters: Json | null
+          drying_temperature: number | null
+          id: string
+          operator_id: string | null
+          qc_approved_by: string | null
+          started_at: string | null
+          status: Database["public"]["Enums"]["process_status"] | null
+          uiorn: string
+          updated_at: string | null
+          viscosity_readings: Json | null
+        }
+        Insert: {
+          adhesion_strength?: number | null
+          adhesive_specification?: string | null
+          coat_weight_variance?: number | null
+          coating_speed?: number | null
+          coating_type: string
+          coating_weight?: number | null
+          coating_width?: number | null
+          completed_at?: string | null
+          created_at?: string | null
+          curing_parameters?: Json | null
+          drying_temperature?: number | null
+          id?: string
+          operator_id?: string | null
+          qc_approved_by?: string | null
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["process_status"] | null
+          uiorn: string
+          updated_at?: string | null
+          viscosity_readings?: Json | null
+        }
+        Update: {
+          adhesion_strength?: number | null
+          adhesive_specification?: string | null
+          coat_weight_variance?: number | null
+          coating_speed?: number | null
+          coating_type?: string
+          coating_weight?: number | null
+          coating_width?: number | null
+          completed_at?: string | null
+          created_at?: string | null
+          curing_parameters?: Json | null
+          drying_temperature?: number | null
+          id?: string
+          operator_id?: string | null
+          qc_approved_by?: string | null
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["process_status"] | null
+          uiorn?: string
+          updated_at?: string | null
+          viscosity_readings?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "adhesive_coating_uiorn_fkey"
+            columns: ["uiorn"]
+            isOneToOne: false
+            referencedRelation: "order_punching"
+            referencedColumns: ["uiorn"]
+          },
+        ]
+      }
       admin_audit_log: {
         Row: {
           action: string
@@ -214,6 +288,13 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "advances_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_calculation_enhanced"
+            referencedColumns: ["employee_id"]
+          },
           {
             foreignKeyName: "advances_employee_id_fkey"
             columns: ["employee_id"]
@@ -446,6 +527,98 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      artwork_upload: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          artwork_name: string
+          artwork_specifications: Json | null
+          barcode_specifications: Json | null
+          bleed_specifications: Json | null
+          color_separation_done: boolean | null
+          color_specifications: Json | null
+          created_at: string | null
+          customer_approval_status: string | null
+          file_path: string
+          file_size_mb: number | null
+          file_type: string
+          id: string
+          print_dimensions: Json | null
+          print_ready: boolean | null
+          proofing_status: string | null
+          registration_marks: boolean | null
+          revision_notes: string | null
+          status: Database["public"]["Enums"]["process_status"] | null
+          uiorn: string
+          updated_at: string | null
+          uploaded_at: string | null
+          uploaded_by: string | null
+          version_number: number | null
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          artwork_name: string
+          artwork_specifications?: Json | null
+          barcode_specifications?: Json | null
+          bleed_specifications?: Json | null
+          color_separation_done?: boolean | null
+          color_specifications?: Json | null
+          created_at?: string | null
+          customer_approval_status?: string | null
+          file_path: string
+          file_size_mb?: number | null
+          file_type: string
+          id?: string
+          print_dimensions?: Json | null
+          print_ready?: boolean | null
+          proofing_status?: string | null
+          registration_marks?: boolean | null
+          revision_notes?: string | null
+          status?: Database["public"]["Enums"]["process_status"] | null
+          uiorn: string
+          updated_at?: string | null
+          uploaded_at?: string | null
+          uploaded_by?: string | null
+          version_number?: number | null
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          artwork_name?: string
+          artwork_specifications?: Json | null
+          barcode_specifications?: Json | null
+          bleed_specifications?: Json | null
+          color_separation_done?: boolean | null
+          color_specifications?: Json | null
+          created_at?: string | null
+          customer_approval_status?: string | null
+          file_path?: string
+          file_size_mb?: number | null
+          file_type?: string
+          id?: string
+          print_dimensions?: Json | null
+          print_ready?: boolean | null
+          proofing_status?: string | null
+          registration_marks?: boolean | null
+          revision_notes?: string | null
+          status?: Database["public"]["Enums"]["process_status"] | null
+          uiorn?: string
+          updated_at?: string | null
+          uploaded_at?: string | null
+          uploaded_by?: string | null
+          version_number?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "artwork_upload_uiorn_fkey"
+            columns: ["uiorn"]
+            isOneToOne: false
+            referencedRelation: "order_punching"
+            referencedColumns: ["uiorn"]
+          },
+        ]
       }
       asset_assignments: {
         Row: {
@@ -765,6 +938,13 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "attendance_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_calculation_enhanced"
+            referencedColumns: ["employee_id"]
+          },
           {
             foreignKeyName: "attendance_employee_id_fkey"
             columns: ["employee_id"]
@@ -1102,6 +1282,122 @@ export type Database = {
           name?: string
         }
         Relationships: []
+      }
+      cost_mockup_estimate: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          coating_cost: number | null
+          competitive_analysis: Json | null
+          cost_breakdown: Json | null
+          created_at: string | null
+          currency: string | null
+          customer_budget: number | null
+          estimate_type: string
+          estimated_at: string | null
+          estimated_by: string | null
+          id: string
+          labor_cost: number | null
+          lamination_cost: number | null
+          material_cost: number | null
+          mockup_cost: number | null
+          mockup_delivery_days: number | null
+          mockup_required: boolean | null
+          mockup_status: string | null
+          negotiation_notes: string | null
+          overhead_cost: number | null
+          packaging_cost: number | null
+          printing_cost: number | null
+          profit_margin_percentage: number | null
+          selling_price: number | null
+          setup_cost: number | null
+          slitting_cost: number | null
+          status: Database["public"]["Enums"]["process_status"] | null
+          tooling_cost: number | null
+          total_cost: number | null
+          uiorn: string
+          updated_at: string | null
+          validity_days: number | null
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          coating_cost?: number | null
+          competitive_analysis?: Json | null
+          cost_breakdown?: Json | null
+          created_at?: string | null
+          currency?: string | null
+          customer_budget?: number | null
+          estimate_type?: string
+          estimated_at?: string | null
+          estimated_by?: string | null
+          id?: string
+          labor_cost?: number | null
+          lamination_cost?: number | null
+          material_cost?: number | null
+          mockup_cost?: number | null
+          mockup_delivery_days?: number | null
+          mockup_required?: boolean | null
+          mockup_status?: string | null
+          negotiation_notes?: string | null
+          overhead_cost?: number | null
+          packaging_cost?: number | null
+          printing_cost?: number | null
+          profit_margin_percentage?: number | null
+          selling_price?: number | null
+          setup_cost?: number | null
+          slitting_cost?: number | null
+          status?: Database["public"]["Enums"]["process_status"] | null
+          tooling_cost?: number | null
+          total_cost?: number | null
+          uiorn: string
+          updated_at?: string | null
+          validity_days?: number | null
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          coating_cost?: number | null
+          competitive_analysis?: Json | null
+          cost_breakdown?: Json | null
+          created_at?: string | null
+          currency?: string | null
+          customer_budget?: number | null
+          estimate_type?: string
+          estimated_at?: string | null
+          estimated_by?: string | null
+          id?: string
+          labor_cost?: number | null
+          lamination_cost?: number | null
+          material_cost?: number | null
+          mockup_cost?: number | null
+          mockup_delivery_days?: number | null
+          mockup_required?: boolean | null
+          mockup_status?: string | null
+          negotiation_notes?: string | null
+          overhead_cost?: number | null
+          packaging_cost?: number | null
+          printing_cost?: number | null
+          profit_margin_percentage?: number | null
+          selling_price?: number | null
+          setup_cost?: number | null
+          slitting_cost?: number | null
+          status?: Database["public"]["Enums"]["process_status"] | null
+          tooling_cost?: number | null
+          total_cost?: number | null
+          uiorn?: string
+          updated_at?: string | null
+          validity_days?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cost_mockup_estimate_uiorn_fkey"
+            columns: ["uiorn"]
+            isOneToOne: false
+            referencedRelation: "order_punching"
+            referencedColumns: ["uiorn"]
+          },
+        ]
       }
       csv_upload_log: {
         Row: {
@@ -1507,6 +1803,13 @@ export type Database = {
             foreignKeyName: "employee_leave_balances_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
+            referencedRelation: "payroll_calculation_enhanced"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "employee_leave_balances_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
             referencedRelation: "payroll_employees"
             referencedColumns: ["id"]
           },
@@ -1541,6 +1844,13 @@ export type Database = {
           variable_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "employee_variable_overrides_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_calculation_enhanced"
+            referencedColumns: ["employee_id"]
+          },
           {
             foreignKeyName: "employee_variable_overrides_employee_id_fkey"
             columns: ["employee_id"]
@@ -1832,6 +2142,83 @@ export type Database = {
           name?: string
         }
         Relationships: []
+      }
+      gravure_printing: {
+        Row: {
+          actual_quantity: number | null
+          color_count: number | null
+          completed_at: string | null
+          created_at: string | null
+          cylinder_number: string | null
+          id: string
+          ink_colors: Json | null
+          ink_consumption: number | null
+          operator_id: string | null
+          print_length: number | null
+          printing_parameters: Json | null
+          printing_speed: number | null
+          quality_checks: Json | null
+          started_at: string | null
+          status: Database["public"]["Enums"]["process_status"] | null
+          substrate_width: number | null
+          supervisor_id: string | null
+          uiorn: string
+          updated_at: string | null
+          waste_percentage: number | null
+        }
+        Insert: {
+          actual_quantity?: number | null
+          color_count?: number | null
+          completed_at?: string | null
+          created_at?: string | null
+          cylinder_number?: string | null
+          id?: string
+          ink_colors?: Json | null
+          ink_consumption?: number | null
+          operator_id?: string | null
+          print_length?: number | null
+          printing_parameters?: Json | null
+          printing_speed?: number | null
+          quality_checks?: Json | null
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["process_status"] | null
+          substrate_width?: number | null
+          supervisor_id?: string | null
+          uiorn: string
+          updated_at?: string | null
+          waste_percentage?: number | null
+        }
+        Update: {
+          actual_quantity?: number | null
+          color_count?: number | null
+          completed_at?: string | null
+          created_at?: string | null
+          cylinder_number?: string | null
+          id?: string
+          ink_colors?: Json | null
+          ink_consumption?: number | null
+          operator_id?: string | null
+          print_length?: number | null
+          printing_parameters?: Json | null
+          printing_speed?: number | null
+          quality_checks?: Json | null
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["process_status"] | null
+          substrate_width?: number | null
+          supervisor_id?: string | null
+          uiorn?: string
+          updated_at?: string | null
+          waste_percentage?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gravure_printing_uiorn_fkey"
+            columns: ["uiorn"]
+            isOneToOne: false
+            referencedRelation: "order_punching"
+            referencedColumns: ["uiorn"]
+          },
+        ]
       }
       grn_log: {
         Row: {
@@ -2140,6 +2527,86 @@ export type Database = {
           },
         ]
       }
+      lamination: {
+        Row: {
+          adhesive_coating_weight: number | null
+          adhesive_type: string | null
+          bond_strength: number | null
+          completed_at: string | null
+          created_at: string | null
+          gsm_substrate_1: number | null
+          gsm_substrate_2: number | null
+          id: string
+          lamination_speed: number | null
+          lamination_type: string
+          operator_id: string | null
+          peel_strength: number | null
+          pressure: number | null
+          quality_approved_by: string | null
+          started_at: string | null
+          status: Database["public"]["Enums"]["process_status"] | null
+          substrate_1: string
+          substrate_2: string | null
+          temperature: number | null
+          uiorn: string
+          updated_at: string | null
+        }
+        Insert: {
+          adhesive_coating_weight?: number | null
+          adhesive_type?: string | null
+          bond_strength?: number | null
+          completed_at?: string | null
+          created_at?: string | null
+          gsm_substrate_1?: number | null
+          gsm_substrate_2?: number | null
+          id?: string
+          lamination_speed?: number | null
+          lamination_type: string
+          operator_id?: string | null
+          peel_strength?: number | null
+          pressure?: number | null
+          quality_approved_by?: string | null
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["process_status"] | null
+          substrate_1: string
+          substrate_2?: string | null
+          temperature?: number | null
+          uiorn: string
+          updated_at?: string | null
+        }
+        Update: {
+          adhesive_coating_weight?: number | null
+          adhesive_type?: string | null
+          bond_strength?: number | null
+          completed_at?: string | null
+          created_at?: string | null
+          gsm_substrate_1?: number | null
+          gsm_substrate_2?: number | null
+          id?: string
+          lamination_speed?: number | null
+          lamination_type?: string
+          operator_id?: string | null
+          peel_strength?: number | null
+          pressure?: number | null
+          quality_approved_by?: string | null
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["process_status"] | null
+          substrate_1?: string
+          substrate_2?: string | null
+          temperature?: number | null
+          uiorn?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lamination_uiorn_fkey"
+            columns: ["uiorn"]
+            isOneToOne: false
+            referencedRelation: "order_punching"
+            referencedColumns: ["uiorn"]
+          },
+        ]
+      }
       leave_balance_history: {
         Row: {
           attendance_date: string
@@ -2175,6 +2642,13 @@ export type Database = {
           leave_type?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "leave_balance_history_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_calculation_enhanced"
+            referencedColumns: ["employee_id"]
+          },
           {
             foreignKeyName: "leave_balance_history_employee_id_fkey"
             columns: ["employee_id"]
@@ -2479,6 +2953,104 @@ export type Database = {
         }
         Relationships: []
       }
+      material_selection: {
+        Row: {
+          alternative_materials: Json | null
+          approved_at: string | null
+          approved_by: string | null
+          barrier_properties: Json | null
+          cost_per_kg: number | null
+          created_at: string | null
+          elongation_percentage: number | null
+          food_grade_certified: boolean | null
+          gsm: number | null
+          id: string
+          lead_time_days: number | null
+          length_meters: number | null
+          material_code: string | null
+          material_grade: string
+          material_type: Database["public"]["Enums"]["material_type"]
+          minimum_order_quantity: number | null
+          selected_at: string | null
+          selected_by: string | null
+          selection_criteria: string | null
+          status: Database["public"]["Enums"]["process_status"] | null
+          supplier_name: string | null
+          sustainability_rating: string | null
+          tensile_strength: number | null
+          thickness_microns: number | null
+          uiorn: string
+          updated_at: string | null
+          width_mm: number | null
+        }
+        Insert: {
+          alternative_materials?: Json | null
+          approved_at?: string | null
+          approved_by?: string | null
+          barrier_properties?: Json | null
+          cost_per_kg?: number | null
+          created_at?: string | null
+          elongation_percentage?: number | null
+          food_grade_certified?: boolean | null
+          gsm?: number | null
+          id?: string
+          lead_time_days?: number | null
+          length_meters?: number | null
+          material_code?: string | null
+          material_grade: string
+          material_type: Database["public"]["Enums"]["material_type"]
+          minimum_order_quantity?: number | null
+          selected_at?: string | null
+          selected_by?: string | null
+          selection_criteria?: string | null
+          status?: Database["public"]["Enums"]["process_status"] | null
+          supplier_name?: string | null
+          sustainability_rating?: string | null
+          tensile_strength?: number | null
+          thickness_microns?: number | null
+          uiorn: string
+          updated_at?: string | null
+          width_mm?: number | null
+        }
+        Update: {
+          alternative_materials?: Json | null
+          approved_at?: string | null
+          approved_by?: string | null
+          barrier_properties?: Json | null
+          cost_per_kg?: number | null
+          created_at?: string | null
+          elongation_percentage?: number | null
+          food_grade_certified?: boolean | null
+          gsm?: number | null
+          id?: string
+          lead_time_days?: number | null
+          length_meters?: number | null
+          material_code?: string | null
+          material_grade?: string
+          material_type?: Database["public"]["Enums"]["material_type"]
+          minimum_order_quantity?: number | null
+          selected_at?: string | null
+          selected_by?: string | null
+          selection_criteria?: string | null
+          status?: Database["public"]["Enums"]["process_status"] | null
+          supplier_name?: string | null
+          sustainability_rating?: string | null
+          tensile_strength?: number | null
+          thickness_microns?: number | null
+          uiorn?: string
+          updated_at?: string | null
+          width_mm?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "material_selection_uiorn_fkey"
+            columns: ["uiorn"]
+            isOneToOne: false
+            referencedRelation: "order_punching"
+            referencedColumns: ["uiorn"]
+          },
+        ]
+      }
       media: {
         Row: {
           album_id: string | null
@@ -2573,6 +3145,63 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      order_punching: {
+        Row: {
+          assigned_to: string | null
+          created_at: string | null
+          created_by: string | null
+          customer_code: string | null
+          customer_name: string
+          delivery_date: string | null
+          id: string
+          order_date: string
+          order_quantity: number
+          priority_level: string | null
+          product_description: string
+          special_instructions: string | null
+          status: Database["public"]["Enums"]["process_status"] | null
+          uiorn: string
+          unit_of_measure: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          assigned_to?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          customer_code?: string | null
+          customer_name: string
+          delivery_date?: string | null
+          id?: string
+          order_date?: string
+          order_quantity: number
+          priority_level?: string | null
+          product_description: string
+          special_instructions?: string | null
+          status?: Database["public"]["Enums"]["process_status"] | null
+          uiorn: string
+          unit_of_measure?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          assigned_to?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          customer_code?: string | null
+          customer_name?: string
+          delivery_date?: string | null
+          id?: string
+          order_date?: string
+          order_quantity?: number
+          priority_level?: string | null
+          product_description?: string
+          special_instructions?: string | null
+          status?: Database["public"]["Enums"]["process_status"] | null
+          uiorn?: string
+          unit_of_measure?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       orders_dashboard_dkpkl: {
         Row: {
@@ -3019,6 +3648,184 @@ export type Database = {
         }
         Relationships: []
       }
+      packaging_projects: {
+        Row: {
+          approved_by: string | null
+          barrier_properties: Json | null
+          created_at: string | null
+          customer_feedback: string | null
+          design_approval_status: string | null
+          design_completed_at: string | null
+          design_requirements: string | null
+          design_started_at: string | null
+          designer_id: string | null
+          id: string
+          packaging_type: Database["public"]["Enums"]["packaging_type"]
+          project_manager_id: string | null
+          project_name: string
+          prototype_status: string | null
+          regulatory_compliance: Json | null
+          revision_count: number | null
+          shelf_life_requirements: number | null
+          status: Database["public"]["Enums"]["process_status"] | null
+          structural_specifications: Json | null
+          sustainability_requirements: string | null
+          uiorn: string
+          updated_at: string | null
+        }
+        Insert: {
+          approved_by?: string | null
+          barrier_properties?: Json | null
+          created_at?: string | null
+          customer_feedback?: string | null
+          design_approval_status?: string | null
+          design_completed_at?: string | null
+          design_requirements?: string | null
+          design_started_at?: string | null
+          designer_id?: string | null
+          id?: string
+          packaging_type: Database["public"]["Enums"]["packaging_type"]
+          project_manager_id?: string | null
+          project_name: string
+          prototype_status?: string | null
+          regulatory_compliance?: Json | null
+          revision_count?: number | null
+          shelf_life_requirements?: number | null
+          status?: Database["public"]["Enums"]["process_status"] | null
+          structural_specifications?: Json | null
+          sustainability_requirements?: string | null
+          uiorn: string
+          updated_at?: string | null
+        }
+        Update: {
+          approved_by?: string | null
+          barrier_properties?: Json | null
+          created_at?: string | null
+          customer_feedback?: string | null
+          design_approval_status?: string | null
+          design_completed_at?: string | null
+          design_requirements?: string | null
+          design_started_at?: string | null
+          designer_id?: string | null
+          id?: string
+          packaging_type?: Database["public"]["Enums"]["packaging_type"]
+          project_manager_id?: string | null
+          project_name?: string
+          prototype_status?: string | null
+          regulatory_compliance?: Json | null
+          revision_count?: number | null
+          shelf_life_requirements?: number | null
+          status?: Database["public"]["Enums"]["process_status"] | null
+          structural_specifications?: Json | null
+          sustainability_requirements?: string | null
+          uiorn?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "packaging_projects_uiorn_fkey"
+            columns: ["uiorn"]
+            isOneToOne: false
+            referencedRelation: "order_punching"
+            referencedColumns: ["uiorn"]
+          },
+        ]
+      }
+      packaging_selection: {
+        Row: {
+          approved_by: string | null
+          child_resistant_features: boolean | null
+          closure_type: string | null
+          cost_impact_analysis: string | null
+          created_at: string | null
+          die_cutting_requirements: string | null
+          finalized_at: string | null
+          finishing_options: Json | null
+          gusset_specifications: Json | null
+          handle_type: string | null
+          id: string
+          packaging_category: string
+          packaging_style: string
+          perforation_requirements: string | null
+          printing_areas: Json | null
+          regulatory_markings: Json | null
+          resealable_features: boolean | null
+          seal_type: string | null
+          selected_at: string | null
+          selected_by: string | null
+          status: Database["public"]["Enums"]["process_status"] | null
+          tamper_evident_features: boolean | null
+          tooling_requirements: string | null
+          uiorn: string
+          updated_at: string | null
+          window_specifications: Json | null
+        }
+        Insert: {
+          approved_by?: string | null
+          child_resistant_features?: boolean | null
+          closure_type?: string | null
+          cost_impact_analysis?: string | null
+          created_at?: string | null
+          die_cutting_requirements?: string | null
+          finalized_at?: string | null
+          finishing_options?: Json | null
+          gusset_specifications?: Json | null
+          handle_type?: string | null
+          id?: string
+          packaging_category: string
+          packaging_style: string
+          perforation_requirements?: string | null
+          printing_areas?: Json | null
+          regulatory_markings?: Json | null
+          resealable_features?: boolean | null
+          seal_type?: string | null
+          selected_at?: string | null
+          selected_by?: string | null
+          status?: Database["public"]["Enums"]["process_status"] | null
+          tamper_evident_features?: boolean | null
+          tooling_requirements?: string | null
+          uiorn: string
+          updated_at?: string | null
+          window_specifications?: Json | null
+        }
+        Update: {
+          approved_by?: string | null
+          child_resistant_features?: boolean | null
+          closure_type?: string | null
+          cost_impact_analysis?: string | null
+          created_at?: string | null
+          die_cutting_requirements?: string | null
+          finalized_at?: string | null
+          finishing_options?: Json | null
+          gusset_specifications?: Json | null
+          handle_type?: string | null
+          id?: string
+          packaging_category?: string
+          packaging_style?: string
+          perforation_requirements?: string | null
+          printing_areas?: Json | null
+          regulatory_markings?: Json | null
+          resealable_features?: boolean | null
+          seal_type?: string | null
+          selected_at?: string | null
+          selected_by?: string | null
+          status?: Database["public"]["Enums"]["process_status"] | null
+          tamper_evident_features?: boolean | null
+          tooling_requirements?: string | null
+          uiorn?: string
+          updated_at?: string | null
+          window_specifications?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "packaging_selection_uiorn_fkey"
+            columns: ["uiorn"]
+            isOneToOne: false
+            referencedRelation: "order_punching"
+            referencedColumns: ["uiorn"]
+          },
+        ]
+      }
       payroll_audit_log: {
         Row: {
           id: string
@@ -3078,6 +3885,13 @@ export type Database = {
           month?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "payroll_calculation_audit_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_calculation_enhanced"
+            referencedColumns: ["employee_id"]
+          },
           {
             foreignKeyName: "payroll_calculation_audit_employee_id_fkey"
             columns: ["employee_id"]
@@ -3199,6 +4013,7 @@ export type Database = {
           lwf_amount: number
           pf_rate: number
           setting_id: string
+          sunday_overtime_multiplier: number | null
           updated_at: string | null
         }
         Insert: {
@@ -3208,6 +4023,7 @@ export type Database = {
           lwf_amount?: number
           pf_rate: number
           setting_id?: string
+          sunday_overtime_multiplier?: number | null
           updated_at?: string | null
         }
         Update: {
@@ -3217,6 +4033,7 @@ export type Database = {
           lwf_amount?: number
           pf_rate?: number
           setting_id?: string
+          sunday_overtime_multiplier?: number | null
           updated_at?: string | null
         }
         Relationships: []
@@ -3713,6 +4530,13 @@ export type Database = {
             foreignKeyName: "salary_disbursement_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
+            referencedRelation: "payroll_calculation_enhanced"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "salary_disbursement_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
             referencedRelation: "payroll_employees"
             referencedColumns: ["id"]
           },
@@ -4068,6 +4892,80 @@ export type Database = {
           ticker?: string
         }
         Relationships: []
+      }
+      slitting: {
+        Row: {
+          blade_type: string | null
+          completed_at: string | null
+          core_diameter: number | null
+          created_at: string | null
+          edge_trim_waste: number | null
+          finished_roll_count: number | null
+          id: string
+          number_of_slits: number
+          operator_id: string | null
+          parent_roll_width: number
+          quality_checked_by: string | null
+          rewind_tension: number | null
+          slit_widths: Json
+          slitting_speed: number | null
+          started_at: string | null
+          status: Database["public"]["Enums"]["process_status"] | null
+          total_waste_percentage: number | null
+          uiorn: string
+          updated_at: string | null
+        }
+        Insert: {
+          blade_type?: string | null
+          completed_at?: string | null
+          core_diameter?: number | null
+          created_at?: string | null
+          edge_trim_waste?: number | null
+          finished_roll_count?: number | null
+          id?: string
+          number_of_slits: number
+          operator_id?: string | null
+          parent_roll_width: number
+          quality_checked_by?: string | null
+          rewind_tension?: number | null
+          slit_widths: Json
+          slitting_speed?: number | null
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["process_status"] | null
+          total_waste_percentage?: number | null
+          uiorn: string
+          updated_at?: string | null
+        }
+        Update: {
+          blade_type?: string | null
+          completed_at?: string | null
+          core_diameter?: number | null
+          created_at?: string | null
+          edge_trim_waste?: number | null
+          finished_roll_count?: number | null
+          id?: string
+          number_of_slits?: number
+          operator_id?: string | null
+          parent_roll_width?: number
+          quality_checked_by?: string | null
+          rewind_tension?: number | null
+          slit_widths?: Json
+          slitting_speed?: number | null
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["process_status"] | null
+          total_waste_percentage?: number | null
+          uiorn?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "slitting_uiorn_fkey"
+            columns: ["uiorn"]
+            isOneToOne: false
+            referencedRelation: "order_punching"
+            referencedColumns: ["uiorn"]
+          },
+        ]
       }
       smeta_points: {
         Row: {
@@ -4650,6 +5548,30 @@ export type Database = {
       }
     }
     Views: {
+      payroll_calculation_enhanced: {
+        Row: {
+          base_salary: number | null
+          casual_leave_balance: number | null
+          earned_leave_balance: number | null
+          employee_id: string | null
+          employee_name: string | null
+          hra_amount: number | null
+          other_conv_amount: number | null
+          uan_number: string | null
+          unit_code: string | null
+          unit_id: string | null
+          unit_name: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_employees_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "units"
+            referencedColumns: ["unit_id"]
+          },
+        ]
+      }
       satguru_stock_summary: {
         Row: {
           category_name: string | null
@@ -4953,6 +5875,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
+      is_sunday: {
+        Args: { input_date: string }
+        Returns: boolean
+      }
       map_documents_to_smeta: {
         Args: Record<PropertyKey, never>
         Returns: undefined
@@ -5016,6 +5942,40 @@ export type Database = {
           closing_stock: number
           net_movement: number
           movement_percentage: number
+        }[]
+      }
+      satguru_get_workflow_status_counts: {
+        Args: { p_uiorn?: string }
+        Returns: {
+          process_name: string
+          pending_count: number
+          started_count: number
+          in_progress_count: number
+          completed_count: number
+          on_hold_count: number
+          cancelled_count: number
+          total_count: number
+        }[]
+      }
+      satguru_get_workflow_summary: {
+        Args: { p_uiorn: string }
+        Returns: {
+          uiorn: string
+          customer_name: string
+          order_date: string
+          delivery_date: string
+          order_status: Database["public"]["Enums"]["process_status"]
+          order_punching_status: Database["public"]["Enums"]["process_status"]
+          gravure_printing_status: Database["public"]["Enums"]["process_status"]
+          lamination_status: Database["public"]["Enums"]["process_status"]
+          adhesive_coating_status: Database["public"]["Enums"]["process_status"]
+          slitting_status: Database["public"]["Enums"]["process_status"]
+          packaging_projects_status: Database["public"]["Enums"]["process_status"]
+          material_selection_status: Database["public"]["Enums"]["process_status"]
+          packaging_selection_status: Database["public"]["Enums"]["process_status"]
+          artwork_upload_status: Database["public"]["Enums"]["process_status"]
+          cost_estimate_status: Database["public"]["Enums"]["process_status"]
+          overall_completion_percentage: number
         }[]
       }
       satguru_log_analytics_query: {
@@ -5117,13 +6077,22 @@ export type Database = {
         | "EARNED_LEAVE"
         | "UNPAID_LEAVE"
       formula_type: "gross_salary" | "deductions" | "net_salary" | "allowances"
+      material_type: "PAPER" | "PLASTIC" | "FOIL" | "LAMINATE" | "COMPOSITE"
       media_type: "audio" | "video"
+      packaging_type: "POUCH" | "BAG" | "ROLL" | "SHEET" | "CUSTOM"
       process_stage:
         | "PRINTING"
         | "LAMINATION"
         | "ADHESIVE_COATING"
         | "SLITTING"
         | "DISPATCH"
+      process_status:
+        | "PENDING"
+        | "STARTED"
+        | "IN_PROGRESS"
+        | "COMPLETED"
+        | "ON_HOLD"
+        | "CANCELLED"
       stage: "printing" | "lamination" | "adhesive" | "slitting" | "dispatch"
       transfer_status: "pending" | "approved" | "rejected" | "completed"
       variable_type: "fixed" | "calculated" | "employee_specific" | "system"
@@ -5280,13 +6249,23 @@ export const Constants = {
         "UNPAID_LEAVE",
       ],
       formula_type: ["gross_salary", "deductions", "net_salary", "allowances"],
+      material_type: ["PAPER", "PLASTIC", "FOIL", "LAMINATE", "COMPOSITE"],
       media_type: ["audio", "video"],
+      packaging_type: ["POUCH", "BAG", "ROLL", "SHEET", "CUSTOM"],
       process_stage: [
         "PRINTING",
         "LAMINATION",
         "ADHESIVE_COATING",
         "SLITTING",
         "DISPATCH",
+      ],
+      process_status: [
+        "PENDING",
+        "STARTED",
+        "IN_PROGRESS",
+        "COMPLETED",
+        "ON_HOLD",
+        "CANCELLED",
       ],
       stage: ["printing", "lamination", "adhesive", "slitting", "dispatch"],
       transfer_status: ["pending", "approved", "rejected", "completed"],

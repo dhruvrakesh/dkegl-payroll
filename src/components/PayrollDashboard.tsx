@@ -15,9 +15,11 @@ import { AuditLogs } from './payroll/AuditLogs';
 import { BulkPayrollOperations } from './payroll/BulkPayrollOperations';
 import { EmailQueue } from './payroll/EmailQueue';
 import { LeaveBalanceManagement } from './payroll/LeaveBalanceManagement';
+import { LeaveBalanceValidator } from './payroll/LeaveBalanceValidator';
+import { SundayOvertimeManager } from './payroll/SundayOvertimeManager';
 import { EmployeeCodeStatus } from './payroll/EmployeeCodeStatus';
 import { AdminDashboard } from './admin/AdminDashboard';
-import { Users } from 'lucide-react';
+import { Users, AlertTriangle, Coffee } from 'lucide-react';
 
 export function PayrollDashboard() {
   const { user, profile, loading, hasRole, isAdmin } = useAuth();
@@ -71,11 +73,19 @@ export function PayrollDashboard() {
         </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className={`grid w-full ${hasRole('admin') ? 'grid-cols-11' : 'grid-cols-10'}`}>
+        <TabsList className={`grid w-full ${hasRole('admin') ? 'grid-cols-13' : 'grid-cols-12'}`}>
           <TabsTrigger value="salary">Salary Management</TabsTrigger>
           <TabsTrigger value="employees">Employees</TabsTrigger>
           <TabsTrigger value="attendance">Attendance</TabsTrigger>
           <TabsTrigger value="leave-balance">Leave Balance</TabsTrigger>
+          <TabsTrigger value="leave-validation">
+            <AlertTriangle className="w-4 h-4 mr-1" />
+            Leave Validation
+          </TabsTrigger>
+          <TabsTrigger value="sunday-overtime">
+            <Coffee className="w-4 h-4 mr-1" />
+            Sunday Overtime
+          </TabsTrigger>
           <TabsTrigger value="units">Units</TabsTrigger>
           <TabsTrigger value="advances">Advances</TabsTrigger>
           <TabsTrigger value="formulas">Formulas</TabsTrigger>
@@ -105,6 +115,14 @@ export function PayrollDashboard() {
 
         <TabsContent value="leave-balance" className="space-y-6">
           <LeaveBalanceManagement />
+        </TabsContent>
+
+        <TabsContent value="leave-validation" className="space-y-6">
+          <LeaveBalanceValidator />
+        </TabsContent>
+
+        <TabsContent value="sunday-overtime" className="space-y-6">
+          <SundayOvertimeManager />
         </TabsContent>
 
         <TabsContent value="units" className="space-y-6">

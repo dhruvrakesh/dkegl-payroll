@@ -72,6 +72,11 @@ interface WageCalculatorDashboardProps {
   onSalaryGenerated?: (salaryData: any[], batchId?: string) => void;
 }
 
+// Helper function to check if a date is Sunday
+const isSunday = (date: Date): boolean => {
+  return date.getDay() === 0;
+};
+
 export function WageCalculatorDashboard({ selectedBatchId, onSalaryGenerated }: WageCalculatorDashboardProps) {
   const [units, setUnits] = useState<Unit[]>([]);
   const [selectedUnit, setSelectedUnit] = useState<string | undefined>(undefined);
@@ -336,9 +341,17 @@ export function WageCalculatorDashboard({ selectedBatchId, onSalaryGenerated }: 
         const totalHours = employeeAttendance
           .filter(att => att.status === 'PRESENT')
           .reduce((sum, att) => sum + (att.hours_worked || 0), 0);
-        const overtimeHours = employeeAttendance
-          .filter(att => att.status === 'PRESENT')
+        
+        // Enhanced overtime calculation with Sunday overtime
+        const regularOvertimeHours = employeeAttendance
+          .filter(att => att.status === 'PRESENT' && !isSunday(new Date(att.attendance_date)))
           .reduce((sum, att) => sum + (att.overtime_hours || 0), 0);
+        
+        const sundayOvertimeHours = employeeAttendance
+          .filter(att => att.status === 'PRESENT' && isSunday(new Date(att.attendance_date)))
+          .reduce((sum, att) => sum + (att.overtime_hours || 0), 0);
+        
+        const totalOvertimeHours = regularOvertimeHours + sundayOvertimeHours;
 
         // ATTENDANCE VALIDATION
         const hasAttendance = employeeAttendance.length > 0;
@@ -380,8 +393,11 @@ export function WageCalculatorDashboard({ selectedBatchId, onSalaryGenerated }: 
           warnings.push(`${employee.name}: ${totalPaidDays}/${totalDaysInMonth} paid days - Pro-rated salary`);
         }
 
-        // Overtime calculation (only if employee worked)
-        const overtimeAmount = totalPaidDays > 0 ? (baseSalary / totalDaysInMonth / 8) * overtimeHours * 1.5 : 0;
+        // Enhanced overtime calculation with Sunday premium
+        const hourlyRate = totalPaidDays > 0 ? (baseSalary / totalDaysInMonth / 8) : 0;
+        const regularOvertimeAmount = hourlyRate * regularOvertimeHours * 1.5; // 1.5x for regular overtime
+        const sundayOvertimeAmount = hourlyRate * sundayOvertimeHours * (payrollSettings?.sunday_overtime_multiplier || 2.0); // 2x for Sunday
+        const overtimeAmount = regularOvertimeAmount + sundayOvertimeAmount;
 
         // Gross salary calculation
         const grossSalary = proRatedBaseSalary + proRatedHra + proRatedOtherConv + overtimeAmount;
