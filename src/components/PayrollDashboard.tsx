@@ -74,7 +74,7 @@ export function PayrollDashboard() {
         </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className={`grid w-full ${hasRole('admin') ? 'grid-cols-14' : 'grid-cols-13'}`}>
+        <TabsList className="flex flex-wrap w-full gap-1 h-auto p-1">
           <TabsTrigger value="salary">Salary Management</TabsTrigger>
           <TabsTrigger value="panchkula">Panchkula Calculator</TabsTrigger>
           <TabsTrigger value="employees">Employees</TabsTrigger>
