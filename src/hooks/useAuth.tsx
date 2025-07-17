@@ -6,7 +6,7 @@ import { useToast } from '@/hooks/use-toast';
 interface Profile {
   id: string;
   email: string;
-  employee_id: string;
+  employee_id?: string | null;
   role: 'admin' | 'hr' | 'manager' | 'employee';
   is_approved: boolean;
   created_at?: string;

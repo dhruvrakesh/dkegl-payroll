@@ -3359,7 +3359,7 @@ export type Database = {
         Row: {
           created_at: string
           email: string
-          employee_id: string
+          employee_id: string | null
           full_name: string | null
           id: string
           is_active: boolean | null
@@ -3371,7 +3371,7 @@ export type Database = {
         Insert: {
           created_at?: string
           email: string
-          employee_id: string
+          employee_id?: string | null
           full_name?: string | null
           id: string
           is_active?: boolean | null
@@ -3383,7 +3383,7 @@ export type Database = {
         Update: {
           created_at?: string
           email?: string
-          employee_id?: string
+          employee_id?: string | null
           full_name?: string | null
           id?: string
           is_active?: boolean | null
@@ -4839,6 +4839,10 @@ export type Database = {
       process_queued_jobs: {
         Args: Record<PropertyKey, never>
         Returns: undefined
+      }
+      retry_job: {
+        Args: { p_job_id: string; p_user_id: string }
+        Returns: boolean
       }
       rpc_upsert_stage_status_dkpkl: {
         Args: {
