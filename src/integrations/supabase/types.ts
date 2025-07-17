@@ -4285,6 +4285,47 @@ export type Database = {
           },
         ]
       }
+      stock_analytics_queries: {
+        Row: {
+          executed_at: string | null
+          execution_time_ms: number | null
+          filters: Json | null
+          id: string
+          organization_id: string | null
+          query_type: string
+          result_count: number | null
+          user_id: string | null
+        }
+        Insert: {
+          executed_at?: string | null
+          execution_time_ms?: number | null
+          filters?: Json | null
+          id?: string
+          organization_id?: string | null
+          query_type: string
+          result_count?: number | null
+          user_id?: string | null
+        }
+        Update: {
+          executed_at?: string | null
+          execution_time_ms?: number | null
+          filters?: Json | null
+          id?: string
+          organization_id?: string | null
+          query_type?: string
+          result_count?: number | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_analytics_queries_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       substrate_master_dkpkl: {
         Row: {
           gsm: number | null
@@ -4578,6 +4619,43 @@ export type Database = {
         }
         Relationships: []
       }
+      satguru_stock_summary_view: {
+        Row: {
+          category_id: string | null
+          category_name: string | null
+          consumption_30_days: number | null
+          current_qty: number | null
+          item_code: string | null
+          item_name: string | null
+          last_updated: string | null
+          received_30_days: number | null
+          reorder_level: number | null
+          stock_status: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "satguru_item_master_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "satguru_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "satguru_stock_item_code_fkey"
+            columns: ["item_code"]
+            isOneToOne: true
+            referencedRelation: "satguru_item_master"
+            referencedColumns: ["item_code"]
+          },
+          {
+            foreignKeyName: "satguru_stock_item_code_fkey"
+            columns: ["item_code"]
+            isOneToOne: true
+            referencedRelation: "satguru_stock_summary"
+            referencedColumns: ["item_code"]
+          },
+        ]
+      }
       stock_summary: {
         Row: {
           calculated_qty: number | null
@@ -4853,6 +4931,16 @@ export type Database = {
         }
         Returns: undefined
       }
+      satguru_check_stock_thresholds: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          item_code: string
+          item_name: string
+          current_qty: number
+          reorder_level: number
+          status: string
+        }[]
+      }
       satguru_generate_item_code: {
         Args: {
           category_name: string
@@ -4861,6 +4949,40 @@ export type Database = {
           gsm?: number
         }
         Returns: string
+      }
+      satguru_get_stock_movement_analysis: {
+        Args: { p_item_code?: string; p_category_id?: string; p_days?: number }
+        Returns: {
+          item_code: string
+          item_name: string
+          opening_stock: number
+          total_received: number
+          total_issued: number
+          closing_stock: number
+          net_movement: number
+          movement_percentage: number
+        }[]
+      }
+      satguru_log_analytics_query: {
+        Args: {
+          p_query_type: string
+          p_filters?: Json
+          p_execution_time_ms?: number
+          p_result_count?: number
+        }
+        Returns: string
+      }
+      satguru_validate_stock_transaction: {
+        Args: {
+          p_item_code: string
+          p_transaction_type: string
+          p_quantity: number
+        }
+        Returns: boolean
+      }
+      satguru_validate_unique_item_code: {
+        Args: { p_item_code: string; p_exclude_id?: string }
+        Returns: boolean
       }
       set_limit: {
         Args: { "": number }
