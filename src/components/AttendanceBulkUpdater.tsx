@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -24,7 +25,7 @@ interface BulkUpdateResult {
 }
 
 interface AttendanceBulkUpdaterProps {
-  onUpdateSuccess: () => void;
+  onUpdateSuccess?: () => void;
 }
 
 export const AttendanceBulkUpdater = ({ onUpdateSuccess }: AttendanceBulkUpdaterProps) => {
@@ -133,7 +134,7 @@ export const AttendanceBulkUpdater = ({ onUpdateSuccess }: AttendanceBulkUpdater
                 title: "Bulk update completed",
                 description: `Updated ${result.successCount} attendance records successfully`,
               });
-              onUpdateSuccess();
+              onUpdateSuccess?.();
             }
             
             if (result.errorCount > 0) {

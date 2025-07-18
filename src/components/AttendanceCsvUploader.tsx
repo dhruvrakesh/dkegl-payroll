@@ -22,7 +22,11 @@ interface UploadResult {
   }>;
 }
 
-export const AttendanceCsvUploader = () => {
+interface AttendanceCsvUploaderProps {
+  onUploadSuccess?: () => void;
+}
+
+export const AttendanceCsvUploader = ({ onUploadSuccess }: AttendanceCsvUploaderProps) => {
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [downloadingTemplate, setDownloadingTemplate] = useState(false);
@@ -125,7 +129,7 @@ export const AttendanceCsvUploader = () => {
       }
 
       // Call the enhanced CSV upload function
-      const { data, error } = await supabase.rpc('insert_attendance_from_csv_with_sunday_fix', {
+      const { data, error } = await supabase.rpc('insert_attendance_from_csv_enhanced', {
         rows: dataRows
       });
 
@@ -142,6 +146,7 @@ export const AttendanceCsvUploader = () => {
           title: "Upload Completed",
           description: `Successfully uploaded ${result.successCount} attendance records. ${result.errorCount} errors.`,
         });
+        onUploadSuccess?.();
       } else {
         toast({
           title: "Upload Failed",
@@ -179,7 +184,7 @@ export const AttendanceCsvUploader = () => {
             <Info className="h-4 w-4" />
             <AlertDescription>
               <strong>Sunday Upload Enhancement:</strong> For Sundays, use hours_worked=0 with status=WEEKLY_OFF for rest days, 
-              or hours_worked{'>'}0 for overtime work (all hours automatically become overtime).
+              or hours_worked &gt; 0 for overtime work (all hours automatically become overtime).
             </AlertDescription>
           </Alert>
 
