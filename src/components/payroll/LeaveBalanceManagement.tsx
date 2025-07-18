@@ -131,11 +131,11 @@ export const LeaveBalanceManagement = () => {
       );
     }
 
-    if (selectedYear) {
+    if (selectedYear && selectedYear.toString() !== 'ALL_YEARS') {
       filtered = filtered.filter(balance => balance.year === selectedYear);
     }
 
-    if (selectedUnit) {
+    if (selectedUnit && selectedUnit !== 'ALL_UNITS') {
       filtered = filtered.filter(balance => balance.payroll_employees?.unit_id === selectedUnit);
     }
 
@@ -289,12 +289,12 @@ export const LeaveBalanceManagement = () => {
                 />
               </div>
             </div>
-            <Select value={selectedYear.toString()} onValueChange={(value) => setSelectedYear(parseInt(value))}>
+            <Select value={selectedYear.toString()} onValueChange={(value) => setSelectedYear(value === 'ALL_YEARS' ? 0 : parseInt(value))}>
               <SelectTrigger className="w-32">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Years</SelectItem>
+                <SelectItem value="ALL_YEARS">All Years</SelectItem>
                 {[2023, 2024, 2025, 2026].map(year => (
                   <SelectItem key={year} value={year.toString()}>{year}</SelectItem>
                 ))}
@@ -305,7 +305,7 @@ export const LeaveBalanceManagement = () => {
                 <SelectValue placeholder="Filter by unit" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Units</SelectItem>
+                <SelectItem value="ALL_UNITS">All Units</SelectItem>
                 {units.map((unit) => (
                   <SelectItem key={unit.unit_id} value={unit.unit_id}>
                     {unit.unit_name}

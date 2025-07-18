@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -155,9 +156,9 @@ export const EmployeesManagement = () => {
       // Build filter parameters
       const params: any = {};
       if (filters.search) params.p_search_term = filters.search;
-      if (filters.department_id) params.p_department_ids = [filters.department_id];
-      if (filters.unit_id) params.p_unit_ids = [filters.unit_id];
-      if (filters.plant_location) params.p_plant_location = filters.plant_location;
+      if (filters.department_id && filters.department_id !== 'ALL_DEPARTMENTS') params.p_department_ids = [filters.department_id];
+      if (filters.unit_id && filters.unit_id !== 'ALL_UNITS') params.p_unit_ids = [filters.unit_id];
+      if (filters.plant_location && filters.plant_location !== 'ALL_LOCATIONS') params.p_plant_location = filters.plant_location;
       if (filters.min_years_service) params.p_min_years_service = parseFloat(filters.min_years_service);
       if (filters.max_years_service) params.p_max_years_service = parseFloat(filters.max_years_service);
 
@@ -818,7 +819,7 @@ export const EmployeesManagement = () => {
                     <SelectValue placeholder="All departments" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All departments</SelectItem>
+                    <SelectItem value="ALL_DEPARTMENTS">All departments</SelectItem>
                     {departments.map((dept) => (
                       <SelectItem key={dept.id} value={dept.id}>
                         {dept.name}
@@ -837,7 +838,7 @@ export const EmployeesManagement = () => {
                     <SelectValue placeholder="All units" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All units</SelectItem>
+                    <SelectItem value="ALL_UNITS">All units</SelectItem>
                     {units.map((unit) => (
                       <SelectItem key={unit.unit_id} value={unit.unit_id}>
                         {unit.unit_name} - {unit.location}
@@ -881,7 +882,7 @@ export const EmployeesManagement = () => {
                     <SelectValue placeholder="All locations" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All locations</SelectItem>
+                    <SelectItem value="ALL_LOCATIONS">All locations</SelectItem>
                     <SelectItem value="Panchkula">Panchkula</SelectItem>
                     <SelectItem value="Vadodara">Vadodara</SelectItem>
                     <SelectItem value="Baddi">Baddi</SelectItem>
