@@ -4,7 +4,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { BulkPayrollOperations } from './BulkPayrollOperations';
 import { AuditLogs } from './AuditLogs';
 import { EmailQueue } from './EmailQueue';
-import { Bot, Shield, Mail, Calendar } from 'lucide-react';
+import { EmailNotifications } from './EmailNotifications';
+import { LeaveCalendar } from './LeaveCalendar';
+import { Bot, Shield, Mail, Calendar, CalendarDays, Bell } from 'lucide-react';
 
 export const AutomationDashboard = () => {
   return (
@@ -20,10 +22,18 @@ export const AutomationDashboard = () => {
       </div>
 
       <Tabs defaultValue="bulk-operations" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="bulk-operations" className="flex items-center gap-2">
             <Calendar className="h-4 w-4" />
             Bulk Operations
+          </TabsTrigger>
+          <TabsTrigger value="leave-calendar" className="flex items-center gap-2">
+            <CalendarDays className="h-4 w-4" />
+            Leave Calendar
+          </TabsTrigger>
+          <TabsTrigger value="email-notifications" className="flex items-center gap-2">
+            <Bell className="h-4 w-4" />
+            Notifications
           </TabsTrigger>
           <TabsTrigger value="email-queue" className="flex items-center gap-2">
             <Mail className="h-4 w-4" />
@@ -37,6 +47,14 @@ export const AutomationDashboard = () => {
 
         <TabsContent value="bulk-operations" className="mt-6">
           <BulkPayrollOperations />
+        </TabsContent>
+
+        <TabsContent value="leave-calendar" className="mt-6">
+          <LeaveCalendar />
+        </TabsContent>
+
+        <TabsContent value="email-notifications" className="mt-6">
+          <EmailNotifications />
         </TabsContent>
 
         <TabsContent value="email-queue" className="mt-6">

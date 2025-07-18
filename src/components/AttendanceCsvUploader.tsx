@@ -179,7 +179,7 @@ export const AttendanceCsvUploader = () => {
             <Info className="h-4 w-4" />
             <AlertDescription>
               <strong>Sunday Upload Enhancement:</strong> For Sundays, use hours_worked=0 with status=WEEKLY_OFF for rest days, 
-              or hours_worked>0 for overtime work (all hours automatically become overtime).
+              or hours_worked{'>'}0 for overtime work (all hours automatically become overtime).
             </AlertDescription>
           </Alert>
 
