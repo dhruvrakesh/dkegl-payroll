@@ -15,12 +15,13 @@ import { BulkPayrollOperations } from './payroll/BulkPayrollOperations';
 import { EmailQueue } from './payroll/EmailQueue';
 import { LeaveBalanceManagement } from './payroll/LeaveBalanceManagement';
 import { LeaveBalanceValidator } from './payroll/LeaveBalanceValidator';
+import { LeaveAssignmentManager } from './payroll/LeaveAssignmentManager';
 import { SundayOvertimeManager } from './payroll/SundayOvertimeManager';
 import PanchkulaWageCalculator from './payroll/PanchkulaWageCalculator';
 import { EmployeeCodeStatus } from './payroll/EmployeeCodeStatus';
 import { AdminDashboard } from './admin/AdminDashboard';
 import { DepartmentManagement } from './payroll/DepartmentManagement';
-import { Users, AlertTriangle, Coffee, Building2 } from 'lucide-react';
+import { Users, AlertTriangle, Coffee, Building2, Calendar, Clock } from 'lucide-react';
 
 export function PayrollDashboard() {
   const { user, profile, loading, hasRole, isAdmin } = useAuth();
@@ -133,6 +134,10 @@ export function PayrollDashboard() {
 
         <TabsContent value="leave-validation" className="space-y-6">
           <LeaveBalanceValidator />
+        </TabsContent>
+
+        <TabsContent value="leave-assignments" className="space-y-6">
+          <LeaveAssignmentManager />
         </TabsContent>
 
         <TabsContent value="sunday-overtime" className="space-y-6">

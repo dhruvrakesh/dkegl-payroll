@@ -2566,11 +2566,15 @@ export type Database = {
           dimensions: string | null
           file_hyperlink: string | null
           file_id: string | null
+          gsm: number | null
           id: string
           is_active: boolean | null
           item_code: string
           item_name: string
           no_of_colours: string | null
+          qualifier: string | null
+          size_mm: string | null
+          specifications: Json | null
           status: string | null
           uom: string | null
           updated_at: string | null
@@ -2583,11 +2587,15 @@ export type Database = {
           dimensions?: string | null
           file_hyperlink?: string | null
           file_id?: string | null
+          gsm?: number | null
           id?: string
           is_active?: boolean | null
           item_code: string
           item_name: string
           no_of_colours?: string | null
+          qualifier?: string | null
+          size_mm?: string | null
+          specifications?: Json | null
           status?: string | null
           uom?: string | null
           updated_at?: string | null
@@ -2600,11 +2608,15 @@ export type Database = {
           dimensions?: string | null
           file_hyperlink?: string | null
           file_id?: string | null
+          gsm?: number | null
           id?: string
           is_active?: boolean | null
           item_code?: string
           item_name?: string
           no_of_colours?: string | null
+          qualifier?: string | null
+          size_mm?: string | null
+          specifications?: Json | null
           status?: string | null
           uom?: string | null
           updated_at?: string | null

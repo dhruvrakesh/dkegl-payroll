@@ -3,9 +3,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { AlertTriangle, CheckCircle, RefreshCw, Calendar, Users, Clock } from 'lucide-react';
+import { AlertTriangle, CheckCircle, RefreshCw, Calendar, Users, Clock, Search } from 'lucide-react';
 
 interface LeaveBalanceValidation {
   employee_id: string;
@@ -26,7 +28,11 @@ interface LeaveBalanceValidation {
 
 export const LeaveBalanceValidator = () => {
   const [validationResults, setValidationResults] = useState<LeaveBalanceValidation[]>([]);
+  const [filteredResults, setFilteredResults] = useState<LeaveBalanceValidation[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [riskFilter, setRiskFilter] = useState<string>('');
+  const [unitFilter, setUnitFilter] = useState<string>('');
   const [summary, setSummary] = useState({
     total_employees: 0,
     employees_with_negative_balance: 0,
@@ -38,6 +44,10 @@ export const LeaveBalanceValidator = () => {
   useEffect(() => {
     validateLeaveBalances();
   }, []);
+
+  useEffect(() => {
+    filterResults();
+  }, [validationResults, searchTerm, riskFilter, unitFilter]);
 
   const validateLeaveBalances = async () => {
     setLoading(true);
@@ -160,6 +170,27 @@ export const LeaveBalanceValidator = () => {
     }
   };
 
+  const filterResults = () => {
+    let filtered = validationResults;
+
+    if (searchTerm) {
+      filtered = filtered.filter(result =>
+        result.employee_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        result.unit_name.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    if (riskFilter) {
+      filtered = filtered.filter(result => result.risk_level === riskFilter);
+    }
+
+    if (unitFilter) {
+      filtered = filtered.filter(result => result.unit_name === unitFilter);
+    }
+
+    setFilteredResults(filtered);
+  };
+
   const getRiskBadge = (riskLevel: string) => {
     const variants = {
       'LOW': 'default',
@@ -257,6 +288,32 @@ export const LeaveBalanceValidator = () => {
           </div>
         </CardHeader>
         <CardContent>
+          {/* Search and Filter Controls */}
+          <div className="flex gap-4 mb-6">
+            <div className="flex-1">
+              <div className="relative">
+                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search by employee name or unit..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+            </div>
+            <Select value={riskFilter} onValueChange={setRiskFilter}>
+              <SelectTrigger className="w-32">
+                <SelectValue placeholder="Risk Level" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">All</SelectItem>
+                <SelectItem value="CRITICAL">Critical</SelectItem>
+                <SelectItem value="HIGH">High</SelectItem>
+                <SelectItem value="MEDIUM">Medium</SelectItem>
+                <SelectItem value="LOW">Low</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
           <Table>
             <TableHeader>
               <TableRow>
@@ -272,7 +329,7 @@ export const LeaveBalanceValidator = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {validationResults.map((result) => (
+              {filteredResults.map((result) => (
                 <TableRow key={result.employee_id} className={
                   result.has_negative_balance ? 'bg-red-50 border-red-200' : ''
                 }>

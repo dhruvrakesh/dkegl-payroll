@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Edit, RefreshCw, Users, Calendar, Upload, ChevronDown } from 'lucide-react';
+import { Plus, Edit, RefreshCw, Users, Calendar, Upload, ChevronDown, Search } from 'lucide-react';
 import { LeaveBalanceCsvUploader } from './LeaveBalanceCsvUploader';
 
 interface LeaveBalance {
@@ -35,6 +35,7 @@ interface Employee {
 
 export const LeaveBalanceManagement = () => {
   const [leaveBalances, setLeaveBalances] = useState<LeaveBalance[]>([]);
+  const [filteredBalances, setFilteredBalances] = useState<LeaveBalance[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -46,12 +47,21 @@ export const LeaveBalanceManagement = () => {
     earned_leave_balance: 0
   });
   const [csvUploaderOpen, setCsvUploaderOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
+  const [selectedUnit, setSelectedUnit] = useState<string>('');
+  const [units, setUnits] = useState<Array<{unit_id: string, unit_name: string}>>([]);
   const { toast } = useToast();
 
   useEffect(() => {
     fetchLeaveBalances();
     fetchEmployees();
+    fetchUnits();
   }, []);
+
+  useEffect(() => {
+    filterLeaveBalances();
+  }, [leaveBalances, searchTerm, selectedYear, selectedUnit]);
 
   const fetchLeaveBalances = async () => {
     try {
@@ -96,6 +106,40 @@ export const LeaveBalanceManagement = () => {
     } catch (error) {
       console.error('Error fetching employees:', error);
     }
+  };
+
+  const fetchUnits = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('units')
+        .select('unit_id, unit_name')
+        .order('unit_name');
+
+      if (error) throw error;
+      setUnits(data || []);
+    } catch (error) {
+      console.error('Error fetching units:', error);
+    }
+  };
+
+  const filterLeaveBalances = () => {
+    let filtered = leaveBalances;
+
+    if (searchTerm) {
+      filtered = filtered.filter(balance =>
+        balance.payroll_employees?.name.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    if (selectedYear) {
+      filtered = filtered.filter(balance => balance.year === selectedYear);
+    }
+
+    if (selectedUnit) {
+      filtered = filtered.filter(balance => balance.payroll_employees?.unit_id === selectedUnit);
+    }
+
+    setFilteredBalances(filtered);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -232,11 +276,50 @@ export const LeaveBalanceManagement = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {/* Search and Filter Controls */}
+          <div className="flex gap-4 mb-6">
+            <div className="flex-1">
+              <div className="relative">
+                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search by employee name..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+            </div>
+            <Select value={selectedYear.toString()} onValueChange={(value) => setSelectedYear(parseInt(value))}>
+              <SelectTrigger className="w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">All Years</SelectItem>
+                {[2023, 2024, 2025, 2026].map(year => (
+                  <SelectItem key={year} value={year.toString()}>{year}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={selectedUnit} onValueChange={setSelectedUnit}>
+              <SelectTrigger className="w-48">
+                <SelectValue placeholder="Filter by unit" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">All Units</SelectItem>
+                {units.map((unit) => (
+                  <SelectItem key={unit.unit_id} value={unit.unit_id}>
+                    {unit.unit_name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
           <div className="flex justify-between items-center mb-4">
             <div className="flex items-center gap-2">
               <Users className="w-4 h-4 text-muted-foreground" />
               <span className="text-sm text-muted-foreground">
-                {leaveBalances.length} employee balances configured
+                {filteredBalances.length} of {leaveBalances.length} employee balances shown
               </span>
             </div>
             <div className="flex gap-2">
@@ -361,7 +444,7 @@ export const LeaveBalanceManagement = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {leaveBalances.map((balance) => (
+              {filteredBalances.map((balance) => (
                 <TableRow key={balance.id}>
                   <TableCell className="font-medium">
                     {balance.payroll_employees?.name || 'Unknown'}
