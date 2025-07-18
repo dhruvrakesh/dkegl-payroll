@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -136,7 +137,7 @@ export const LeaveAssignmentManager = () => {
       );
     }
 
-    if (statusFilter) {
+    if (statusFilter && statusFilter !== 'ALL_STATUSES') {
       filtered = filtered.filter(app => app.status === statusFilter);
     }
 
@@ -247,12 +248,6 @@ export const LeaveAssignmentManager = () => {
   };
 
   const getStatusBadge = (status: string) => {
-    const variants = {
-      'PENDING': 'secondary',
-      'APPROVED': 'default',
-      'REJECTED': 'destructive'
-    } as const;
-
     const colors = {
       'PENDING': 'bg-yellow-100 text-yellow-800',
       'APPROVED': 'bg-green-100 text-green-800',
@@ -310,12 +305,12 @@ export const LeaveAssignmentManager = () => {
                 />
               </div>
             </div>
-            <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value === "ALL" ? "" : value)}>
+            <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value === "ALL_STATUSES" ? "" : value)}>
               <SelectTrigger className="w-48">
                 <SelectValue placeholder="Filter by status" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="ALL">All Statuses</SelectItem>
+                <SelectItem value="ALL_STATUSES">All Statuses</SelectItem>
                 <SelectItem value="PENDING">Pending</SelectItem>
                 <SelectItem value="APPROVED">Approved</SelectItem>
                 <SelectItem value="REJECTED">Rejected</SelectItem>

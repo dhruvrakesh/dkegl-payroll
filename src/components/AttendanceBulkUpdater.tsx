@@ -11,21 +11,22 @@ import { Upload, Download, AlertTriangle, CheckCircle, AlertCircle } from 'lucid
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import Papa from 'papaparse';
-
-interface BulkUpdateResult {
-  successCount: number;
-  errorCount: number;
-  errors: Array<{
-    rowNumber: number;
-    data: any;
-    reason: string;
-    category: string;
-  }>;
-  batchId: string;
-}
+import { BulkUpdateResult } from '@/config/types';
 
 interface AttendanceBulkUpdaterProps {
   onUpdateSuccess?: () => void;
+}
+
+// Type guard for bulk update result
+function isValidBulkUpdateResult(data: any): data is BulkUpdateResult {
+  return (
+    data &&
+    typeof data === 'object' &&
+    typeof data.successCount === 'number' &&
+    typeof data.errorCount === 'number' &&
+    Array.isArray(data.errors) &&
+    typeof data.batchId === 'string'
+  );
 }
 
 export const AttendanceBulkUpdater = ({ onUpdateSuccess }: AttendanceBulkUpdaterProps) => {
@@ -115,7 +116,7 @@ export const AttendanceBulkUpdater = ({ onUpdateSuccess }: AttendanceBulkUpdater
     setResult(null);
 
     try {
-        Papa.parse(file, {
+      Papa.parse(file, {
         header: true,
         complete: async (results) => {
           try {
@@ -126,7 +127,13 @@ export const AttendanceBulkUpdater = ({ onUpdateSuccess }: AttendanceBulkUpdater
 
             if (error) throw error;
 
-            const result = data as unknown as BulkUpdateResult;
+            // Validate the response
+            if (!isValidBulkUpdateResult(data)) {
+              console.error('Invalid response format:', data);
+              throw new Error('Invalid response format from server');
+            }
+
+            const result = data as BulkUpdateResult;
             setResult(result);
             
             if (result.successCount > 0) {

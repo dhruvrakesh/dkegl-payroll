@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Upload, Download, Loader2, CheckCircle, XCircle, ChevronDown, AlertTriangle } from 'lucide-react';
+import { UploadResult, UploadError } from '@/config/types';
 
 interface CsvRow {
   employee_code: string;
@@ -25,24 +26,22 @@ interface ValidationResult {
   errors: string[];
 }
 
-interface UploadError {
-  rowNumber: number;
-  data: any;
-  reason: string;
-  category: 'validation' | 'duplicate' | 'missing_data' | 'database_error';
-}
-
-interface UploadResult {
-  successCount: number;
-  errorCount: number;
-  errors: UploadError[];
-}
-
 interface LeaveBalanceCsvUploaderProps {
   onUploadSuccess?: () => void;
 }
 
 const REQUIRED_COLUMNS = ['employee_code', 'year', 'casual_leave_balance', 'earned_leave_balance'];
+
+// Type guard for leave balance upload result
+function isValidLeaveBalanceResult(data: any): data is UploadResult {
+  return (
+    data &&
+    typeof data === 'object' &&
+    typeof data.successCount === 'number' &&
+    typeof data.errorCount === 'number' &&
+    Array.isArray(data.errors)
+  );
+}
 
 export const LeaveBalanceCsvUploader = ({ onUploadSuccess }: LeaveBalanceCsvUploaderProps) => {
   const [isUploading, setIsUploading] = useState(false);
@@ -160,7 +159,7 @@ export const LeaveBalanceCsvUploader = ({ onUploadSuccess }: LeaveBalanceCsvUplo
             }
 
             // Call the RPC function to get detailed response
-            const { data: result, error: rpcError } = await (supabase.rpc as any)('upsert_leave_balances_from_csv', {
+            const { data: result, error: rpcError } = await supabase.rpc('upsert_leave_balances_from_csv', {
               rows: results.data as any
             });
 
@@ -168,14 +167,13 @@ export const LeaveBalanceCsvUploader = ({ onUploadSuccess }: LeaveBalanceCsvUplo
               throw rpcError;
             }
 
-            // Handle the detailed response
-            const backendResult = result as any;
-            const uploadResult: UploadResult = {
-              successCount: backendResult?.successCount || 0,
-              errorCount: backendResult?.errorCount || 0,
-              errors: (backendResult?.errors || []) as UploadError[]
-            };
+            // Validate the response format
+            if (!isValidLeaveBalanceResult(result)) {
+              console.error('Invalid response format:', result);
+              throw new Error('Invalid response format from server');
+            }
 
+            const uploadResult: UploadResult = result as UploadResult;
             setUploadResult(uploadResult);
             setShowResultDialog(true);
 

@@ -56,3 +56,26 @@ export interface Employee {
   unit_id?: string;
   active: boolean;
 }
+
+// Unified Upload Error interface
+export interface UploadError {
+  rowNumber: number;
+  data: any;
+  reason: string;
+  category: 'validation' | 'duplicate' | 'missing_data' | 'database_error' | 'not_found';
+  originalCode?: string;
+  resolvedCode?: string;
+}
+
+// Unified Upload Result interface
+export interface UploadResult {
+  successCount: number;
+  errorCount: number;
+  errors: UploadError[];
+  batchId?: string;
+}
+
+// Bulk Update Result interface (extends UploadResult for consistency)
+export interface BulkUpdateResult extends UploadResult {
+  batchId: string; // Required for bulk updates
+}

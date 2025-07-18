@@ -8,26 +8,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Upload, Download, AlertCircle, CheckCircle, FileText, Info } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import Papa from 'papaparse';
-
-interface UploadResult {
-  successCount: number;
-  errorCount: number;
-  errors: Array<{
-    rowNumber: number;
-    data: any;
-    reason: string;
-    category: string;
-    originalCode?: string;
-    resolvedCode?: string;
-  }>;
-}
+import { UploadResult } from '@/config/types';
 
 interface AttendanceCsvUploaderProps {
   onUploadSuccess?: () => void;
 }
 
 // Type guard to validate RPC response structure
-function isUploadResult(data: any): data is UploadResult {
+function isValidUploadResult(data: any): data is UploadResult {
   return (
     data &&
     typeof data === 'object' &&
@@ -153,7 +141,7 @@ export const AttendanceCsvUploader = ({ onUploadSuccess }: AttendanceCsvUploader
       }
 
       // Validate and convert the response
-      if (!isUploadResult(data)) {
+      if (!isValidUploadResult(data)) {
         console.error('Invalid response format:', data);
         throw new Error('Invalid response format from server');
       }
