@@ -113,7 +113,7 @@ const handler = async (req: Request): Promise<Response> => {
         // Calculate totals
         const totalHours = attendance?.reduce((sum, att) => sum + (att.hours_worked || 0), 0) || 0;
         const overtimeHours = attendance?.reduce((sum, att) => sum + (att.overtime_hours || 0), 0) || 0;
-        const totalDays = attendance?.length || 0;
+        const totalDays = attendance?.filter(att => att.hours_worked > 0).length || 0;
 
         // Get advances for the month
         const { data: advances, error: advError } = await supabase
@@ -136,17 +136,25 @@ const handler = async (req: Request): Promise<Response> => {
         const hraAmount = employee.hra_amount || 0;
         const otherConvAmount = employee.other_conv_amount || 0;
         
+        // Pro-rate salary based on actual days worked
+        const workingDaysInMonth = 26; // Standard working days
+        const workRatio = totalDays > 0 ? Math.min(totalDays / workingDaysInMonth, 1) : 0;
+        
+        const proRatedBaseSalary = baseSalary * workRatio;
+        const proRatedHra = hraAmount * workRatio;
+        const proRatedOtherConv = otherConvAmount * workRatio;
+        
         // Overtime calculation based on basic salary only
         const dailyBasicRate = baseSalary / 30;
         const hourlyBasicRate = dailyBasicRate / 8;
-        const overtimeAmount = overtimeHours * hourlyBasicRate * 2; // Double rate
+        const overtimeAmount = overtimeHours * hourlyBasicRate * 1.5; // 1.5x rate
         
-        // Gross salary = Base + HRA + Other/Conv + Overtime
-        const grossSalary = baseSalary + hraAmount + otherConvAmount + overtimeAmount;
+        // Gross salary = Pro-rated Base + Pro-rated HRA + Pro-rated Other/Conv + Overtime
+        const grossSalary = proRatedBaseSalary + proRatedHra + proRatedOtherConv + overtimeAmount;
 
         // Calculate deductions with new logic
-        // PF is calculated on basic salary only
-        const pfDeduction = baseSalary * (settings.pf_rate / 100);
+        // PF is calculated on pro-rated basic salary only
+        const pfDeduction = proRatedBaseSalary * (settings.pf_rate / 100);
         
         // ESI is calculated on gross salary but only if gross <= 21,000
         const esiDeduction = grossSalary <= 21000 ? 
@@ -156,9 +164,9 @@ const handler = async (req: Request): Promise<Response> => {
 
         const calculation: PayrollCalculation = {
           employee_id: employee.id,
-          base_salary: baseSalary,
-          hra_amount: hraAmount,
-          other_conv_amount: otherConvAmount,
+          base_salary: proRatedBaseSalary,
+          hra_amount: proRatedHra,
+          other_conv_amount: proRatedOtherConv,
           total_hours_worked: totalHours,
           total_days_present: totalDays,
           overtime_amount: overtimeAmount,
@@ -173,7 +181,7 @@ const handler = async (req: Request): Promise<Response> => {
         calculations.push(calculation);
         processedCount++;
 
-        console.log(`Enhanced calculation for ${employee.name}: Gross: ${grossSalary}, Net: ${netSalary}, ESI Exempt: ${grossSalary > 21000}`);
+        console.log(`Enhanced calculation for ${employee.name}: Gross: ${grossSalary.toFixed(2)}, Net: ${netSalary.toFixed(2)}`);
 
       } catch (error) {
         console.error(`Error processing employee ${employee.name}:`, error);
@@ -201,7 +209,7 @@ const handler = async (req: Request): Promise<Response> => {
       for (const calc of calculations) {
         const { data: employee } = await supabase
           .from('payroll_employees')
-          .select('name')
+          .select('name, email')
           .eq('id', calc.employee_id)
           .single();
 
@@ -210,7 +218,7 @@ const handler = async (req: Request): Promise<Response> => {
         await supabase
           .from('email_queue')
           .insert({
-            to_email: 'info@dkenterprises.co.in',
+            to_email: employee?.email || 'info@dkenterprises.co.in',
             subject: `Enhanced Salary Slip - ${employee?.name} - ${monthString}`,
             html_content: `
               <h2>Enhanced Salary Slip for ${employee?.name}</h2>

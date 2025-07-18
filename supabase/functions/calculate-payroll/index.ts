@@ -10,24 +10,9 @@ const corsHeaders = {
 interface CalculationRequest {
   employee_id: string
   month: string
-  days_present: number
+  days_present?: number
   overtime_hours?: number
   custom_variables?: Record<string, number>
-}
-
-interface FormulaVariable {
-  name: string
-  display_name: string
-  variable_type: string
-  default_value: number
-  calculation_expression?: string
-}
-
-interface PayrollFormula {
-  id: string
-  name: string
-  formula_type: string
-  expression: string
 }
 
 serve(async (req) => {
@@ -50,11 +35,6 @@ serve(async (req) => {
       overtime_hours
     })
 
-    // VALIDATION: Check if days_present is realistic
-    if (days_present < 0 || days_present > 31) {
-      throw new Error('Invalid days_present value')
-    }
-
     // Get employee details with new salary components
     const { data: employee, error: empError } = await supabase
       .from('payroll_employees')
@@ -73,13 +53,13 @@ serve(async (req) => {
       other_conv_amount: employee.other_conv_amount
     })
 
-    // Get attendance data for the month to validate days_present
+    // Get attendance data for the month
     const monthStart = `${month}-01`
     const monthEnd = new Date(new Date(monthStart).getFullYear(), new Date(monthStart).getMonth() + 1, 0).toISOString().split('T')[0]
 
     const { data: attendanceData } = await supabase
       .from('attendance')
-      .select('hours_worked, overtime_hours, attendance_date')
+      .select('hours_worked, overtime_hours, attendance_date, status')
       .eq('employee_id', employee_id)
       .gte('attendance_date', monthStart)
       .lte('attendance_date', monthEnd)
@@ -89,25 +69,20 @@ serve(async (req) => {
       dateRange: { start: monthStart, end: monthEnd }
     })
 
-    // CRITICAL: Calculate ACTUAL days worked (where hours_worked > 0)
+    // Calculate ACTUAL days worked and hours
     const actualDaysWorked = attendanceData?.filter(record => record.hours_worked > 0).length || 0
     const totalHoursWorked = attendanceData?.reduce((sum, record) => sum + record.hours_worked, 0) || 0
     const totalOvertimeHours = attendanceData?.reduce((sum, record) => sum + (record.overtime_hours || 0), 0) || overtime_hours
 
-    // VALIDATION: Use actual attendance data instead of passed days_present
-    const validatedDaysPresent = actualDaysWorked
+    // Use actual attendance data instead of passed days_present
+    const validatedDaysPresent = days_present !== undefined ? days_present : actualDaysWorked
     
     console.log('✅ ATTENDANCE VALIDATION:', {
       passedDaysPresent: days_present,
       actualDaysWorked,
       validatedDaysPresent,
       totalHoursWorked,
-      totalOvertimeHours,
-      attendanceRecords: attendanceData?.map(r => ({
-        date: r.attendance_date,
-        hours: r.hours_worked,
-        overtime: r.overtime_hours
-      })) || []
+      totalOvertimeHours
     })
 
     // SALARY CALCULATION LOGIC
@@ -143,10 +118,10 @@ serve(async (req) => {
       })
     }
     
-    // Overtime calculation based on basic salary only (per day rate = basic/30, per hour = basic/30/8)
+    // Overtime calculation based on basic salary only
     const dailyBasicRate = baseSalary / 30
     const hourlyBasicRate = dailyBasicRate / 8
-    const overtimeAmount = validatedDaysPresent > 0 ? totalOvertimeHours * hourlyBasicRate * 1.5 : 0 // 1.5x rate for overtime
+    const overtimeAmount = validatedDaysPresent > 0 ? totalOvertimeHours * hourlyBasicRate * 1.5 : 0
     
     // Gross salary = Pro-rated Base + Pro-rated HRA + Pro-rated Other/Conv + Overtime
     const grossSalary = proRatedBaseSalary + proRatedHra + proRatedOtherConv + overtimeAmount
@@ -170,10 +145,7 @@ serve(async (req) => {
     const totalAdvances = advancesData?.reduce((sum, record) => sum + record.advance_amount, 0) || 0
 
     // Enhanced deduction calculations
-    // PF is calculated on pro-rated basic salary only (only if employee worked)
     const pfDeduction = validatedDaysPresent > 0 ? Math.min((proRatedBaseSalary * (settings?.pf_rate || 12)) / 100, 1800) : 0
-    
-    // ESI is calculated on gross salary but only if gross <= 21,000 (only if employee worked)
     const esiThreshold = 21000
     const esiDeduction = (validatedDaysPresent > 0 && grossSalary <= esiThreshold) ? 
       (grossSalary * (settings?.esi_rate || 0.75)) / 100 : 0
@@ -195,29 +167,6 @@ serve(async (req) => {
       netSalary: netSalary.toFixed(2)
     })
 
-    // Build variable context for audit trail
-    const variableContext: Record<string, number> = {
-      // Base employee data with pro-rated components
-      base_salary: proRatedBaseSalary,
-      hra_amount: proRatedHra,
-      other_conv_amount: proRatedOtherConv,
-      days_present: validatedDaysPresent,
-      actual_days_worked: validatedDaysPresent,
-      working_days_in_month: workingDaysInMonth,
-      overtime_hours: totalOvertimeHours,
-      total_hours_worked: totalHoursWorked,
-      advances: totalAdvances,
-      gross_salary: grossSalary,
-      
-      // Payroll settings
-      pf_rate: settings?.pf_rate || 12,
-      esi_rate: settings?.esi_rate || 0.75,
-      esi_threshold: esiThreshold,
-      
-      // Custom variables from request
-      ...custom_variables,
-    }
-
     const finalResults = {
       employee_id,
       employee_name: employee.name,
@@ -238,32 +187,18 @@ serve(async (req) => {
       advances_deduction: totalAdvances,
       total_deductions: totalDeductions,
       net_salary: netSalary,
-      variable_context: variableContext,
       attendance_validation: {
         has_attendance: (attendanceData?.length || 0) > 0,
         attendance_records_count: attendanceData?.length || 0,
-        passed_days_present: days_present,
-        calculated_days_worked: validatedDaysPresent,
         total_hours_worked: totalHoursWorked,
         work_percentage: workingDaysInMonth > 0 ? (validatedDaysPresent / workingDaysInMonth) * 100 : 0
       }
     }
 
-    // Save audit trail
-    await supabase
-      .from('payroll_calculation_audit')
-      .insert({
-        employee_id,
-        month: monthStart,
-        calculation_details: finalResults
-      })
-
     console.log('✅ ENHANCED PAYROLL CALCULATION COMPLETED:', {
       employee: employee.name,
       month,
-      actualDaysWorked: validatedDaysPresent,
-      netSalary: netSalary.toFixed(2),
-      zeroSalary: netSalary === 0
+      netSalary: netSalary.toFixed(2)
     })
 
     return new Response(JSON.stringify(finalResults), {

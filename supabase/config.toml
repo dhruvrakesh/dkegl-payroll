@@ -4,5 +4,20 @@ project_id = "xltzaggnwhqskxkrzdqo"
 [functions.get-attendance-template]
 verify_jwt = false
 
+[functions.get-attendance-template-enhanced]
+verify_jwt = false
+
 [functions.get-leave-balance-template]
+verify_jwt = false
+
+[functions.process-monthly-payroll]
+verify_jwt = false
+
+[functions.process-email-queue]
+verify_jwt = false
+
+[functions.validate-formula]
+verify_jwt = false
+
+[functions.calculate-payroll]
 verify_jwt = false

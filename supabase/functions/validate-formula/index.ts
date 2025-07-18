@@ -38,7 +38,9 @@ serve(async (req) => {
       basic_allowance: 1000,
       transport_allowance: 2000,
       meal_allowance: 1500,
-      other_deductions: 0
+      other_deductions: 0,
+      hra_amount: 8000,
+      other_conv_amount: 3000
     }
 
     const testContext = { ...defaultTestVars, ...test_variables }
@@ -76,6 +78,10 @@ serve(async (req) => {
     // Add suggestions
     if (formula_type === 'gross_salary' && !expression.includes('base_salary')) {
       response.suggestions.push('Consider including base_salary in gross salary calculation')
+    }
+
+    if (formula_type === 'net_salary' && !expression.includes('gross_salary')) {
+      response.suggestions.push('Net salary calculation should typically start with gross_salary')
     }
 
     console.log('Validation result:', response)

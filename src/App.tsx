@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -8,6 +9,7 @@ import { AuthProvider } from "@/hooks/useAuth";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { PayrollDashboard } from "./components/PayrollDashboard";
 import { AuthPage } from "./components/auth/AuthPage";
+import Index from "./pages/Index";
 
 const queryClient = new QueryClient();
 
@@ -20,6 +22,7 @@ function App() {
             <Toaster />
             <Sonner />
             <Routes>
+              <Route path="/landing" element={<Index />} />
               <Route path="/auth" element={<AuthPage />} />
               <Route 
                 path="/" 
