@@ -8,25 +8,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Upload, Download, AlertTriangle, CheckCircle, AlertCircle } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import Papa from 'papaparse';
-import { BulkUpdateResult } from '@/config/types';
+import { updateAttendanceBulk, type BulkUpdateResult } from '@/utils/supabaseHelpers';
 
 interface AttendanceBulkUpdaterProps {
   onUpdateSuccess?: () => void;
-}
-
-// Type guard for bulk update result
-function isValidBulkUpdateResult(data: any): data is BulkUpdateResult {
-  return (
-    data &&
-    typeof data === 'object' &&
-    typeof data.successCount === 'number' &&
-    typeof data.errorCount === 'number' &&
-    Array.isArray(data.errors) &&
-    typeof data.batchId === 'string'
-  );
 }
 
 export const AttendanceBulkUpdater = ({ onUpdateSuccess }: AttendanceBulkUpdaterProps) => {
@@ -65,32 +52,26 @@ export const AttendanceBulkUpdater = ({ onUpdateSuccess }: AttendanceBulkUpdater
     });
   };
 
-  const downloadTemplate = async () => {
-    try {
-      const { data, error } = await supabase.functions.invoke('get-attendance-template');
-      
-      if (error) throw error;
-      
-      const blob = new Blob([data], { type: 'text/csv' });
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = 'attendance_bulk_update_template.csv';
-      link.click();
-      window.URL.revokeObjectURL(url);
-      
-      toast({
-        title: "Template downloaded",
-        description: "Fill in the template with updated attendance data",
-      });
-    } catch (error) {
-      console.error('Error downloading template:', error);
-      toast({
-        title: "Error downloading template",
-        description: "Please try again",
-        variant: "destructive",
-      });
-    }
+  const downloadTemplate = () => {
+    const template = `employee_code,date,hours_worked,overtime_hours
+EMP-001,2024-01-15,8,0
+EMP-002,2024-01-15,9,1
+EMP-003,2024-01-15,7,0`;
+    
+    const blob = new Blob([template], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'attendance_bulk_update_template.csv';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+    
+    toast({
+      title: "Template downloaded",
+      description: "Fill in the template with updated attendance data",
+    });
   };
 
   const handleBulkUpdate = async () => {
@@ -120,20 +101,16 @@ export const AttendanceBulkUpdater = ({ onUpdateSuccess }: AttendanceBulkUpdater
         header: true,
         complete: async (results) => {
           try {
-            const { data, error } = await supabase.rpc('update_attendance_from_csv', {
-              rows: results.data as any[],
-              update_reason: updateReason
-            });
+            const { data: result, error } = await updateAttendanceBulk(results.data as any[], updateReason);
 
-            if (error) throw error;
-
-            // Validate the response
-            if (!isValidBulkUpdateResult(data)) {
-              console.error('Invalid response format:', data);
-              throw new Error('Invalid response format from server');
+            if (error) {
+              throw error;
             }
 
-            const result = data as BulkUpdateResult;
+            if (!result) {
+              throw new Error('No result returned from bulk update');
+            }
+
             setResult(result);
             
             if (result.successCount > 0) {
@@ -155,7 +132,7 @@ export const AttendanceBulkUpdater = ({ onUpdateSuccess }: AttendanceBulkUpdater
             console.error('Error updating attendance:', error);
             toast({
               title: "Update failed",
-              description: "There was an error updating the attendance records",
+              description: error instanceof Error ? error.message : "There was an error updating the attendance records",
               variant: "destructive",
             });
           } finally {

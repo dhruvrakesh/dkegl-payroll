@@ -10,9 +10,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
 import { Upload, Download, Loader2, CheckCircle, XCircle, ChevronDown, AlertTriangle } from 'lucide-react';
-import { UploadResult, UploadError } from '@/config/types';
+import { uploadLeaveBalancesCsv, type CsvUploadResult } from '@/utils/supabaseHelpers';
 
 interface CsvRow {
   employee_code: string;
@@ -32,21 +31,10 @@ interface LeaveBalanceCsvUploaderProps {
 
 const REQUIRED_COLUMNS = ['employee_code', 'year', 'casual_leave_balance', 'earned_leave_balance'];
 
-// Type guard for leave balance upload result
-function isValidLeaveBalanceResult(data: any): data is UploadResult {
-  return (
-    data &&
-    typeof data === 'object' &&
-    typeof data.successCount === 'number' &&
-    typeof data.errorCount === 'number' &&
-    Array.isArray(data.errors)
-  );
-}
-
 export const LeaveBalanceCsvUploader = ({ onUploadSuccess }: LeaveBalanceCsvUploaderProps) => {
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [uploadResult, setUploadResult] = useState<UploadResult | null>(null);
+  const [uploadResult, setUploadResult] = useState<CsvUploadResult | null>(null);
   const [showResultDialog, setShowResultDialog] = useState(false);
   const [expandedErrors, setExpandedErrors] = useState(false);
   const { toast } = useToast();
@@ -158,41 +146,36 @@ export const LeaveBalanceCsvUploader = ({ onUploadSuccess }: LeaveBalanceCsvUplo
               return;
             }
 
-            // Call the RPC function to get detailed response
-            const { data: result, error: rpcError } = await supabase.rpc('upsert_leave_balances_from_csv', {
-              rows: results.data as any
-            });
+            // Upload using type-safe helper
+            const { data: result, error: uploadError } = await uploadLeaveBalancesCsv(results.data);
 
-            if (rpcError) {
-              throw rpcError;
+            if (uploadError) {
+              throw uploadError;
             }
 
-            // Validate the response format
-            if (!isValidLeaveBalanceResult(result)) {
-              console.error('Invalid response format:', result);
-              throw new Error('Invalid response format from server');
+            if (!result) {
+              throw new Error('No result returned from upload');
             }
 
-            const uploadResult: UploadResult = result as UploadResult;
-            setUploadResult(uploadResult);
+            setUploadResult(result);
             setShowResultDialog(true);
 
             // Show appropriate toast based on results
-            if (uploadResult.errorCount === 0) {
+            if (result.errorCount === 0) {
               toast({
                 title: "Complete Success",
-                description: `Successfully imported all ${uploadResult.successCount} leave balance records`,
+                description: `Successfully imported all ${result.successCount} leave balance records`,
               });
-            } else if (uploadResult.successCount > 0) {
+            } else if (result.successCount > 0) {
               toast({
                 title: "Partial Success",
-                description: `${uploadResult.successCount} records imported, ${uploadResult.errorCount} failed`,
+                description: `${result.successCount} records imported, ${result.errorCount} failed`,
                 variant: "default"
               });
             } else {
               toast({
                 title: "Upload Failed",
-                description: `All ${uploadResult.errorCount} records failed to import`,
+                description: `All ${result.errorCount} records failed to import`,
                 variant: "destructive"
               });
             }
@@ -201,7 +184,7 @@ export const LeaveBalanceCsvUploader = ({ onUploadSuccess }: LeaveBalanceCsvUplo
             event.target.value = '';
             
             // Call the success callback to refresh data if any records were successful
-            if (onUploadSuccess && uploadResult.successCount > 0) {
+            if (onUploadSuccess && result.successCount > 0) {
               onUploadSuccess();
             }
             
