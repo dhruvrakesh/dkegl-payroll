@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { Calendar, Upload, Download, FileText, AlertTriangle } from 'lucide-react';
+import { Calendar, Upload, Download, FileText, AlertTriangle, CheckCircle } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import Papa from 'papaparse';
 
@@ -248,15 +248,15 @@ EMP-001-0003,SICK_LEAVE,2024-01-18,2024-01-19,Medical checkup`;
       </div>
 
       {/* Information Banner */}
-      <Card className="border-blue-200 bg-blue-50">
+      <Card className="border-green-200 bg-green-50">
         <CardContent className="pt-6">
           <div className="flex items-start gap-3">
-            <AlertTriangle className="w-5 h-5 text-blue-600 mt-0.5" />
+            <CheckCircle className="w-5 h-5 text-green-600 mt-0.5" />
             <div>
-              <h3 className="font-medium text-blue-800">Bulk Leave Application System</h3>
-              <p className="text-sm text-blue-700 mt-1">
-                This system now uses the existing leave_applications table. 
-                Upload CSV files to submit multiple leave applications at once.
+              <h3 className="font-medium text-green-800">Enhanced Bulk Leave System</h3>
+              <p className="text-sm text-green-700 mt-1">
+                Now supports both individual and bulk leave applications with automatic balance deduction 
+                and attendance record creation upon approval.
               </p>
             </div>
           </div>

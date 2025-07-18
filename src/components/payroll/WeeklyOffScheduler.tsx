@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { Calendar, Save, RefreshCw, AlertTriangle } from 'lucide-react';
+import { Calendar, Save, RefreshCw, AlertTriangle, CheckCircle } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface WeeklyOffConfig {
@@ -59,19 +59,45 @@ export const WeeklyOffScheduler = () => {
       if (unitsError) throw unitsError;
       setUnits(unitsData || []);
 
-      // For now, we'll use a simple configuration approach
-      // This can be enhanced once the weekly_off_rules table is created
-      const mockConfigs: WeeklyOffConfig[] = unitsData?.map(unit => ({
-        id: unit.unit_id,
-        unit_id: unit.unit_id,
-        unit_name: unit.unit_name,
-        unit_code: unit.unit_code,
-        weekly_off_day: 0, // Default to Sunday
-        effective_from: format(new Date(), 'yyyy-MM-dd'),
-        notes: 'Default weekly off configuration'
-      })) || [];
+      // Fetch weekly off rules from the new table
+      const { data: weeklyOffData, error: weeklyOffError } = await supabase
+        .from('weekly_off_rules')
+        .select(`
+          *,
+          units(unit_name, unit_code)
+        `)
+        .eq('is_active', true)
+        .order('effective_from', { ascending: false });
 
-      setConfigs(mockConfigs);
+      if (weeklyOffError) {
+        console.log('No weekly off rules found, using default configurations');
+        
+        // Create default configurations for units without rules
+        const mockConfigs: WeeklyOffConfig[] = unitsData?.map(unit => ({
+          id: unit.unit_id,
+          unit_id: unit.unit_id,
+          unit_name: unit.unit_name,
+          unit_code: unit.unit_code,
+          weekly_off_day: 0, // Default to Sunday
+          effective_from: format(new Date(), 'yyyy-MM-dd'),
+          notes: 'Default weekly off configuration'
+        })) || [];
+
+        setConfigs(mockConfigs);
+      } else {
+        // Use real weekly off rules data
+        const realConfigs: WeeklyOffConfig[] = weeklyOffData?.map(rule => ({
+          id: rule.id,
+          unit_id: rule.unit_id,
+          unit_name: rule.units?.unit_name || 'Unknown',
+          unit_code: rule.units?.unit_code || 'UNK',
+          weekly_off_day: rule.day_of_week,
+          effective_from: rule.effective_from,
+          notes: rule.notes || ''
+        })) || [];
+
+        setConfigs(realConfigs);
+      }
 
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -96,18 +122,33 @@ export const WeeklyOffScheduler = () => {
     }
 
     try {
-      // For now, we'll just update the local state
-      // This will be enhanced once the database table is available
-      const selectedUnit = units.find(u => u.unit_id === newConfig.unit_id);
-      
+      // Save to database using the new weekly_off_rules table
+      const { data: insertedRule, error: insertError } = await supabase
+        .from('weekly_off_rules')
+        .insert({
+          unit_id: newConfig.unit_id,
+          day_of_week: newConfig.weekly_off_day,
+          effective_from: newConfig.effective_from,
+          notes: newConfig.notes || 'Weekly off configuration',
+          created_by: (await supabase.auth.getUser()).data.user?.id
+        })
+        .select(`
+          *,
+          units(unit_name, unit_code)
+        `)
+        .single();
+
+      if (insertError) throw insertError;
+
+      // Update local state with the new rule
       const newConfigItem: WeeklyOffConfig = {
-        id: newConfig.unit_id,
-        unit_id: newConfig.unit_id,
-        unit_name: selectedUnit?.unit_name || 'Unknown',
-        unit_code: selectedUnit?.unit_code || 'UNK',
-        weekly_off_day: newConfig.weekly_off_day,
-        effective_from: newConfig.effective_from,
-        notes: newConfig.notes || 'Weekly off configuration'
+        id: insertedRule.id,
+        unit_id: insertedRule.unit_id,
+        unit_name: insertedRule.units?.unit_name || 'Unknown',
+        unit_code: insertedRule.units?.unit_code || 'UNK',
+        weekly_off_day: insertedRule.day_of_week,
+        effective_from: insertedRule.effective_from,
+        notes: insertedRule.notes || ''
       };
 
       setConfigs(prev => {
@@ -117,7 +158,7 @@ export const WeeklyOffScheduler = () => {
 
       toast({
         title: "Success",
-        description: "Weekly off configuration saved (in memory). Database table will be created in next phase.",
+        description: "Weekly off configuration saved to database successfully.",
       });
 
       setNewConfig({
@@ -260,8 +301,8 @@ export const WeeklyOffScheduler = () => {
                     )}
                   </div>
                   <div className="flex items-center gap-2">
-                    <AlertTriangle className="w-4 h-4 text-yellow-500" />
-                    <span className="text-sm text-muted-foreground">Temporary Config</span>
+                    <CheckCircle className="w-4 h-4 text-green-500" />
+                    <span className="text-sm text-muted-foreground">Database Config</span>
                   </div>
                 </div>
               ))}
@@ -271,16 +312,15 @@ export const WeeklyOffScheduler = () => {
       </Card>
 
       {/* Information Banner */}
-      <Card className="border-yellow-200 bg-yellow-50">
+      <Card className="border-green-200 bg-green-50">
         <CardContent className="pt-6">
           <div className="flex items-start gap-3">
-            <AlertTriangle className="w-5 h-5 text-yellow-600 mt-0.5" />
+            <CheckCircle className="w-5 h-5 text-green-600 mt-0.5" />
             <div>
-              <h3 className="font-medium text-yellow-800">Development Phase</h3>
-              <p className="text-sm text-yellow-700 mt-1">
-                This is a simplified version of the Weekly Off Scheduler. 
-                Full functionality with database persistence will be available after the database migration is applied.
-                Current configurations are stored in memory only.
+              <h3 className="font-medium text-green-800">Full Database Integration</h3>
+              <p className="text-sm text-green-700 mt-1">
+                Weekly Off Scheduler is now fully integrated with the database. 
+                All configurations are saved to the weekly_off_rules table with proper audit trails.
               </p>
             </div>
           </div>

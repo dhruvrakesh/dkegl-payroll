@@ -26,14 +26,17 @@ The Enhanced Payroll Management System is a comprehensive web-based application 
 
 ### Key Features
 
-- **Employee Management**: Complete employee lifecycle management
-- **Attendance Tracking**: Individual and bulk attendance data entry with validation
-- **Leave Management**: Comprehensive leave balance tracking and application processing
-- **Formula Management**: Configurable salary calculation formulas with real-time monitoring
-- **Payroll Processing**: Automated salary calculations with audit trails
-- **Bulk Operations**: CSV-based bulk data entry and processing
-- **Reports & Analytics**: Comprehensive reporting with visual dashboards
-- **Audit & Compliance**: Complete audit trails and compliance reporting
+- **Employee Management**: Complete employee lifecycle management with auto-generated codes
+- **Attendance Tracking**: Individual and bulk attendance data entry with real-time validation
+- **Leave Management**: Comprehensive leave balance tracking with bulk application processing
+- **Formula Management**: Configurable salary calculation formulas with real-time performance monitoring
+- **Weekly Off Management**: Systematic weekly off scheduling with unit-specific rules
+- **Overtime Calculation**: Automated OT calculations with Sunday overtime handling
+- **Payroll Processing**: Automated salary calculations with comprehensive audit trails
+- **Bulk Operations**: Advanced CSV-based bulk data entry and processing
+- **Real-time Monitoring**: Live formula performance and validation tracking
+- **Reports & Analytics**: Comprehensive reporting with visual dashboards and insights
+- **Audit & Compliance**: Complete audit trails and regulatory compliance reporting
 
 ### System Architecture
 
@@ -498,6 +501,180 @@ Complete tracking of:
 
 1. Navigate to **Weekly Off** management (under Bulk Operations)
 2. Click **"Create Weekly Off Rule"**
+3. Configure weekly off settings:
+   - **Unit Selection**: Choose the unit/department
+   - **Weekly Off Day**: Select day of the week (Sunday-Saturday)
+   - **Effective From**: Start date for the rule
+   - **Notes**: Optional description
+4. Click **"Save Configuration"**
+
+#### Managing Weekly Off Rules
+
+- **View Current Rules**: See all active weekly off configurations
+- **Unit-Specific Rules**: Different units can have different weekly off days
+- **Date Range Management**: Rules can have effective start and end dates
+- **Override Capabilities**: Temporary changes for special circumstances
+
+#### Database Integration
+
+All weekly off rules are stored in the `weekly_off_rules` table with:
+- Complete audit trail
+- User tracking for changes
+- Historical data preservation
+- Real-time validation
+
+---
+
+## Enhanced Formula Monitoring & Validation
+
+### Real-Time Formula Performance Tracking
+
+#### Accessing the Formula Dashboard
+
+1. Navigate to **Formulas** tab → **Monitoring**
+2. View comprehensive performance metrics:
+   - **Execution Count**: Number of times each formula has run
+   - **Average Execution Time**: Performance metrics in milliseconds
+   - **Success Rate**: Percentage of successful calculations
+   - **Error Count**: Failed calculation tracking
+   - **Status**: Overall formula health (Healthy/Warning/Error)
+
+#### Formula Performance Metrics
+
+The system automatically tracks:
+- **Execution Performance**: Real-time calculation speed
+- **Success Rates**: Percentage of successful formula executions
+- **Error Tracking**: Detailed error logs and frequencies
+- **Resource Usage**: System resource consumption monitoring
+
+#### Overtime Validation System
+
+##### Daily Validation Process
+
+1. **Automatic Validation**: System runs daily overtime validations
+2. **Manual Validation**: Click **"Run Validation"** for immediate checks
+3. **Validation Results**: View detailed validation reports showing:
+   - Employee count processed
+   - Total overtime hours calculated
+   - Discrepancies found
+   - Validation status (Passed/Warning/Failed)
+
+##### Validation Database Logging
+
+All validations are logged to `overtime_validation_log` table:
+- Validation date and time
+- Employee count and OT hours
+- Discrepancies and status
+- Detailed validation results in JSON format
+- User who initiated the validation
+
+### Formula Health Monitoring
+
+#### Status Indicators
+
+- **Healthy** (Green): >95% success rate, normal execution time
+- **Warning** (Yellow): 80-95% success rate or slower performance
+- **Error** (Red): <80% success rate or critical issues
+
+#### Alert System
+
+- Real-time alerts for formula failures
+- Performance degradation warnings
+- Automated error notification
+- Historical trend analysis
+
+---
+
+## Enhanced Bulk Leave Application System
+
+### Bulk Leave Processing Capabilities
+
+#### CSV Upload Process
+
+1. Navigate to **Leave Balance** tab → **Bulk Applications**
+2. Click **"Download Template"** for the CSV format
+3. Fill in leave application data:
+   ```csv
+   employee_code,leave_type,start_date,end_date,reason
+   EMP-MFG-0001,CASUAL_LEAVE,2024-01-15,2024-01-17,Personal work
+   EMP-MFG-0002,EARNED_LEAVE,2024-01-20,2024-01-25,Family vacation
+   ```
+4. Upload completed CSV file
+5. Review applications for validation errors
+6. Click **"Submit All Applications"**
+
+#### Automated Processing
+
+Upon approval, the system automatically:
+- **Deducts Leave Balance**: Updates employee leave balances
+- **Creates Attendance Records**: Marks leave days in attendance
+- **Sends Notifications**: Email alerts to relevant parties
+- **Audit Trail**: Complete logging of all changes
+
+#### Leave Application Validation
+
+The system validates:
+- **Employee Existence**: Verifies employee codes
+- **Leave Balance**: Checks sufficient balance
+- **Date Validation**: Ensures proper date ranges
+- **Overlap Detection**: Prevents conflicting applications
+- **Policy Compliance**: Enforces company leave policies
+
+### Bulk Leave Features
+
+#### Supported Leave Types
+
+- **CASUAL_LEAVE**: Short-term personal leaves
+- **EARNED_LEAVE**: Annual vacation entitlement  
+- **SICK_LEAVE**: Medical leave
+- **MATERNITY_LEAVE**: Maternity benefit
+- **PATERNITY_LEAVE**: Paternity benefit
+- **UNPAID_LEAVE**: Leave without pay
+
+#### Batch Processing
+
+- Process multiple applications simultaneously
+- Unit-wise or department-wise bulk operations
+- Approval workflow integration
+- Real-time status tracking
+
+---
+
+## Advanced Data Entry Systems
+
+### Bulk Data Entry Best Practices
+
+#### Weekly Off Bulk Assignment
+
+1. **Seasonal Changes**: Apply weekly off changes for holiday seasons
+2. **Unit Restructuring**: Bulk update when units change weekly off policies
+3. **Temporary Overrides**: Special weekly off schedules for projects
+
+#### Formula Performance Optimization
+
+1. **Regular Monitoring**: Check formula dashboard daily
+2. **Performance Tuning**: Optimize slow-performing formulas
+3. **Error Resolution**: Address formula errors promptly
+4. **Validation Scheduling**: Set up automated validation routines
+
+### System Integration Points
+
+#### Database Tables Integration
+
+The enhanced system uses these key tables:
+- `weekly_off_rules`: Weekly off management
+- `formula_performance_metrics`: Real-time formula monitoring
+- `overtime_validation_log`: OT calculation validation
+- `bulk_leave_applications`: Enhanced leave processing
+- `leave_applications`: Core leave management
+- `attendance`: Attendance tracking with leave integration
+
+#### Real-Time Processing
+
+- Live formula performance tracking
+- Immediate validation feedback
+- Real-time balance updates
+- Instant audit trail creation
 3. Configure rule parameters:
    - **Unit/Department**: Select applicable unit
    - **Day of Week**: Choose weekly off day
