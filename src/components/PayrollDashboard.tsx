@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -20,7 +19,8 @@ import { SundayOvertimeManager } from './payroll/SundayOvertimeManager';
 import PanchkulaWageCalculator from './payroll/PanchkulaWageCalculator';
 import { EmployeeCodeStatus } from './payroll/EmployeeCodeStatus';
 import { AdminDashboard } from './admin/AdminDashboard';
-import { Users, AlertTriangle, Coffee } from 'lucide-react';
+import { DepartmentManagement } from './payroll/DepartmentManagement';
+import { Users, AlertTriangle, Coffee, Building2 } from 'lucide-react';
 
 export function PayrollDashboard() {
   const { user, profile, loading, hasRole, isAdmin } = useAuth();
@@ -78,6 +78,10 @@ export function PayrollDashboard() {
           <TabsTrigger value="salary">Salary Management</TabsTrigger>
           <TabsTrigger value="panchkula">Panchkula Calculator</TabsTrigger>
           <TabsTrigger value="employees">Employees</TabsTrigger>
+          <TabsTrigger value="departments">
+            <Building2 className="w-4 h-4 mr-1" />
+            Departments
+          </TabsTrigger>
           <TabsTrigger value="attendance">Attendance</TabsTrigger>
           <TabsTrigger value="leave-balance">Leave Balance</TabsTrigger>
           <TabsTrigger value="leave-validation">
@@ -113,6 +117,10 @@ export function PayrollDashboard() {
         <TabsContent value="employees" className="space-y-6">
           <EmployeeCodeStatus />
           <EmployeesManagement />
+        </TabsContent>
+
+        <TabsContent value="departments" className="space-y-6">
+          <DepartmentManagement />
         </TabsContent>
 
         <TabsContent value="attendance" className="space-y-6">
