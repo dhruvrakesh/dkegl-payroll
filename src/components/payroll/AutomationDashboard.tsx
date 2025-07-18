@@ -6,7 +6,12 @@ import { AuditLogs } from './AuditLogs';
 import { EmailQueue } from './EmailQueue';
 import { EmailNotifications } from './EmailNotifications';
 import { LeaveCalendar } from './LeaveCalendar';
-import { Bot, Shield, Mail, Calendar, CalendarDays, Bell } from 'lucide-react';
+import { WeeklyOffScheduler } from './WeeklyOffScheduler';
+import { FormulaMonitoringDashboard } from './FormulaMonitoringDashboard';
+import { BulkLeaveApplicationSystem } from './BulkLeaveApplicationSystem';
+import { SystemInitializer } from './SystemInitializer';
+import { DataIntegrityValidator } from './DataIntegrityValidator';
+import { Bot, Shield, Mail, Calendar, CalendarDays, Bell, Clock, Activity, FileText, Settings, Database } from 'lucide-react';
 
 export const AutomationDashboard = () => {
   return (
@@ -21,32 +26,72 @@ export const AutomationDashboard = () => {
         </div>
       </div>
 
-      <Tabs defaultValue="bulk-operations" className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
+      <Tabs defaultValue="system-init" className="w-full">
+        <TabsList className="grid w-full grid-cols-5 lg:grid-cols-10">
+          <TabsTrigger value="system-init" className="flex items-center gap-2">
+            <Settings className="h-4 w-4" />
+            Setup
+          </TabsTrigger>
+          <TabsTrigger value="data-validator" className="flex items-center gap-2">
+            <Database className="h-4 w-4" />
+            Validator
+          </TabsTrigger>
           <TabsTrigger value="bulk-operations" className="flex items-center gap-2">
             <Calendar className="h-4 w-4" />
-            Bulk Operations
+            Bulk Ops
+          </TabsTrigger>
+          <TabsTrigger value="weekly-off" className="flex items-center gap-2">
+            <Clock className="h-4 w-4" />
+            Weekly Off
+          </TabsTrigger>
+          <TabsTrigger value="bulk-leave" className="flex items-center gap-2">
+            <FileText className="h-4 w-4" />
+            Bulk Leave
+          </TabsTrigger>
+          <TabsTrigger value="formula-monitoring" className="flex items-center gap-2">
+            <Activity className="h-4 w-4" />
+            Formulas
           </TabsTrigger>
           <TabsTrigger value="leave-calendar" className="flex items-center gap-2">
             <CalendarDays className="h-4 w-4" />
-            Leave Calendar
+            Calendar
           </TabsTrigger>
           <TabsTrigger value="email-notifications" className="flex items-center gap-2">
             <Bell className="h-4 w-4" />
-            Notifications
+            Notify
           </TabsTrigger>
           <TabsTrigger value="email-queue" className="flex items-center gap-2">
             <Mail className="h-4 w-4" />
-            Email Queue
+            Email
           </TabsTrigger>
           <TabsTrigger value="audit-logs" className="flex items-center gap-2">
             <Shield className="h-4 w-4" />
-            Audit Logs
+            Audit
           </TabsTrigger>
         </TabsList>
 
+        <TabsContent value="system-init" className="mt-6">
+          <SystemInitializer />
+        </TabsContent>
+
+        <TabsContent value="data-validator" className="mt-6">
+          <DataIntegrityValidator />
+        </TabsContent>
+
         <TabsContent value="bulk-operations" className="mt-6">
           <BulkPayrollOperations />
+        </TabsContent>
+
+        <TabsContent value="weekly-off" className="mt-6">
+          <WeeklyOffScheduler />
+        </TabsContent>
+
+        <TabsContent value="bulk-leave" className="mt-6">
+          <BulkLeaveApplicationSystem />
+        </TabsContent>
+
+        <TabsContent value="formula-monitoring" className="mt-6">
+          <FormulaMonitoringDashboard />
         </TabsContent>
 
         <TabsContent value="leave-calendar" className="mt-6">
