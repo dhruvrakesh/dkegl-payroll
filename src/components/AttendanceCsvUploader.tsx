@@ -26,6 +26,17 @@ interface AttendanceCsvUploaderProps {
   onUploadSuccess?: () => void;
 }
 
+// Type guard to validate RPC response structure
+function isUploadResult(data: any): data is UploadResult {
+  return (
+    data &&
+    typeof data === 'object' &&
+    typeof data.successCount === 'number' &&
+    typeof data.errorCount === 'number' &&
+    Array.isArray(data.errors)
+  );
+}
+
 export const AttendanceCsvUploader = ({ onUploadSuccess }: AttendanceCsvUploaderProps) => {
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -128,14 +139,23 @@ export const AttendanceCsvUploader = ({ onUploadSuccess }: AttendanceCsvUploader
         throw new Error('No valid data rows found in CSV file');
       }
 
+      // Convert dataRows to proper JSON format for RPC call
+      const jsonRows = JSON.parse(JSON.stringify(dataRows));
+
       // Call the enhanced CSV upload function
       const { data, error } = await supabase.rpc('insert_attendance_from_csv_enhanced', {
-        rows: dataRows
+        rows: jsonRows
       });
 
       if (error) {
         console.error('Upload RPC error:', error);
         throw error;
+      }
+
+      // Validate and convert the response
+      if (!isUploadResult(data)) {
+        console.error('Invalid response format:', data);
+        throw new Error('Invalid response format from server');
       }
 
       const result = data as UploadResult;
