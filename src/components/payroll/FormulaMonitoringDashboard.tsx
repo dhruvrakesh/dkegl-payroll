@@ -10,7 +10,6 @@ import { Activity, AlertTriangle, CheckCircle, Clock, TrendingUp, RefreshCw } fr
 import { format } from 'date-fns';
 
 interface FormulaMetrics {
-  id: string;
   formula_name: string;
   execution_count: number;
   avg_execution_time: number;
@@ -41,24 +40,45 @@ export const FormulaMonitoringDashboard = () => {
   const fetchMonitoringData = async () => {
     setLoading(true);
     try {
-      // Fetch formula performance metrics
-      const { data: metricsData, error: metricsError } = await supabase
-        .from('formula_performance_metrics')
-        .select('*')
-        .order('last_executed', { ascending: false });
+      // Since the actual tables don't exist yet, we'll simulate the monitoring data
+      // This can be replaced with real data once the tables are created
+      
+      // Simulate formula metrics based on existing formula variables
+      const { data: formulaVars, error: formulaError } = await supabase
+        .from('formula_variables')
+        .select('*');
 
-      if (metricsError) throw metricsError;
-      setFormulaMetrics(metricsData || []);
+      if (formulaError) throw formulaError;
 
-      // Fetch overtime validation results
-      const { data: overtimeData, error: overtimeError } = await supabase
-        .from('overtime_validation_log')
-        .select('*')
-        .order('date', { ascending: false })
-        .limit(30);
+      // Create mock metrics from existing formulas
+      const mockMetrics: FormulaMetrics[] = formulaVars?.map((formula, index) => ({
+        formula_name: formula.variable_name || `Formula ${index + 1}`,
+        execution_count: Math.floor(Math.random() * 1000) + 100,
+        avg_execution_time: Math.random() * 50 + 10,
+        success_rate: Math.random() * 20 + 80, // 80-100%
+        last_executed: new Date().toISOString(),
+        error_count: Math.floor(Math.random() * 5),
+        status: Math.random() > 0.2 ? 'healthy' : (Math.random() > 0.5 ? 'warning' : 'error')
+      })) || [];
 
-      if (overtimeError) throw overtimeError;
-      setOvertimeValidations(overtimeData || []);
+      setFormulaMetrics(mockMetrics);
+
+      // Simulate overtime validation data
+      const mockOvertimeValidations: OvertimeValidation[] = Array.from({ length: 7 }, (_, i) => {
+        const date = new Date();
+        date.setDate(date.getDate() - i);
+        const discrepancies = Math.floor(Math.random() * 3);
+        
+        return {
+          date: date.toISOString().split('T')[0],
+          employee_count: Math.floor(Math.random() * 50) + 20,
+          discrepancies,
+          total_ot_hours: Math.random() * 200 + 50,
+          validation_status: discrepancies === 0 ? 'passed' : (discrepancies < 2 ? 'warning' : 'failed')
+        };
+      });
+
+      setOvertimeValidations(mockOvertimeValidations);
 
     } catch (error) {
       console.error('Error fetching monitoring data:', error);
@@ -74,15 +94,12 @@ export const FormulaMonitoringDashboard = () => {
 
   const runFormulaValidation = async () => {
     try {
-      const { data, error } = await supabase.functions.invoke('validate-formula', {
-        body: { type: 'full_validation' }
-      });
-
-      if (error) throw error;
-
+      // For now, this will just refresh the mock data
+      // Once the actual system is implemented, this will call the validation function
+      
       toast({
         title: "Success",
-        description: "Formula validation completed successfully",
+        description: "Formula validation completed (simulated). Real validation will be available after database setup.",
       });
 
       fetchMonitoringData();
@@ -98,9 +115,9 @@ export const FormulaMonitoringDashboard = () => {
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'healthy': return <CheckCircle className="w-4 h-4 text-green-500" />;
+      case 'healthy': case 'passed': return <CheckCircle className="w-4 h-4 text-green-500" />;
       case 'warning': return <AlertTriangle className="w-4 h-4 text-yellow-500" />;
-      case 'error': return <AlertTriangle className="w-4 h-4 text-red-500" />;
+      case 'error': case 'failed': return <AlertTriangle className="w-4 h-4 text-red-500" />;
       default: return <Clock className="w-4 h-4 text-gray-500" />;
     }
   };
@@ -122,7 +139,7 @@ export const FormulaMonitoringDashboard = () => {
           <div>
             <h2 className="text-2xl font-bold">Formula & OT Monitoring</h2>
             <p className="text-muted-foreground">
-              Real-time monitoring of formula performance and overtime calculations
+              Monitor formula performance and overtime calculations (Development Preview)
             </p>
           </div>
         </div>
@@ -138,6 +155,22 @@ export const FormulaMonitoringDashboard = () => {
         </div>
       </div>
 
+      {/* Information Banner */}
+      <Card className="border-blue-200 bg-blue-50">
+        <CardContent className="pt-6">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="w-5 h-5 text-blue-600 mt-0.5" />
+            <div>
+              <h3 className="font-medium text-blue-800">Development Preview</h3>
+              <p className="text-sm text-blue-700 mt-1">
+                This dashboard shows simulated monitoring data. Real-time formula performance tracking 
+                and overtime validation will be available after the database tables are created.
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Formula Performance Metrics */}
       <Card>
         <CardHeader>
@@ -146,7 +179,7 @@ export const FormulaMonitoringDashboard = () => {
             Formula Performance Metrics
           </CardTitle>
           <CardDescription>
-            Real-time performance monitoring of payroll calculation formulas
+            Simulated performance monitoring of payroll calculation formulas
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -158,8 +191,8 @@ export const FormulaMonitoringDashboard = () => {
             </div>
           ) : (
             <div className="grid gap-4">
-              {formulaMetrics.map(metric => (
-                <div key={metric.id} className="p-4 border rounded-lg">
+              {formulaMetrics.slice(0, 5).map((metric, index) => (
+                <div key={index} className="p-4 border rounded-lg">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
                       {getStatusIcon(metric.status)}
@@ -207,7 +240,7 @@ export const FormulaMonitoringDashboard = () => {
             Overtime Validation Results
           </CardTitle>
           <CardDescription>
-            Daily validation results for overtime calculations and discrepancies
+            Simulated daily validation results for overtime calculations
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -240,7 +273,7 @@ export const FormulaMonitoringDashboard = () => {
                       <span className="font-medium">{validation.total_ot_hours.toFixed(1)}</span>
                     </div>
                     <div>
-                      <span className="text-muted-foreground">Discrepancies: </span>
+                      <span className="text-muted-foreground">Issues: </span>
                       <span className={`font-medium ${validation.discrepancies > 0 ? 'text-red-600' : 'text-green-600'}`}>
                         {validation.discrepancies}
                       </span>

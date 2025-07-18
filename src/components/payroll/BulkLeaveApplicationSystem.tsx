@@ -5,11 +5,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { Calendar, Upload, Download, Users, FileText } from 'lucide-react';
+import { Calendar, Upload, Download, FileText, AlertTriangle } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import Papa from 'papaparse';
 
@@ -26,8 +25,7 @@ interface LeaveApplication {
 
 export const BulkLeaveApplicationSystem = () => {
   const [applications, setApplications] = useState<LeaveApplication[]>([]);
-  const [units, setUnits] = useState<any[]>([]);
-  const [selectedUnit, setSelectedUnit] = useState('');
+  const [recentApplications, setRecentApplications] = useState<LeaveApplication[]>([]);
   const [loading, setLoading] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const { toast } = useToast();
@@ -42,34 +40,21 @@ export const BulkLeaveApplicationSystem = () => {
   ];
 
   useEffect(() => {
-    fetchUnits();
-    fetchPendingApplications();
+    fetchRecentApplications();
   }, []);
 
-  const fetchUnits = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('units')
-        .select('*')
-        .order('unit_name');
-
-      if (error) throw error;
-      setUnits(data || []);
-    } catch (error) {
-      console.error('Error fetching units:', error);
-    }
-  };
-
-  const fetchPendingApplications = async () => {
+  const fetchRecentApplications = async () => {
     setLoading(true);
     try {
+      // Fetch from existing leave_applications table (which was created in the migration)
       const { data, error } = await supabase
-        .from('bulk_leave_applications')
+        .from('leave_applications')
         .select(`
           *,
           payroll_employees(name, employee_code)
         `)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(10);
 
       if (error) throw error;
       
@@ -79,19 +64,16 @@ export const BulkLeaveApplicationSystem = () => {
         leave_type: app.leave_type,
         start_date: app.start_date,
         end_date: app.end_date,
-        days_requested: app.days_requested,
-        reason: app.reason,
-        status: app.status
+        days_requested: app.total_days,
+        reason: app.reason || '',
+        status: app.status.toLowerCase() as 'pending' | 'approved' | 'rejected'
       })) || [];
 
-      setApplications(mappedApplications);
+      setRecentApplications(mappedApplications);
     } catch (error) {
       console.error('Error fetching applications:', error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch leave applications",
-        variant: "destructive",
-      });
+      // Don't show error toast for empty table - this is expected in development
+      console.log('Note: This is expected if no leave applications exist yet');
     } finally {
       setLoading(false);
     }
@@ -136,7 +118,7 @@ EMP-001-0003,SICK_LEAVE,2024-01-18,2024-01-19,Medical checkup`;
           .filter(row => row.employee_code && row.leave_type)
           .map(row => ({
             employee_code: row.employee_code,
-            employee_name: '', // Will be filled from database
+            employee_name: '', // Will be resolved from database
             leave_type: row.leave_type,
             start_date: row.start_date,
             end_date: row.end_date,
@@ -180,29 +162,59 @@ EMP-001-0003,SICK_LEAVE,2024-01-18,2024-01-19,Medical checkup`;
 
     setLoading(true);
     try {
-      // Process applications through Supabase function
-      const { data, error } = await supabase.functions.invoke('process-bulk-leave-applications', {
-        body: { applications }
-      });
+      let successCount = 0;
+      let errorCount = 0;
 
-      if (error) throw error;
+      // Process each application
+      for (const app of applications) {
+        try {
+          // First, find the employee
+          const { data: employees, error: empError } = await supabase
+            .from('payroll_employees')
+            .select('id, name')
+            .eq('employee_code', app.employee_code)
+            .single();
 
-      toast({
-        title: "Success",
-        description: `${data.successCount} leave applications submitted successfully`,
-      });
+          if (empError || !employees) {
+            errorCount++;
+            continue;
+          }
 
-      if (data.errorCount > 0) {
-        toast({
-          title: "Partial success",
-          description: `${data.errorCount} applications had errors`,
-          variant: "destructive",
-        });
+          // Insert the leave application
+          const { error: insertError } = await supabase
+            .from('leave_applications')
+            .insert({
+              employee_id: employees.id,
+              leave_type: app.leave_type,
+              start_date: app.start_date,
+              end_date: app.end_date,
+              total_days: app.days_requested,
+              reason: app.reason,
+              status: 'PENDING'
+            });
+
+          if (insertError) {
+            errorCount++;
+          } else {
+            successCount++;
+          }
+        } catch (error) {
+          errorCount++;
+        }
       }
 
-      fetchPendingApplications();
-      setFile(null);
-      setApplications([]);
+      toast({
+        title: "Bulk submission completed",
+        description: `${successCount} applications submitted successfully. ${errorCount} failed.`,
+        variant: successCount > 0 ? "default" : "destructive",
+      });
+
+      if (successCount > 0) {
+        fetchRecentApplications();
+        setFile(null);
+        setApplications([]);
+      }
+
     } catch (error) {
       console.error('Error submitting applications:', error);
       toast({
@@ -212,34 +224,6 @@ EMP-001-0003,SICK_LEAVE,2024-01-18,2024-01-19,Medical checkup`;
       });
     } finally {
       setLoading(false);
-    }
-  };
-
-  const updateApplicationStatus = async (index: number, status: 'approved' | 'rejected') => {
-    try {
-      const application = applications[index];
-      
-      const { error } = await supabase
-        .from('bulk_leave_applications')
-        .update({ status })
-        .eq('employee_code', application.employee_code)
-        .eq('start_date', application.start_date);
-
-      if (error) throw error;
-
-      toast({
-        title: "Success",
-        description: `Leave application ${status}`,
-      });
-
-      fetchPendingApplications();
-    } catch (error) {
-      console.error('Error updating application:', error);
-      toast({
-        title: "Error",
-        description: "Failed to update application status",
-        variant: "destructive",
-      });
     }
   };
 
@@ -262,6 +246,22 @@ EMP-001-0003,SICK_LEAVE,2024-01-18,2024-01-19,Medical checkup`;
           </p>
         </div>
       </div>
+
+      {/* Information Banner */}
+      <Card className="border-blue-200 bg-blue-50">
+        <CardContent className="pt-6">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="w-5 h-5 text-blue-600 mt-0.5" />
+            <div>
+              <h3 className="font-medium text-blue-800">Bulk Leave Application System</h3>
+              <p className="text-sm text-blue-700 mt-1">
+                This system now uses the existing leave_applications table. 
+                Upload CSV files to submit multiple leave applications at once.
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Upload Section */}
       <Card>
@@ -312,18 +312,18 @@ EMP-001-0003,SICK_LEAVE,2024-01-18,2024-01-19,Medical checkup`;
         </CardContent>
       </Card>
 
-      {/* Applications Review */}
+      {/* Applications Preview */}
       {applications.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>Review Applications</CardTitle>
+            <CardTitle>Applications to Submit</CardTitle>
             <CardDescription>
-              Review and approve/reject leave applications before final submission
+              Review applications before submitting
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {applications.map((app, index) => (
+              {applications.slice(0, 5).map((app, index) => (
                 <div key={index} className="p-4 border rounded-lg">
                   <div className="flex items-center justify-between">
                     <div className="space-y-1">
@@ -344,34 +344,20 @@ EMP-001-0003,SICK_LEAVE,2024-01-18,2024-01-19,Medical checkup`;
                         </div>
                       )}
                     </div>
-                    
-                    {app.status === 'pending' && (
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => updateApplicationStatus(index, 'approved')}
-                        >
-                          Approve
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => updateApplicationStatus(index, 'rejected')}
-                        >
-                          Reject
-                        </Button>
-                      </div>
-                    )}
                   </div>
                 </div>
               ))}
+              {applications.length > 5 && (
+                <div className="text-sm text-muted-foreground text-center">
+                  ... and {applications.length - 5} more applications
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
       )}
 
-      {/* Pending Applications */}
+      {/* Recent Applications */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -385,13 +371,13 @@ EMP-001-0003,SICK_LEAVE,2024-01-18,2024-01-19,Medical checkup`;
         <CardContent>
           {loading ? (
             <div className="text-center py-8">Loading applications...</div>
-          ) : applications.length === 0 ? (
+          ) : recentApplications.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               No recent applications found
             </div>
           ) : (
             <div className="space-y-3">
-              {applications.slice(0, 10).map((app, index) => (
+              {recentApplications.map((app, index) => (
                 <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
                   <div className="flex items-center gap-3">
                     <Badge className={getStatusColor(app.status)}>

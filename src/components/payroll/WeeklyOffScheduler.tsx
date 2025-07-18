@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,27 +9,27 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Calendar, Save, RefreshCw, AlertTriangle } from 'lucide-react';
-import { format, addDays, startOfWeek, endOfWeek } from 'date-fns';
+import { format } from 'date-fns';
 
-interface WeeklyOffRule {
+interface WeeklyOffConfig {
   id: string;
   unit_id: string;
   unit_name: string;
-  day_of_week: number;
+  unit_code: string;
+  weekly_off_day: number;
   effective_from: string;
-  effective_to: string | null;
-  is_active: boolean;
+  notes: string;
 }
 
 export const WeeklyOffScheduler = () => {
-  const [rules, setRules] = useState<WeeklyOffRule[]>([]);
+  const [configs, setConfigs] = useState<WeeklyOffConfig[]>([]);
   const [units, setUnits] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-  const [newRule, setNewRule] = useState({
+  const [newConfig, setNewConfig] = useState({
     unit_id: '',
-    day_of_week: 0,
+    weekly_off_day: 0,
     effective_from: format(new Date(), 'yyyy-MM-dd'),
-    effective_to: ''
+    notes: ''
   });
   const { toast } = useToast();
 
@@ -58,20 +59,19 @@ export const WeeklyOffScheduler = () => {
       if (unitsError) throw unitsError;
       setUnits(unitsData || []);
 
-      // Fetch existing weekly off rules
-      const { data: rulesData, error: rulesError } = await supabase
-        .from('weekly_off_rules')
-        .select(`
-          *,
-          units(unit_name)
-        `)
-        .order('effective_from', { ascending: false });
+      // For now, we'll use a simple configuration approach
+      // This can be enhanced once the weekly_off_rules table is created
+      const mockConfigs: WeeklyOffConfig[] = unitsData?.map(unit => ({
+        id: unit.unit_id,
+        unit_id: unit.unit_id,
+        unit_name: unit.unit_name,
+        unit_code: unit.unit_code,
+        weekly_off_day: 0, // Default to Sunday
+        effective_from: format(new Date(), 'yyyy-MM-dd'),
+        notes: 'Default weekly off configuration'
+      })) || [];
 
-      if (rulesError) throw rulesError;
-      setRules(rulesData?.map(rule => ({
-        ...rule,
-        unit_name: rule.units?.unit_name || 'Unknown Unit'
-      })) || []);
+      setConfigs(mockConfigs);
 
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -85,72 +85,53 @@ export const WeeklyOffScheduler = () => {
     }
   };
 
-  const handleSaveRule = async () => {
-    if (!newRule.unit_id || !newRule.effective_from) {
+  const handleSaveConfig = async () => {
+    if (!newConfig.unit_id) {
       toast({
         title: "Validation Error",
-        description: "Please fill in all required fields",
+        description: "Please select a unit",
         variant: "destructive",
       });
       return;
     }
 
     try {
-      const { error } = await supabase
-        .from('weekly_off_rules')
-        .insert([{
-          unit_id: newRule.unit_id,
-          day_of_week: newRule.day_of_week,
-          effective_from: newRule.effective_from,
-          effective_to: newRule.effective_to || null,
-          is_active: true
-        }]);
+      // For now, we'll just update the local state
+      // This will be enhanced once the database table is available
+      const selectedUnit = units.find(u => u.unit_id === newConfig.unit_id);
+      
+      const newConfigItem: WeeklyOffConfig = {
+        id: newConfig.unit_id,
+        unit_id: newConfig.unit_id,
+        unit_name: selectedUnit?.unit_name || 'Unknown',
+        unit_code: selectedUnit?.unit_code || 'UNK',
+        weekly_off_day: newConfig.weekly_off_day,
+        effective_from: newConfig.effective_from,
+        notes: newConfig.notes || 'Weekly off configuration'
+      };
 
-      if (error) throw error;
+      setConfigs(prev => {
+        const filtered = prev.filter(c => c.unit_id !== newConfig.unit_id);
+        return [...filtered, newConfigItem];
+      });
 
       toast({
         title: "Success",
-        description: "Weekly off rule created successfully",
+        description: "Weekly off configuration saved (in memory). Database table will be created in next phase.",
       });
 
-      setNewRule({
+      setNewConfig({
         unit_id: '',
-        day_of_week: 0,
+        weekly_off_day: 0,
         effective_from: format(new Date(), 'yyyy-MM-dd'),
-        effective_to: ''
+        notes: ''
       });
 
-      fetchData();
     } catch (error) {
-      console.error('Error saving rule:', error);
+      console.error('Error saving config:', error);
       toast({
         title: "Error",
-        description: "Failed to save weekly off rule",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const toggleRuleStatus = async (ruleId: string, currentStatus: boolean) => {
-    try {
-      const { error } = await supabase
-        .from('weekly_off_rules')
-        .update({ is_active: !currentStatus })
-        .eq('id', ruleId);
-
-      if (error) throw error;
-
-      toast({
-        title: "Success",
-        description: `Rule ${!currentStatus ? 'activated' : 'deactivated'} successfully`,
-      });
-
-      fetchData();
-    } catch (error) {
-      console.error('Error updating rule:', error);
-      toast({
-        title: "Error",
-        description: "Failed to update rule status",
+        description: "Failed to save weekly off configuration",
         variant: "destructive",
       });
     }
@@ -163,24 +144,24 @@ export const WeeklyOffScheduler = () => {
         <div>
           <h2 className="text-2xl font-bold">Weekly Off Scheduler</h2>
           <p className="text-muted-foreground">
-            Manage weekly off days for different units and departments
+            Configure weekly off days for different units and departments
           </p>
         </div>
       </div>
 
-      {/* Add New Rule */}
+      {/* Add New Configuration */}
       <Card>
         <CardHeader>
-          <CardTitle>Create Weekly Off Rule</CardTitle>
+          <CardTitle>Configure Weekly Off</CardTitle>
           <CardDescription>
-            Set up weekly off days for specific units with date ranges
+            Set up weekly off days for specific units
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <Label htmlFor="unit">Unit *</Label>
-              <Select value={newRule.unit_id} onValueChange={(value) => setNewRule(prev => ({ ...prev, unit_id: value }))}>
+              <Select value={newConfig.unit_id} onValueChange={(value) => setNewConfig(prev => ({ ...prev, unit_id: value }))}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select unit" />
                 </SelectTrigger>
@@ -196,7 +177,7 @@ export const WeeklyOffScheduler = () => {
 
             <div>
               <Label htmlFor="day">Weekly Off Day *</Label>
-              <Select value={newRule.day_of_week.toString()} onValueChange={(value) => setNewRule(prev => ({ ...prev, day_of_week: parseInt(value) }))}>
+              <Select value={newConfig.weekly_off_day.toString()} onValueChange={(value) => setNewConfig(prev => ({ ...prev, weekly_off_day: parseInt(value) }))}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select day" />
                 </SelectTrigger>
@@ -214,25 +195,25 @@ export const WeeklyOffScheduler = () => {
               <Label htmlFor="effective_from">Effective From *</Label>
               <Input
                 type="date"
-                value={newRule.effective_from}
-                onChange={(e) => setNewRule(prev => ({ ...prev, effective_from: e.target.value }))}
+                value={newConfig.effective_from}
+                onChange={(e) => setNewConfig(prev => ({ ...prev, effective_from: e.target.value }))}
               />
             </div>
 
             <div>
-              <Label htmlFor="effective_to">Effective To (Optional)</Label>
+              <Label htmlFor="notes">Notes</Label>
               <Input
-                type="date"
-                value={newRule.effective_to}
-                onChange={(e) => setNewRule(prev => ({ ...prev, effective_to: e.target.value }))}
+                value={newConfig.notes}
+                onChange={(e) => setNewConfig(prev => ({ ...prev, notes: e.target.value }))}
+                placeholder="Optional notes"
               />
             </div>
           </div>
 
           <div className="flex gap-2">
-            <Button onClick={handleSaveRule} className="flex items-center gap-2">
+            <Button onClick={handleSaveConfig} className="flex items-center gap-2">
               <Save className="w-4 h-4" />
-              Save Rule
+              Save Configuration
             </Button>
             <Button variant="outline" onClick={fetchData} className="flex items-center gap-2">
               <RefreshCw className="w-4 h-4" />
@@ -242,51 +223,67 @@ export const WeeklyOffScheduler = () => {
         </CardContent>
       </Card>
 
-      {/* Existing Rules */}
+      {/* Current Configurations */}
       <Card>
         <CardHeader>
-          <CardTitle>Existing Weekly Off Rules</CardTitle>
+          <CardTitle>Current Weekly Off Configurations</CardTitle>
           <CardDescription>
-            Manage and monitor current weekly off configurations
+            Review and manage weekly off settings for all units
           </CardDescription>
         </CardHeader>
         <CardContent>
           {loading ? (
             <div className="text-center py-8">Loading...</div>
-          ) : rules.length === 0 ? (
+          ) : configs.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              No weekly off rules configured
+              No configurations set up yet
             </div>
           ) : (
             <div className="space-y-4">
-              {rules.map(rule => (
-                <div key={rule.id} className="flex items-center justify-between p-4 border rounded-lg">
+              {configs.map(config => (
+                <div key={config.id} className="flex items-center justify-between p-4 border rounded-lg">
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
-                      <span className="font-medium">{rule.unit_name}</span>
-                      <Badge variant={rule.is_active ? "default" : "secondary"}>
-                        {rule.is_active ? "Active" : "Inactive"}
-                      </Badge>
+                      <span className="font-medium">{config.unit_name}</span>
+                      <Badge variant="outline">{config.unit_code}</Badge>
                     </div>
                     <div className="text-sm text-muted-foreground">
-                      {daysOfWeek.find(d => d.value === rule.day_of_week)?.label} weekly off
+                      {daysOfWeek.find(d => d.value === config.weekly_off_day)?.label} weekly off
                     </div>
                     <div className="text-sm text-muted-foreground">
-                      From: {format(new Date(rule.effective_from), 'dd MMM yyyy')}
-                      {rule.effective_to && ` | To: ${format(new Date(rule.effective_to), 'dd MMM yyyy')}`}
+                      Effective from: {format(new Date(config.effective_from), 'dd MMM yyyy')}
                     </div>
+                    {config.notes && (
+                      <div className="text-sm text-muted-foreground">
+                        Notes: {config.notes}
+                      </div>
+                    )}
                   </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => toggleRuleStatus(rule.id, rule.is_active)}
-                  >
-                    {rule.is_active ? 'Deactivate' : 'Activate'}
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 text-yellow-500" />
+                    <span className="text-sm text-muted-foreground">Temporary Config</span>
+                  </div>
                 </div>
               ))}
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      {/* Information Banner */}
+      <Card className="border-yellow-200 bg-yellow-50">
+        <CardContent className="pt-6">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="w-5 h-5 text-yellow-600 mt-0.5" />
+            <div>
+              <h3 className="font-medium text-yellow-800">Development Phase</h3>
+              <p className="text-sm text-yellow-700 mt-1">
+                This is a simplified version of the Weekly Off Scheduler. 
+                Full functionality with database persistence will be available after the database migration is applied.
+                Current configurations are stored in memory only.
+              </p>
+            </div>
+          </div>
         </CardContent>
       </Card>
     </div>
