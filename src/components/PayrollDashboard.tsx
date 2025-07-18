@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -21,7 +22,10 @@ import PanchkulaWageCalculator from './payroll/PanchkulaWageCalculator';
 import { EmployeeCodeStatus } from './payroll/EmployeeCodeStatus';
 import { AdminDashboard } from './admin/AdminDashboard';
 import { DepartmentManagement } from './payroll/DepartmentManagement';
-import { Users, AlertTriangle, Coffee, Building2, Calendar, Clock } from 'lucide-react';
+import { WeeklyOffScheduler } from './payroll/WeeklyOffScheduler';
+import { FormulaMonitoringDashboard } from './payroll/FormulaMonitoringDashboard';
+import { BulkLeaveApplicationSystem } from './payroll/BulkLeaveApplicationSystem';
+import { Users, AlertTriangle, Coffee, Building2, Calendar, Clock, Activity, FileText } from 'lucide-react';
 
 export function PayrollDashboard() {
   const { user, profile, loading, hasRole, isAdmin } = useAuth();
@@ -71,7 +75,7 @@ export function PayrollDashboard() {
       <div className="container mx-auto p-6">
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2">Enhanced Payroll Management System</h1>
-          <p className="text-muted-foreground">Comprehensive payroll management with Total Paid Days calculation, leave balance tracking, and enhanced audit trails</p>
+          <p className="text-muted-foreground">Comprehensive payroll management with advanced bulk operations, leave management, and formula monitoring</p>
         </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
@@ -89,13 +93,25 @@ export function PayrollDashboard() {
             <AlertTriangle className="w-4 h-4 mr-1" />
             Leave Validation
           </TabsTrigger>
+          <TabsTrigger value="bulk-leave-apps">
+            <FileText className="w-4 h-4 mr-1" />
+            Bulk Leave Apps
+          </TabsTrigger>
           <TabsTrigger value="sunday-overtime">
             <Coffee className="w-4 h-4 mr-1" />
             Sunday Overtime
           </TabsTrigger>
+          <TabsTrigger value="weekly-off">
+            <Calendar className="w-4 h-4 mr-1" />
+            Weekly Off
+          </TabsTrigger>
           <TabsTrigger value="units">Units</TabsTrigger>
           <TabsTrigger value="advances">Advances</TabsTrigger>
           <TabsTrigger value="formulas">Formulas</TabsTrigger>
+          <TabsTrigger value="formula-monitoring">
+            <Activity className="w-4 h-4 mr-1" />
+            Formula Monitor
+          </TabsTrigger>
           <TabsTrigger value="settings">Settings</TabsTrigger>
           <TabsTrigger value="bulk">Bulk Operations</TabsTrigger>
           <TabsTrigger value="audit">Audit & Logs</TabsTrigger>
@@ -136,12 +152,20 @@ export function PayrollDashboard() {
           <LeaveBalanceValidator />
         </TabsContent>
 
+        <TabsContent value="bulk-leave-apps" className="space-y-6">
+          <BulkLeaveApplicationSystem />
+        </TabsContent>
+
         <TabsContent value="leave-assignments" className="space-y-6">
           <LeaveAssignmentManager />
         </TabsContent>
 
         <TabsContent value="sunday-overtime" className="space-y-6">
           <SundayOvertimeManager />
+        </TabsContent>
+
+        <TabsContent value="weekly-off" className="space-y-6">
+          <WeeklyOffScheduler />
         </TabsContent>
 
         <TabsContent value="units" className="space-y-6">
@@ -154,6 +178,10 @@ export function PayrollDashboard() {
 
         <TabsContent value="formulas" className="space-y-6">
           <FormulaManagement />
+        </TabsContent>
+
+        <TabsContent value="formula-monitoring" className="space-y-6">
+          <FormulaMonitoringDashboard />
         </TabsContent>
 
         <TabsContent value="settings" className="space-y-6">
