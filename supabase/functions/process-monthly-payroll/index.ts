@@ -36,11 +36,12 @@ const handler = async (req: Request): Promise<Response> => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    const { month } = await req.json();
+    const { month, unit_id, language } = await req.json();
     const processMonth = month ? new Date(month) : new Date();
     const monthString = processMonth.toISOString().slice(0, 7); // YYYY-MM format
+    const preferredLanguage = language || 'english';
 
-    console.log(`Processing enhanced payroll for month: ${monthString}`);
+    console.log(`Processing enhanced payroll for month: ${monthString}, unit: ${unit_id || 'all'}, language: ${preferredLanguage}`);
 
     // Create bulk job record
     const { data: bulkJob, error: jobError } = await supabase
@@ -60,11 +61,17 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log('Created bulk job:', bulkJob.id);
 
-    // Get all active employees with new salary components
-    const { data: employees, error: empError } = await supabase
+    // Get all active employees with new salary components (with unit filtering if specified)
+    let employeeQuery = supabase
       .from('payroll_employees')
       .select('*')
       .eq('active', true);
+    
+    if (unit_id) {
+      employeeQuery = employeeQuery.eq('unit_id', unit_id);
+    }
+    
+    const { data: employees, error: empError } = await employeeQuery;
 
     if (empError) {
       console.error('Error fetching employees:', empError);
@@ -209,32 +216,55 @@ const handler = async (req: Request): Promise<Response> => {
       for (const calc of calculations) {
         const { data: employee } = await supabase
           .from('payroll_employees')
-          .select('name, email')
+          .select('name, email, preferred_language')
           .eq('id', calc.employee_id)
           .single();
 
         const esiStatus = calc.gross_salary > 21000 ? 'Exempt (Gross > ₹21,000)' : 'Applicable';
+        const empLanguage = employee?.preferred_language || preferredLanguage;
+        
+        // Generate language-specific content
+        const isHindi = empLanguage === 'hindi';
+        const subject = isHindi 
+          ? `वेतन पर्ची - ${employee?.name} - ${monthString}`
+          : `Enhanced Salary Slip - ${employee?.name} - ${monthString}`;
+        
+        const htmlContent = isHindi ? `
+          <h2>${employee?.name} की वेतन पर्ची</h2>
+          <p>महीना: ${monthString}</p>
+          <h3>आय:</h3>
+          <p>मूल वेतन: ₹${calc.base_salary.toFixed(2)}</p>
+          <p>महंगाई भत्ता: ₹${calc.hra_amount.toFixed(2)}</p>
+          <p>अन्य/यात्रा भत्ता: ₹${calc.other_conv_amount.toFixed(2)}</p>
+          <p>ओवरटाइम: ₹${calc.overtime_amount.toFixed(2)}</p>
+          <p><strong>कुल वेतन: ₹${calc.gross_salary.toFixed(2)}</strong></p>
+          <h3>कटौती:</h3>
+          <p>भविष्य निधि कटौती: ₹${calc.pf_deduction.toFixed(2)}</p>
+          <p>ईएसआई कटौती: ₹${calc.esi_deduction.toFixed(2)}</p>
+          <p>अग्रिम: ₹${calc.advances_deduction.toFixed(2)}</p>
+          <p><strong>शुद्ध वेतन: ₹${calc.net_salary.toFixed(2)}</strong></p>
+        ` : `
+          <h2>Enhanced Salary Slip for ${employee?.name}</h2>
+          <p>Month: ${monthString}</p>
+          <h3>Earnings:</h3>
+          <p>Base Salary: ₹${calc.base_salary.toFixed(2)}</p>
+          <p>HRA: ₹${calc.hra_amount.toFixed(2)}</p>
+          <p>Other/Conveyance: ₹${calc.other_conv_amount.toFixed(2)}</p>
+          <p>Overtime: ₹${calc.overtime_amount.toFixed(2)}</p>
+          <p><strong>Gross Salary: ₹${calc.gross_salary.toFixed(2)}</strong></p>
+          <h3>Deductions:</h3>
+          <p>PF Deduction (on Basic): ₹${calc.pf_deduction.toFixed(2)}</p>
+          <p>ESI Deduction (${esiStatus}): ₹${calc.esi_deduction.toFixed(2)}</p>
+          <p>Advances: ₹${calc.advances_deduction.toFixed(2)}</p>
+          <p><strong>Net Salary: ₹${calc.net_salary.toFixed(2)}</strong></p>
+        `;
 
         await supabase
           .from('email_queue')
           .insert({
             to_email: employee?.email || 'info@dkenterprises.co.in',
-            subject: `Enhanced Salary Slip - ${employee?.name} - ${monthString}`,
-            html_content: `
-              <h2>Enhanced Salary Slip for ${employee?.name}</h2>
-              <p>Month: ${monthString}</p>
-              <h3>Earnings:</h3>
-              <p>Base Salary: ₹${calc.base_salary.toFixed(2)}</p>
-              <p>HRA: ₹${calc.hra_amount.toFixed(2)}</p>
-              <p>Other/Conveyance: ₹${calc.other_conv_amount.toFixed(2)}</p>
-              <p>Overtime: ₹${calc.overtime_amount.toFixed(2)}</p>
-              <p><strong>Gross Salary: ₹${calc.gross_salary.toFixed(2)}</strong></p>
-              <h3>Deductions:</h3>
-              <p>PF Deduction (on Basic): ₹${calc.pf_deduction.toFixed(2)}</p>
-              <p>ESI Deduction (${esiStatus}): ₹${calc.esi_deduction.toFixed(2)}</p>
-              <p>Advances: ₹${calc.advances_deduction.toFixed(2)}</p>
-              <p><strong>Net Salary: ₹${calc.net_salary.toFixed(2)}</strong></p>
-            `,
+            subject: subject,
+            html_content: htmlContent,
             scheduled_for: new Date().toISOString()
           });
       }

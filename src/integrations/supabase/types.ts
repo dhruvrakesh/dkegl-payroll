@@ -143,6 +143,30 @@ export type Database = {
         }
         Relationships: []
       }
+      activity_logs: {
+        Row: {
+          action: string
+          created_at: string
+          details: Json | null
+          id: number
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          details?: Json | null
+          id?: number
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          details?: Json | null
+          id?: number
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       adhesive_coating: {
         Row: {
           adhesion_strength: number | null
@@ -1134,36 +1158,68 @@ export type Database = {
       }
       bill_of_materials: {
         Row: {
+          bom_group_id: string | null
+          bom_version: number | null
+          consumption_rate: number | null
           created_at: string | null
+          customer_code: string | null
           fg_item_code: string
+          gsm_contribution: number | null
           id: string
+          is_active: boolean | null
+          percentage_contribution: number | null
           quantity_required: number
           rm_item_code: string
           specifications: Json | null
           unit_of_measure: string
           updated_at: string | null
+          wastage_percentage: number | null
         }
         Insert: {
+          bom_group_id?: string | null
+          bom_version?: number | null
+          consumption_rate?: number | null
           created_at?: string | null
+          customer_code?: string | null
           fg_item_code: string
+          gsm_contribution?: number | null
           id?: string
+          is_active?: boolean | null
+          percentage_contribution?: number | null
           quantity_required?: number
           rm_item_code: string
           specifications?: Json | null
           unit_of_measure?: string
           updated_at?: string | null
+          wastage_percentage?: number | null
         }
         Update: {
+          bom_group_id?: string | null
+          bom_version?: number | null
+          consumption_rate?: number | null
           created_at?: string | null
+          customer_code?: string | null
           fg_item_code?: string
+          gsm_contribution?: number | null
           id?: string
+          is_active?: boolean | null
+          percentage_contribution?: number | null
           quantity_required?: number
           rm_item_code?: string
           specifications?: Json | null
           unit_of_measure?: string
           updated_at?: string | null
+          wastage_percentage?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "bill_of_materials_bom_group_id_fkey"
+            columns: ["bom_group_id"]
+            isOneToOne: false
+            referencedRelation: "bom_groups"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       blog_posts: {
         Row: {
@@ -1204,6 +1260,39 @@ export type Database = {
           slug?: string
           title?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      bom_groups: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          display_order: number | null
+          group_code: string
+          group_name: string
+          id: string
+          is_active: boolean | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          display_order?: number | null
+          group_code: string
+          group_name: string
+          id?: string
+          is_active?: boolean | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          display_order?: number | null
+          group_code?: string
+          group_name?: string
+          id?: string
+          is_active?: boolean | null
+          updated_at?: string | null
         }
         Relationships: []
       }
@@ -1595,6 +1684,68 @@ export type Database = {
         }
         Relationships: []
       }
+      customer_specifications: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string | null
+          customer_code: string
+          file_path: string
+          file_size: number
+          id: string
+          item_code: string
+          notes: string | null
+          specification_name: string
+          status: string | null
+          updated_at: string | null
+          upload_date: string | null
+          uploaded_by: string | null
+          version: number | null
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string | null
+          customer_code: string
+          file_path: string
+          file_size?: number
+          id?: string
+          item_code: string
+          notes?: string | null
+          specification_name: string
+          status?: string | null
+          updated_at?: string | null
+          upload_date?: string | null
+          uploaded_by?: string | null
+          version?: number | null
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string | null
+          customer_code?: string
+          file_path?: string
+          file_size?: number
+          id?: string
+          item_code?: string
+          notes?: string | null
+          specification_name?: string
+          status?: string | null
+          updated_at?: string | null
+          upload_date?: string | null
+          uploaded_by?: string | null
+          version?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_specifications_item_code_fkey"
+            columns: ["item_code"]
+            isOneToOne: false
+            referencedRelation: "master_data_artworks_se"
+            referencedColumns: ["item_code"]
+          },
+        ]
+      }
       daily_stock_snapshots: {
         Row: {
           created_at: string | null
@@ -1659,6 +1810,13 @@ export type Database = {
             columns: ["item_code"]
             isOneToOne: false
             referencedRelation: "item_master"
+            referencedColumns: ["item_code"]
+          },
+          {
+            foreignKeyName: "daily_stock_summary_item_code_fkey"
+            columns: ["item_code"]
+            isOneToOne: false
+            referencedRelation: "item_specification_summary"
             referencedColumns: ["item_code"]
           },
           {
@@ -1960,6 +2118,74 @@ export type Database = {
         }
         Relationships: []
       }
+      employee_emails: {
+        Row: {
+          batch_id: string | null
+          created_at: string | null
+          email: string
+          employee_id: string
+          id: string
+          is_primary: boolean | null
+          status: string | null
+          updated_at: string | null
+          uploaded_at: string | null
+          uploaded_by: string | null
+        }
+        Insert: {
+          batch_id?: string | null
+          created_at?: string | null
+          email: string
+          employee_id: string
+          id?: string
+          is_primary?: boolean | null
+          status?: string | null
+          updated_at?: string | null
+          uploaded_at?: string | null
+          uploaded_by?: string | null
+        }
+        Update: {
+          batch_id?: string | null
+          created_at?: string | null
+          email?: string
+          employee_id?: string
+          id?: string
+          is_primary?: boolean | null
+          status?: string | null
+          updated_at?: string | null
+          uploaded_at?: string | null
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_emails_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_details_enhanced"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_emails_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "panchkula_payroll_calculation"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "employee_emails_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_calculation_enhanced"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "employee_emails_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employee_leave_balances: {
         Row: {
           casual_leave_balance: number
@@ -2196,6 +2422,42 @@ export type Database = {
         }
         Relationships: []
       }
+      final_reports: {
+        Row: {
+          amount: number
+          id: number
+          master_item_id: number
+          period_id: number
+        }
+        Insert: {
+          amount: number
+          id?: number
+          master_item_id: number
+          period_id: number
+        }
+        Update: {
+          amount?: number
+          id?: number
+          master_item_id?: number
+          period_id?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "final_reports_master_item_id_fkey"
+            columns: ["master_item_id"]
+            isOneToOne: false
+            referencedRelation: "schedule3_master_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "final_reports_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
+            referencedRelation: "financial_periods"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       financial_document_links: {
         Row: {
           created_at: string
@@ -2298,6 +2560,71 @@ export type Database = {
         }
         Relationships: []
       }
+      financial_periods: {
+        Row: {
+          created_at: string
+          id: number
+          notes: string | null
+          quarter_end_date: string
+          status: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          notes?: string | null
+          quarter_end_date: string
+          status?: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          notes?: string | null
+          quarter_end_date?: string
+          status?: string
+          uploaded_by?: string | null
+        }
+        Relationships: []
+      }
+      financial_ratios: {
+        Row: {
+          current_ratio: number | null
+          debt_to_equity_ratio: number | null
+          id: number
+          net_profit_margin: number | null
+          period_id: number
+          return_on_equity: number | null
+          updated_at: string
+        }
+        Insert: {
+          current_ratio?: number | null
+          debt_to_equity_ratio?: number | null
+          id?: number
+          net_profit_margin?: number | null
+          period_id: number
+          return_on_equity?: number | null
+          updated_at?: string
+        }
+        Update: {
+          current_ratio?: number | null
+          debt_to_equity_ratio?: number | null
+          id?: number
+          net_profit_margin?: number | null
+          period_id?: number
+          return_on_equity?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "financial_ratios_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: true
+            referencedRelation: "financial_periods"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       formula_performance_metrics: {
         Row: {
           avg_execution_time_ms: number
@@ -2391,6 +2718,48 @@ export type Database = {
           code?: string
           id?: number
           name?: string
+        }
+        Relationships: []
+      }
+      gdrive_file_mappings: {
+        Row: {
+          confidence_score: number | null
+          created_at: string | null
+          file_name: string
+          gdrive_url: string
+          id: string
+          mapping_status: string | null
+          parsed_customer_code: string | null
+          parsed_dimensions: string | null
+          parsed_item_code: string | null
+          parsed_product_name: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          confidence_score?: number | null
+          created_at?: string | null
+          file_name: string
+          gdrive_url: string
+          id?: string
+          mapping_status?: string | null
+          parsed_customer_code?: string | null
+          parsed_dimensions?: string | null
+          parsed_item_code?: string | null
+          parsed_product_name?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          confidence_score?: number | null
+          created_at?: string | null
+          file_name?: string
+          gdrive_url?: string
+          id?: string
+          mapping_status?: string | null
+          parsed_customer_code?: string | null
+          parsed_dimensions?: string | null
+          parsed_item_code?: string | null
+          parsed_product_name?: string | null
+          updated_at?: string | null
         }
         Relationships: []
       }
@@ -2517,6 +2886,13 @@ export type Database = {
             columns: ["item_code"]
             isOneToOne: false
             referencedRelation: "item_master"
+            referencedColumns: ["item_code"]
+          },
+          {
+            foreignKeyName: "grn_log_item_code_fkey"
+            columns: ["item_code"]
+            isOneToOne: false
+            referencedRelation: "item_specification_summary"
             referencedColumns: ["item_code"]
           },
           {
@@ -2655,6 +3031,13 @@ export type Database = {
             foreignKeyName: "issue_log_item_code_fkey"
             columns: ["item_code"]
             isOneToOne: false
+            referencedRelation: "item_specification_summary"
+            referencedColumns: ["item_code"]
+          },
+          {
+            foreignKeyName: "issue_log_item_code_fkey"
+            columns: ["item_code"]
+            isOneToOne: false
             referencedRelation: "stock_summary"
             referencedColumns: ["item_code"]
           },
@@ -2703,9 +3086,11 @@ export type Database = {
           is_active: boolean | null
           item_code: string
           item_name: string
+          last_specification_update: string | null
           no_of_colours: string | null
           qualifier: string | null
           size_mm: string | null
+          specification_status: string | null
           specifications: Json | null
           status: string | null
           uom: string | null
@@ -2724,9 +3109,11 @@ export type Database = {
           is_active?: boolean | null
           item_code: string
           item_name: string
+          last_specification_update?: string | null
           no_of_colours?: string | null
           qualifier?: string | null
           size_mm?: string | null
+          specification_status?: string | null
           specifications?: Json | null
           status?: string | null
           uom?: string | null
@@ -2745,9 +3132,11 @@ export type Database = {
           is_active?: boolean | null
           item_code?: string
           item_name?: string
+          last_specification_update?: string | null
           no_of_colours?: string | null
           qualifier?: string | null
           size_mm?: string | null
+          specification_status?: string | null
           specifications?: Json | null
           status?: string | null
           uom?: string | null
@@ -3457,6 +3846,99 @@ export type Database = {
             referencedColumns: ["uiorn"]
           },
         ]
+      }
+      material_flow_tracking: {
+        Row: {
+          actual_vs_planned_variance: number | null
+          bom_variance_percentage: number | null
+          created_at: string | null
+          customer_code: string | null
+          fg_item_code: string | null
+          id: string
+          input_material_type: string
+          input_quantity: number
+          input_source_process: string | null
+          input_unit: string
+          material_cost_per_unit: number
+          notes: string | null
+          operator_id: string | null
+          order_quantity: number | null
+          output_good_quantity: number
+          output_rework_quantity: number
+          output_waste_quantity: number
+          planned_consumption: number | null
+          process_stage: Database["public"]["Enums"]["process_stage"]
+          quality_grade: string
+          recorded_at: string
+          rework_reason: string | null
+          total_input_cost: number
+          uiorn: string
+          updated_at: string | null
+          waste_classification: string
+          waste_cost_impact: number
+          yield_percentage: number
+        }
+        Insert: {
+          actual_vs_planned_variance?: number | null
+          bom_variance_percentage?: number | null
+          created_at?: string | null
+          customer_code?: string | null
+          fg_item_code?: string | null
+          id?: string
+          input_material_type: string
+          input_quantity?: number
+          input_source_process?: string | null
+          input_unit?: string
+          material_cost_per_unit?: number
+          notes?: string | null
+          operator_id?: string | null
+          order_quantity?: number | null
+          output_good_quantity?: number
+          output_rework_quantity?: number
+          output_waste_quantity?: number
+          planned_consumption?: number | null
+          process_stage: Database["public"]["Enums"]["process_stage"]
+          quality_grade?: string
+          recorded_at?: string
+          rework_reason?: string | null
+          total_input_cost?: number
+          uiorn: string
+          updated_at?: string | null
+          waste_classification?: string
+          waste_cost_impact?: number
+          yield_percentage?: number
+        }
+        Update: {
+          actual_vs_planned_variance?: number | null
+          bom_variance_percentage?: number | null
+          created_at?: string | null
+          customer_code?: string | null
+          fg_item_code?: string | null
+          id?: string
+          input_material_type?: string
+          input_quantity?: number
+          input_source_process?: string | null
+          input_unit?: string
+          material_cost_per_unit?: number
+          notes?: string | null
+          operator_id?: string | null
+          order_quantity?: number | null
+          output_good_quantity?: number
+          output_rework_quantity?: number
+          output_waste_quantity?: number
+          planned_consumption?: number | null
+          process_stage?: Database["public"]["Enums"]["process_stage"]
+          quality_grade?: string
+          recorded_at?: string
+          rework_reason?: string | null
+          total_input_cost?: number
+          uiorn?: string
+          updated_at?: string | null
+          waste_classification?: string
+          waste_cost_impact?: number
+          yield_percentage?: number
+        }
+        Relationships: []
       }
       material_selection: {
         Row: {
@@ -4613,6 +5095,7 @@ export type Database = {
           created_at: string | null
           date_of_birth: string | null
           department_id: string | null
+          email: string | null
           employee_code: string | null
           hra_amount: number | null
           id: string
@@ -4621,6 +5104,7 @@ export type Database = {
           name: string
           other_conv_amount: number | null
           pan_number: string | null
+          preferred_language: string | null
           uan_number: string
           unit_id: string | null
           updated_at: string | null
@@ -4632,6 +5116,7 @@ export type Database = {
           created_at?: string | null
           date_of_birth?: string | null
           department_id?: string | null
+          email?: string | null
           employee_code?: string | null
           hra_amount?: number | null
           id?: string
@@ -4640,6 +5125,7 @@ export type Database = {
           name: string
           other_conv_amount?: number | null
           pan_number?: string | null
+          preferred_language?: string | null
           uan_number: string
           unit_id?: string | null
           updated_at?: string | null
@@ -4651,6 +5137,7 @@ export type Database = {
           created_at?: string | null
           date_of_birth?: string | null
           department_id?: string | null
+          email?: string | null
           employee_code?: string | null
           hra_amount?: number | null
           id?: string
@@ -4659,6 +5146,7 @@ export type Database = {
           name?: string
           other_conv_amount?: number | null
           pan_number?: string | null
+          preferred_language?: string | null
           uan_number?: string
           unit_id?: string | null
           updated_at?: string | null
@@ -4942,6 +5430,66 @@ export type Database = {
           code?: string
           name?: string
           ordinal?: number
+        }
+        Relationships: []
+      }
+      process_transfers: {
+        Row: {
+          created_at: string | null
+          discrepancy_notes: string | null
+          from_process: string
+          id: string
+          material_type: string
+          quality_notes: string | null
+          quantity_received: number | null
+          quantity_sent: number
+          received_at: string | null
+          received_by: string | null
+          sent_at: string
+          sent_by: string | null
+          to_process: string
+          transfer_status: string
+          uiorn: string
+          unit_of_measure: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          discrepancy_notes?: string | null
+          from_process: string
+          id?: string
+          material_type: string
+          quality_notes?: string | null
+          quantity_received?: number | null
+          quantity_sent: number
+          received_at?: string | null
+          received_by?: string | null
+          sent_at?: string
+          sent_by?: string | null
+          to_process: string
+          transfer_status?: string
+          uiorn: string
+          unit_of_measure?: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          discrepancy_notes?: string | null
+          from_process?: string
+          id?: string
+          material_type?: string
+          quality_notes?: string | null
+          quantity_received?: number | null
+          quantity_sent?: number
+          received_at?: string | null
+          received_by?: string | null
+          sent_at?: string
+          sent_by?: string | null
+          to_process?: string
+          transfer_status?: string
+          uiorn?: string
+          unit_of_measure?: string
+          updated_at?: string | null
         }
         Relationships: []
       }
@@ -5415,6 +5963,71 @@ export type Database = {
         }
         Relationships: []
       }
+      satguru_cylinders: {
+        Row: {
+          colour: string
+          created_at: string | null
+          cylinder_code: string
+          cylinder_name: string
+          cylinder_size: number | null
+          id: string
+          is_active: boolean | null
+          item_code: string
+          last_run: string | null
+          location: string | null
+          manufacturer: string | null
+          mileage_m: number | null
+          remarks: string | null
+          status: string
+          type: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          colour: string
+          created_at?: string | null
+          cylinder_code: string
+          cylinder_name: string
+          cylinder_size?: number | null
+          id?: string
+          is_active?: boolean | null
+          item_code: string
+          last_run?: string | null
+          location?: string | null
+          manufacturer?: string | null
+          mileage_m?: number | null
+          remarks?: string | null
+          status?: string
+          type?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          colour?: string
+          created_at?: string | null
+          cylinder_code?: string
+          cylinder_name?: string
+          cylinder_size?: number | null
+          id?: string
+          is_active?: boolean | null
+          item_code?: string
+          last_run?: string | null
+          location?: string | null
+          manufacturer?: string | null
+          mileage_m?: number | null
+          remarks?: string | null
+          status?: string
+          type?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_satguru_cylinders_item_code"
+            columns: ["item_code"]
+            isOneToOne: false
+            referencedRelation: "_artworks_revised_staging"
+            referencedColumns: ["item_code"]
+          },
+        ]
+      }
       satguru_daily_stock_summary: {
         Row: {
           category_name: string | null
@@ -5468,7 +6081,9 @@ export type Database = {
           item_code: string
           qty_received: number
           remarks: string | null
+          transaction_type: string | null
           uom: string
+          upload_source: string | null
           vendor: string | null
         }
         Insert: {
@@ -5481,7 +6096,9 @@ export type Database = {
           item_code: string
           qty_received: number
           remarks?: string | null
+          transaction_type?: string | null
           uom: string
+          upload_source?: string | null
           vendor?: string | null
         }
         Update: {
@@ -5494,7 +6111,9 @@ export type Database = {
           item_code?: string
           qty_received?: number
           remarks?: string | null
+          transaction_type?: string | null
           uom?: string
+          upload_source?: string | null
           vendor?: string | null
         }
         Relationships: [
@@ -5573,6 +6192,7 @@ export type Database = {
           item_name: string
           qualifier: string | null
           size_mm: string | null
+          specifications: string | null
           status: string
           uom: string
           updated_at: string
@@ -5588,6 +6208,7 @@ export type Database = {
           item_name: string
           qualifier?: string | null
           size_mm?: string | null
+          specifications?: string | null
           status?: string
           uom?: string
           updated_at?: string
@@ -5603,6 +6224,7 @@ export type Database = {
           item_name?: string
           qualifier?: string | null
           size_mm?: string | null
+          specifications?: string | null
           status?: string
           uom?: string
           updated_at?: string
@@ -5672,6 +6294,78 @@ export type Database = {
             referencedColumns: ["item_code"]
           },
         ]
+      }
+      schedule3_mapping: {
+        Row: {
+          created_at: string
+          id: number
+          master_item_id: number
+          period_id: number | null
+          tally_ledger_name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          master_item_id: number
+          period_id?: number | null
+          tally_ledger_name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          master_item_id?: number
+          period_id?: number | null
+          tally_ledger_name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "schedule3_mapping_master_item_id_fkey"
+            columns: ["master_item_id"]
+            isOneToOne: false
+            referencedRelation: "schedule3_master_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "schedule3_mapping_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
+            referencedRelation: "financial_periods"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      schedule3_master_items: {
+        Row: {
+          display_order: number | null
+          id: number
+          is_credit_positive: boolean
+          report_section: string
+          report_sub_section: string | null
+          report_type: string
+          schedule3_item: string
+        }
+        Insert: {
+          display_order?: number | null
+          id?: number
+          is_credit_positive?: boolean
+          report_section: string
+          report_sub_section?: string | null
+          report_type: string
+          schedule3_item: string
+        }
+        Update: {
+          display_order?: number | null
+          id?: number
+          is_credit_positive?: boolean
+          report_section?: string
+          report_sub_section?: string | null
+          report_type?: string
+          schedule3_item?: string
+        }
+        Relationships: []
       }
       segment_performance: {
         Row: {
@@ -6105,6 +6799,13 @@ export type Database = {
             foreignKeyName: "stock_item_code_fkey"
             columns: ["item_code"]
             isOneToOne: true
+            referencedRelation: "item_specification_summary"
+            referencedColumns: ["item_code"]
+          },
+          {
+            foreignKeyName: "stock_item_code_fkey"
+            columns: ["item_code"]
+            isOneToOne: true
             referencedRelation: "stock_summary"
             referencedColumns: ["item_code"]
           },
@@ -6361,6 +7062,41 @@ export type Database = {
           },
         ]
       }
+      trial_balance_entries: {
+        Row: {
+          credit: number | null
+          debit: number | null
+          id: number
+          ledger_name: string
+          parent_group: string | null
+          period_id: number
+        }
+        Insert: {
+          credit?: number | null
+          debit?: number | null
+          id?: number
+          ledger_name: string
+          parent_group?: string | null
+          period_id: number
+        }
+        Update: {
+          credit?: number | null
+          debit?: number | null
+          id?: number
+          ledger_name?: string
+          parent_group?: string | null
+          period_id?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trial_balance_entries_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
+            referencedRelation: "financial_periods"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       uiorn_counter: {
         Row: {
           last_serial: number
@@ -6373,6 +7109,51 @@ export type Database = {
         Update: {
           last_serial?: number
           ui_date?: string
+        }
+        Relationships: []
+      }
+      uiorn_material_consumption: {
+        Row: {
+          actual_quantity: number | null
+          consumed_at: string | null
+          id: string
+          notes: string | null
+          planned_quantity: number
+          process_stage: Database["public"]["Enums"]["process_stage"]
+          recorded_by: string | null
+          rm_item_code: string
+          total_cost: number | null
+          uiorn: string
+          unit_cost: number | null
+          wastage_quantity: number | null
+        }
+        Insert: {
+          actual_quantity?: number | null
+          consumed_at?: string | null
+          id?: string
+          notes?: string | null
+          planned_quantity: number
+          process_stage: Database["public"]["Enums"]["process_stage"]
+          recorded_by?: string | null
+          rm_item_code: string
+          total_cost?: number | null
+          uiorn: string
+          unit_cost?: number | null
+          wastage_quantity?: number | null
+        }
+        Update: {
+          actual_quantity?: number | null
+          consumed_at?: string | null
+          id?: string
+          notes?: string | null
+          planned_quantity?: number
+          process_stage?: Database["public"]["Enums"]["process_stage"]
+          recorded_by?: string | null
+          rm_item_code?: string
+          total_cost?: number | null
+          uiorn?: string
+          unit_cost?: number | null
+          wastage_quantity?: number | null
         }
         Relationships: []
       }
@@ -6550,6 +7331,18 @@ export type Database = {
         }
         Relationships: []
       }
+      item_specification_summary: {
+        Row: {
+          active_specifications: number | null
+          item_code: string | null
+          item_name: string | null
+          last_specification_update: string | null
+          latest_specification_date: string | null
+          specification_status: string | null
+          total_specifications: number | null
+        }
+        Relationships: []
+      }
       manufacturing_analytics: {
         Row: {
           active_orders: number | null
@@ -6560,6 +7353,36 @@ export type Database = {
           overdue_orders: number | null
           pending_orders: number | null
           unique_customers: number | null
+        }
+        Relationships: []
+      }
+      material_availability_view: {
+        Row: {
+          availability_status: string | null
+          available_quantity: number | null
+          operator_id: string | null
+          process_stage: Database["public"]["Enums"]["process_stage"] | null
+          quality_grade: string | null
+          recorded_at: string | null
+          uiorn: string | null
+        }
+        Insert: {
+          availability_status?: never
+          available_quantity?: number | null
+          operator_id?: string | null
+          process_stage?: Database["public"]["Enums"]["process_stage"] | null
+          quality_grade?: string | null
+          recorded_at?: string | null
+          uiorn?: string | null
+        }
+        Update: {
+          availability_status?: never
+          available_quantity?: number | null
+          operator_id?: string | null
+          process_stage?: Database["public"]["Enums"]["process_stage"] | null
+          quality_grade?: string | null
+          recorded_at?: string | null
+          uiorn?: string | null
         }
         Relationships: []
       }
@@ -6807,6 +7630,10 @@ export type Database = {
         Args: { data: string }
         Returns: string
       }
+      calculate_bom_variance: {
+        Args: { p_uiorn: string; p_process_stage: string }
+        Returns: Json
+      }
       calculate_order_progress: {
         Args: Record<PropertyKey, never> | { p_uiorn: string }
         Returns: {
@@ -6840,6 +7667,13 @@ export type Database = {
           leave_days: number
         }[]
       }
+      can_transition_to_stage: {
+        Args: {
+          p_uiorn: string
+          p_target_status: Database["public"]["Enums"]["process_status"]
+        }
+        Returns: boolean
+      }
       check_attendance_data_consistency: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -6862,6 +7696,14 @@ export type Database = {
         }
         Returns: boolean
       }
+      cleanup_duplicate_item_names: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          duplicate_groups_found: number
+          records_preserved: number
+          records_deleted: number
+        }[]
+      }
       cleanup_stuck_jobs: {
         Args: Record<PropertyKey, never>
         Returns: number
@@ -6869,6 +7711,10 @@ export type Database = {
       correct_sunday_attendance: {
         Args: Record<PropertyKey, never>
         Returns: number
+      }
+      create_manufacturing_order_with_artwork: {
+        Args: { p_order_data: Json; p_selected_items: Json }
+        Returns: Json
       }
       create_prompt_and_job: {
         Args: { p_user_id: string; p_prompt_data: Json; p_job_type?: string }
@@ -6963,6 +7809,31 @@ export type Database = {
         }
         Returns: string
       }
+      get_active_items_for_selection: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          item_code: string
+          item_name: string
+          uom: string
+          status: string
+          usage_type: string
+        }[]
+      }
+      get_artwork_items_for_selection: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          item_code: string
+          item_name: string
+          customer_name: string
+          no_of_colours: string
+          dimensions: string
+          file_hyperlink: string
+          file_id: string
+          usage_type: string
+          uom: string
+          status: string
+        }[]
+      }
       get_current_user_role: {
         Args: Record<PropertyKey, never>
         Returns: string
@@ -6977,6 +7848,16 @@ export type Database = {
           job_id: string | null
           viscosity_cps: number
         }[]
+      }
+      get_next_manufacturing_stage: {
+        Args: {
+          p_current_status: Database["public"]["Enums"]["process_status"]
+        }
+        Returns: Database["public"]["Enums"]["process_status"]
+      }
+      get_order_material_progress: {
+        Args: { p_uiorn: string }
+        Returns: Json
       }
       get_order_process_history: {
         Args: { p_uiorn: string }
@@ -7045,6 +7926,14 @@ export type Database = {
       gtrgm_out: {
         Args: { "": unknown }
         Returns: unknown
+      }
+      handle_manufacturing_stage_transition: {
+        Args: {
+          p_uiorn: string
+          p_new_status: Database["public"]["Enums"]["process_status"]
+          p_user_id?: string
+        }
+        Returns: undefined
       }
       has_role: {
         Args: { user_role: string }
@@ -7166,6 +8055,18 @@ export type Database = {
           implementation_priority: string
         }[]
       }
+      parse_gdrive_filename: {
+        Args: { filename: string }
+        Returns: Json
+      }
+      pre_populate_d_kegl_master_items: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      process_issue_batch: {
+        Args: { p_rows: Json }
+        Returns: Json
+      }
       process_queued_jobs: {
         Args: Record<PropertyKey, never>
         Returns: undefined
@@ -7267,6 +8168,20 @@ export type Database = {
           overall_completion_percentage: number
         }[]
       }
+      satguru_insert_manual_item: {
+        Args: {
+          p_item_code: string
+          p_item_name: string
+          p_category_name: string
+          p_qualifier?: string
+          p_gsm?: number
+          p_size_mm?: string
+          p_uom?: string
+          p_usage_type?: string
+          p_specifications?: string
+        }
+        Returns: string
+      }
       satguru_log_analytics_query: {
         Args: {
           p_query_type: string
@@ -7286,6 +8201,10 @@ export type Database = {
       }
       satguru_validate_item_code_format: {
         Args: { p_item_code: string; p_usage_type: string }
+        Returns: boolean
+      }
+      satguru_validate_manual_item_code: {
+        Args: { p_item_code: string }
         Returns: boolean
       }
       satguru_validate_stock_transaction: {
@@ -7354,6 +8273,14 @@ export type Database = {
         Args: { rows: Json; update_reason: string }
         Returns: Json
       }
+      update_cylinder_usage: {
+        Args: {
+          p_cylinder_code: string
+          p_mileage_increment: number
+          p_last_run?: string
+        }
+        Returns: undefined
+      }
       update_formula_metrics: {
         Args: {
           p_formula_name: string
@@ -7405,9 +8332,37 @@ export type Database = {
         }
         Returns: string
       }
+      upsert_satguru_cylinders_from_csv: {
+        Args: { csv_data: Json }
+        Returns: Json
+      }
       urlencode: {
         Args: { data: Json } | { string: string } | { string: string }
         Returns: string
+      }
+      validate_employee_emails_csv: {
+        Args: { rows: Json }
+        Returns: Json
+      }
+      validate_issue_batch: {
+        Args: { p_items: Json }
+        Returns: {
+          row_num: number
+          item_code: string
+          item_name: string
+          available_qty: number
+          requested_qty: number
+          validation_status: string
+          error_message: string
+        }[]
+      }
+      validate_issue_batch_all: {
+        Args: { p_items: Json }
+        Returns: Json
+      }
+      validate_issue_batch_chunked: {
+        Args: { p_items: Json; p_chunk_size?: number; p_chunk_index?: number }
+        Returns: Json
       }
       validate_leave_consumption: {
         Args: {
@@ -7438,6 +8393,7 @@ export type Database = {
         | "ADHESIVE_COATING"
         | "SLITTING"
         | "DISPATCH"
+        | "GRAVURE_PRINTING"
       process_status:
         | "PENDING"
         | "STARTED"
@@ -7445,6 +8401,11 @@ export type Database = {
         | "COMPLETED"
         | "ON_HOLD"
         | "CANCELLED"
+        | "ARTWORK_UPLOAD"
+        | "GRAVURE_PRINTING"
+        | "LAMINATION_COATING"
+        | "ADHESIVE_COATING"
+        | "SLITTING_PACKING"
       stage: "printing" | "lamination" | "adhesive" | "slitting" | "dispatch"
       transfer_status: "pending" | "approved" | "rejected" | "completed"
       variable_type: "fixed" | "calculated" | "employee_specific" | "system"
@@ -7610,6 +8571,7 @@ export const Constants = {
         "ADHESIVE_COATING",
         "SLITTING",
         "DISPATCH",
+        "GRAVURE_PRINTING",
       ],
       process_status: [
         "PENDING",
@@ -7618,6 +8580,11 @@ export const Constants = {
         "COMPLETED",
         "ON_HOLD",
         "CANCELLED",
+        "ARTWORK_UPLOAD",
+        "GRAVURE_PRINTING",
+        "LAMINATION_COATING",
+        "ADHESIVE_COATING",
+        "SLITTING_PACKING",
       ],
       stage: ["printing", "lamination", "adhesive", "slitting", "dispatch"],
       transfer_status: ["pending", "approved", "rejected", "completed"],

@@ -6,11 +6,16 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { Calendar, Play, Clock, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { Calendar, Play, Clock, CheckCircle, XCircle, AlertCircle, Users, Mail } from 'lucide-react';
 import { JOB_STATUS, MESSAGE_TYPES } from '@/config/constants';
 import { getStatusColor } from '@/config/utils';
+import { useUnitsData } from '@/hooks/useUnitsData';
+import { PayrollDetailsTable } from './PayrollDetailsTable';
+import { BulkEmailUploader } from './BulkEmailUploader';
 
 interface BulkJob {
   id: string;
@@ -30,7 +35,11 @@ export const BulkPayrollOperations = () => {
   const [selectedMonth, setSelectedMonth] = useState(
     new Date().toISOString().slice(0, 7) // Current month
   );
+  const [selectedUnit, setSelectedUnit] = useState<string>('all');
+  const [selectedLanguage, setSelectedLanguage] = useState<string>('english');
+  const [activeTab, setActiveTab] = useState('operations');
   const { toast } = useToast();
+  const { units, loading: unitsLoading } = useUnitsData();
 
   useEffect(() => {
     fetchBulkJobs();
@@ -69,18 +78,25 @@ export const BulkPayrollOperations = () => {
     setLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke('process-monthly-payroll', {
-        body: { month: selectedMonth + '-01' }
+        body: { 
+          month: selectedMonth + '-01',
+          unit_id: selectedUnit === 'all' ? null : selectedUnit,
+          language: selectedLanguage
+        }
       });
 
       if (error) throw error;
 
       toast({
         title: MESSAGE_TYPES.SUCCESS,
-        description: 'Monthly payroll processing started successfully',
+        description: `Monthly payroll processing started successfully${selectedUnit !== 'all' ? ' for selected unit' : ''}`,
       });
 
-      // Refresh jobs list
-      setTimeout(fetchBulkJobs, 1000);
+      // Refresh jobs list and switch to details tab
+      setTimeout(() => {
+        fetchBulkJobs();
+        setActiveTab('details');
+      }, 1000);
     } catch (error) {
       console.error('Error triggering payroll:', error);
       toast({
@@ -115,128 +131,203 @@ export const BulkPayrollOperations = () => {
 
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Play className="h-5 w-5" />
-            Bulk Payroll Operations
-          </CardTitle>
-          <CardDescription>
-            Process monthly payroll for all employees and send salary slips automatically
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-end gap-4">
-            <div className="flex-1">
-              <Label htmlFor="month">Select Month</Label>
-              <Input
-                id="month"
-                type="month"
-                value={selectedMonth}
-                onChange={(e) => setSelectedMonth(e.target.value)}
-                max={new Date().toISOString().slice(0, 7)}
-              />
-            </div>
-            <Button
-              onClick={triggerMonthlyPayroll}
-              disabled={loading}
-              className="flex items-center gap-2"
-            >
-              <Play className="h-4 w-4" />
-              {loading ? 'Processing...' : 'Process Monthly Payroll'}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="operations" className="flex items-center gap-2">
+            <Play className="h-4 w-4" />
+            Operations
+          </TabsTrigger>
+          <TabsTrigger value="details" className="flex items-center gap-2">
+            <Users className="h-4 w-4" />
+            Details
+          </TabsTrigger>
+          <TabsTrigger value="emails" className="flex items-center gap-2">
+            <Mail className="h-4 w-4" />
+            Email Management
+          </TabsTrigger>
+          <TabsTrigger value="history" className="flex items-center gap-2">
+            <Calendar className="h-4 w-4" />
+            History
+          </TabsTrigger>
+        </TabsList>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Calendar className="h-5 w-5" />
-            Recent Bulk Operations
-          </CardTitle>
-          <CardDescription>
-            Track the status of recent bulk payroll processing jobs
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {jobs.length === 0 ? (
-            <p className="text-muted-foreground text-center py-8">
-              No bulk operations found
-            </p>
-          ) : (
-            <div className="space-y-4">
-              {jobs.map((job) => (
-                <div
-                  key={job.id}
-                  className="border rounded-lg p-4 space-y-3"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <Badge
-                        className={`${getStatusColor(job.status)} flex items-center gap-1`}
-                      >
-                        {getStatusIcon(job.status)}
-                        {job.status.toUpperCase()}
-                      </Badge>
-                      <span className="font-medium">
-                        {new Date(job.month).toLocaleDateString('en-US', { 
-                          year: 'numeric', 
-                          month: 'long' 
-                        })}
-                      </span>
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                      {new Date(job.created_at).toLocaleDateString()}
-                    </div>
-                  </div>
-
-                  {job.status === JOB_STATUS.PROCESSING && (
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span>Progress</span>
-                        <span>
-                          {job.processed_employees + job.failed_employees} / {job.total_employees}
-                        </span>
-                      </div>
-                      <Progress value={calculateProgress(job)} className="h-2" />
-                    </div>
-                  )}
-
-                  {(job.status === JOB_STATUS.COMPLETED || job.status === JOB_STATUS.FAILED) && (
-                    <div className="grid grid-cols-3 gap-4 text-sm">
-                      <div className="text-center">
-                        <div className="font-medium text-blue-600">
-                          {job.total_employees}
-                        </div>
-                        <div className="text-muted-foreground">Total</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="font-medium text-green-600">
-                          {job.processed_employees}
-                        </div>
-                        <div className="text-muted-foreground">Processed</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="font-medium text-red-600">
-                          {job.failed_employees}
-                        </div>
-                        <div className="text-muted-foreground">Failed</div>
-                      </div>
-                    </div>
-                  )}
-
-                  {job.completed_at && (
-                    <div className="text-sm text-muted-foreground">
-                      Completed: {new Date(job.completed_at).toLocaleString()}
-                    </div>
-                  )}
+        <TabsContent value="operations" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Play className="h-5 w-5" />
+                Bulk Payroll Operations
+              </CardTitle>
+              <CardDescription>
+                Process monthly payroll for employees with unit-wise filtering and language preferences
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <div>
+                  <Label htmlFor="month">Select Month</Label>
+                  <Input
+                    id="month"
+                    type="month"
+                    value={selectedMonth}
+                    onChange={(e) => setSelectedMonth(e.target.value)}
+                    max={new Date().toISOString().slice(0, 7)}
+                  />
                 </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                <div>
+                  <Label htmlFor="unit">Select Unit</Label>
+                  <Select value={selectedUnit} onValueChange={setSelectedUnit}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select unit" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Units</SelectItem>
+                      {units.map((unit) => (
+                        <SelectItem key={unit.unit_id} value={unit.unit_id}>
+                          {unit.unit_name} ({unit.unit_code})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="language">Default Language</Label>
+                  <Select value={selectedLanguage} onValueChange={setSelectedLanguage}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select language" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="english">English</SelectItem>
+                      <SelectItem value="hindi">Hindi</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex items-end">
+                  <Button
+                    onClick={triggerMonthlyPayroll}
+                    disabled={loading || unitsLoading}
+                    className="flex items-center gap-2 w-full"
+                  >
+                    <Play className="h-4 w-4" />
+                    {loading ? 'Processing...' : 'Process Payroll'}
+                  </Button>
+                </div>
+              </div>
+              
+              {selectedUnit !== 'all' && (
+                <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <p className="text-sm text-blue-800">
+                    <strong>Unit-wise Processing:</strong> Only employees from the selected unit will be processed.
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="details" className="space-y-6">
+          <PayrollDetailsTable 
+            month={selectedMonth} 
+            unitId={selectedUnit === 'all' ? undefined : selectedUnit}
+          />
+        </TabsContent>
+
+        <TabsContent value="emails" className="space-y-6">
+          <BulkEmailUploader />
+        </TabsContent>
+
+        <TabsContent value="history" className="space-y-6">
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Calendar className="h-5 w-5" />
+                Recent Bulk Operations
+              </CardTitle>
+              <CardDescription>
+                Track the status of recent bulk payroll processing jobs
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {jobs.length === 0 ? (
+                <p className="text-muted-foreground text-center py-8">
+                  No bulk operations found
+                </p>
+              ) : (
+                <div className="space-y-4">
+                  {jobs.map((job) => (
+                    <div
+                      key={job.id}
+                      className="border rounded-lg p-4 space-y-3"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <Badge
+                            className={`${getStatusColor(job.status)} flex items-center gap-1`}
+                          >
+                            {getStatusIcon(job.status)}
+                            {job.status.toUpperCase()}
+                          </Badge>
+                          <span className="font-medium">
+                            {new Date(job.month).toLocaleDateString('en-US', { 
+                              year: 'numeric', 
+                              month: 'long' 
+                            })}
+                          </span>
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          {new Date(job.created_at).toLocaleDateString()}
+                        </div>
+                      </div>
+
+                      {job.status === JOB_STATUS.PROCESSING && (
+                        <div className="space-y-2">
+                          <div className="flex justify-between text-sm">
+                            <span>Progress</span>
+                            <span>
+                              {job.processed_employees + job.failed_employees} / {job.total_employees}
+                            </span>
+                          </div>
+                          <Progress value={calculateProgress(job)} className="h-2" />
+                        </div>
+                      )}
+
+                      {(job.status === JOB_STATUS.COMPLETED || job.status === JOB_STATUS.FAILED) && (
+                        <div className="grid grid-cols-3 gap-4 text-sm">
+                          <div className="text-center">
+                            <div className="font-medium text-blue-600">
+                              {job.total_employees}
+                            </div>
+                            <div className="text-muted-foreground">Total</div>
+                          </div>
+                          <div className="text-center">
+                            <div className="font-medium text-green-600">
+                              {job.processed_employees}
+                            </div>
+                            <div className="text-muted-foreground">Processed</div>
+                          </div>
+                          <div className="text-center">
+                            <div className="font-medium text-red-600">
+                              {job.failed_employees}
+                            </div>
+                            <div className="text-muted-foreground">Failed</div>
+                          </div>
+                        </div>
+                      )}
+
+                      {job.completed_at && (
+                        <div className="text-sm text-muted-foreground">
+                          Completed: {new Date(job.completed_at).toLocaleString()}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
