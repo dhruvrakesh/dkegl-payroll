@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
@@ -12,7 +13,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { UserPlus, Shield, Users, Activity, Settings, Database, UserCheck, UserX, Eye, Edit, Trash2 } from 'lucide-react';
+import { UserPlus, Shield, Users, Activity, Settings, Database, UserCheck, UserX, Eye, Edit, UserMinus, RotateCcw } from 'lucide-react';
 
 interface UserProfile {
   id: string;
@@ -20,6 +21,7 @@ interface UserProfile {
   employee_id: string;
   role: 'admin' | 'hr' | 'manager' | 'employee';
   is_approved: boolean;
+  is_active: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -41,7 +43,7 @@ export function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('all');
-  const [approvalFilter, setApprovalFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
 
   // Fetch users
   const fetchUsers = async () => {
@@ -60,6 +62,7 @@ export function AdminDashboard() {
         employee_id: user.employee_id,
         role: user.role as 'admin' | 'hr' | 'manager' | 'employee',
         is_approved: user.is_approved,
+        is_active: user.is_active ?? true, // Default to true if not set
         created_at: user.created_at,
         updated_at: user.updated_at
       }));
@@ -163,33 +166,79 @@ export function AdminDashboard() {
     }
   };
 
-  // Delete user
-  const deleteUser = async (userId: string) => {
+  // Deactivate user (soft delete)
+  const deactivateUser = async (userId: string) => {
     try {
-      const { error } = await supabase.auth.admin.deleteUser(userId);
+      const { error } = await supabase
+        .from('profiles')
+        .update({ 
+          is_active: false, 
+          updated_at: new Date().toISOString() 
+        })
+        .eq('id', userId);
 
       if (error) throw error;
 
       // Log the action
       await supabase.from('admin_audit_log').insert({
         admin_id: user?.id,
-        action: 'USER_DELETED',
+        action: 'USER_DEACTIVATED',
         target_table: 'profiles',
-        target_id: userId
+        target_id: userId,
+        new_data: { is_active: false }
       });
 
       toast({
         title: "Success",
-        description: "User deleted successfully",
+        description: "User deactivated successfully",
       });
 
       fetchUsers();
       fetchAuditLogs();
     } catch (error) {
-      console.error('Error deleting user:', error);
+      console.error('Error deactivating user:', error);
       toast({
         title: "Error",
-        description: "Failed to delete user",
+        description: "Failed to deactivate user",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Reactivate user
+  const reactivateUser = async (userId: string) => {
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ 
+          is_active: true, 
+          updated_at: new Date().toISOString() 
+        })
+        .eq('id', userId);
+
+      if (error) throw error;
+
+      // Log the action
+      await supabase.from('admin_audit_log').insert({
+        admin_id: user?.id,
+        action: 'USER_REACTIVATED',
+        target_table: 'profiles',
+        target_id: userId,
+        new_data: { is_active: true }
+      });
+
+      toast({
+        title: "Success",
+        description: "User reactivated successfully",
+      });
+
+      fetchUsers();
+      fetchAuditLogs();
+    } catch (error) {
+      console.error('Error reactivating user:', error);
+      toast({
+        title: "Error",
+        description: "Failed to reactivate user",
         variant: "destructive",
       });
     }
@@ -231,11 +280,13 @@ export function AdminDashboard() {
     const matchesSearch = user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          user.employee_id.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesRole = roleFilter === 'all' || user.role === roleFilter;
-    const matchesApproval = approvalFilter === 'all' || 
-                           (approvalFilter === 'approved' && user.is_approved) ||
-                           (approvalFilter === 'pending' && !user.is_approved);
+    const matchesStatus = statusFilter === 'all' || 
+                         (statusFilter === 'approved' && user.is_approved) ||
+                         (statusFilter === 'pending' && !user.is_approved) ||
+                         (statusFilter === 'active' && user.is_active) ||
+                         (statusFilter === 'inactive' && !user.is_active);
     
-    return matchesSearch && matchesRole && matchesApproval;
+    return matchesSearch && matchesRole && matchesStatus;
   });
 
   const getRoleBadgeVariant = (role: string) => {
@@ -320,8 +371,8 @@ export function AdminDashboard() {
                   </Select>
                 </div>
                 <div className="w-full sm:w-48">
-                  <Label>Approval Filter</Label>
-                  <Select value={approvalFilter} onValueChange={setApprovalFilter}>
+                  <Label>Status Filter</Label>
+                  <Select value={statusFilter} onValueChange={setStatusFilter}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -329,6 +380,8 @@ export function AdminDashboard() {
                       <SelectItem value="all">All Status</SelectItem>
                       <SelectItem value="approved">Approved</SelectItem>
                       <SelectItem value="pending">Pending</SelectItem>
+                      <SelectItem value="active">Active</SelectItem>
+                      <SelectItem value="inactive">Inactive</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -341,6 +394,7 @@ export function AdminDashboard() {
                       <TableHead>Email</TableHead>
                       <TableHead>Employee ID</TableHead>
                       <TableHead>Role</TableHead>
+                      <TableHead>Approval</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Created</TableHead>
                       <TableHead>Actions</TableHead>
@@ -348,7 +402,7 @@ export function AdminDashboard() {
                   </TableHeader>
                   <TableBody>
                     {filteredUsers.map((user) => (
-                      <TableRow key={user.id}>
+                      <TableRow key={user.id} className={!user.is_active ? 'opacity-50' : ''}>
                         <TableCell className="font-medium">{user.email}</TableCell>
                         <TableCell>{user.employee_id}</TableCell>
                         <TableCell>
@@ -362,11 +416,16 @@ export function AdminDashboard() {
                           </Badge>
                         </TableCell>
                         <TableCell>
+                          <Badge variant={user.is_active ? 'default' : 'destructive'}>
+                            {user.is_active ? 'Active' : 'Inactive'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
                           {new Date(user.created_at).toLocaleDateString()}
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center space-x-2">
-                            {!user.is_approved && (
+                            {!user.is_approved && user.is_active && (
                               <Button
                                 size="sm"
                                 variant="outline"
@@ -419,30 +478,42 @@ export function AdminDashboard() {
                               </DialogContent>
                             </Dialog>
                             {user.email !== 'info@dkenterprises.co.in' && (
-                              <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                  <Button size="sm" variant="destructive">
-                                    <Trash2 className="w-4 h-4" />
+                              <>
+                                {user.is_active ? (
+                                  <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                      <Button size="sm" variant="destructive">
+                                        <UserMinus className="w-4 h-4" />
+                                      </Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                      <AlertDialogHeader>
+                                        <AlertDialogTitle>Deactivate User</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                          Are you sure you want to deactivate {user.email}? They will no longer be able to access the system, but their data will be preserved.
+                                        </AlertDialogDescription>
+                                      </AlertDialogHeader>
+                                      <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                        <AlertDialogAction
+                                          onClick={() => deactivateUser(user.id)}
+                                          className="bg-destructive text-destructive-foreground"
+                                        >
+                                          Deactivate
+                                        </AlertDialogAction>
+                                      </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                  </AlertDialog>
+                                ) : (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => reactivateUser(user.id)}
+                                  >
+                                    <RotateCcw className="w-4 h-4" />
                                   </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                  <AlertDialogHeader>
-                                    <AlertDialogTitle>Delete User</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                      Are you sure you want to delete {user.email}? This action cannot be undone.
-                                    </AlertDialogDescription>
-                                  </AlertDialogHeader>
-                                  <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                    <AlertDialogAction
-                                      onClick={() => deleteUser(user.id)}
-                                      className="bg-destructive text-destructive-foreground"
-                                    >
-                                      Delete
-                                    </AlertDialogAction>
-                                  </AlertDialogFooter>
-                                </AlertDialogContent>
-                              </AlertDialog>
+                                )}
+                              </>
                             )}
                           </div>
                         </TableCell>
@@ -556,7 +627,7 @@ export function AdminDashboard() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <Card>
                   <CardHeader>
                     <CardTitle className="text-lg">Total Users</CardTitle>
@@ -567,11 +638,21 @@ export function AdminDashboard() {
                 </Card>
                 <Card>
                   <CardHeader>
+                    <CardTitle className="text-lg">Active Users</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">
+                      {users.filter(u => u.is_active).length}
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader>
                     <CardTitle className="text-lg">Pending Approvals</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold">
-                      {users.filter(u => !u.is_approved).length}
+                      {users.filter(u => !u.is_approved && u.is_active).length}
                     </div>
                   </CardContent>
                 </Card>
@@ -581,7 +662,7 @@ export function AdminDashboard() {
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold">
-                      {users.filter(u => u.role === 'admin').length}
+                      {users.filter(u => u.role === 'admin' && u.is_active).length}
                     </div>
                   </CardContent>
                 </Card>
