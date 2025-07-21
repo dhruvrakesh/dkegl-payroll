@@ -1,25 +1,16 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import type { 
-  ReconciliationData, 
-  Unit, 
-  ReconciliationParams, 
-  ReconciliationResult,
-  AdjustmentParams,
-  AdjustmentResult 
-} from './types';
 
 export const useLeaveReconciliation = () => {
-  const [reconciliationData, setReconciliationData] = useState<ReconciliationData[]>([]);
-  const [units, setUnits] = useState<Unit[]>([]);
+  const [reconciliationData, setReconciliationData] = useState([]);
+  const [units, setUnits] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [selectedUnit, setSelectedUnit] = useState('');
   const [adjustmentReason, setAdjustmentReason] = useState('');
-  const [selectedEmployees, setSelectedEmployees] = useState<string[]>([]);
+  const [selectedEmployees, setSelectedEmployees] = useState([]);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -58,21 +49,20 @@ export const useLeaveReconciliation = () => {
 
     setLoading(true);
     try {
-      const params: ReconciliationParams = {
+      const params = {
         p_month: selectedMonth,
         p_year: selectedYear,
         p_unit_id: selectedUnit || null
       };
 
-      const { data, error } = await (supabase.rpc as any)('reconcile_monthly_leaves', params);
+      const { data, error } = await supabase.rpc('reconcile_monthly_leaves', params);
 
       if (error) throw error;
       
-      const result = data as ReconciliationResult;
-      setReconciliationData(result?.employee_data || []);
+      setReconciliationData(data?.employee_data || []);
       toast({
         title: "Success",
-        description: `Reconciliation completed for ${result?.total_employees || 0} employees`,
+        description: `Reconciliation completed for ${data?.total_employees || 0} employees`,
       });
     } catch (error) {
       console.error('Error during reconciliation:', error);
@@ -108,25 +98,24 @@ export const useLeaveReconciliation = () => {
 
     setLoading(true);
     try {
-      const params: AdjustmentParams = {
+      const params = {
         p_adjustments: adjustmentsToApply,
         p_reason: adjustmentReason,
         p_month: selectedMonth,
         p_year: selectedYear
       };
 
-      const { data, error } = await (supabase.rpc as any)('apply_leave_adjustments', params);
+      const { data, error } = await supabase.rpc('apply_leave_adjustments', params);
 
       if (error) throw error;
 
-      const result = data as AdjustmentResult;
       toast({
         title: "Success",
-        description: `Applied adjustments for ${result?.successCount || 0} employees`,
+        description: `Applied adjustments for ${data?.successCount || 0} employees`,
       });
 
-      if ((result?.errorCount || 0) > 0) {
-        console.error('Some adjustments failed:', result?.errors);
+      if ((data?.errorCount || 0) > 0) {
+        console.error('Some adjustments failed:', data?.errors);
       }
 
       // Clear selections and refresh data
@@ -144,7 +133,7 @@ export const useLeaveReconciliation = () => {
     }
   };
 
-  const toggleEmployeeSelection = (employeeId: string) => {
+  const toggleEmployeeSelection = (employeeId) => {
     setSelectedEmployees(prev => 
       prev.includes(employeeId) 
         ? prev.filter(id => id !== employeeId)
