@@ -13,6 +13,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import * as XLSX from 'xlsx';
 import type { DateRange } from 'react-day-picker';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ReconciledPayrollCalculator } from './ReconciledPayrollCalculator';
 
 interface Unit {
   unit_id: string;
@@ -94,6 +98,10 @@ export function WageCalculatorDashboard({ selectedBatchId, onSalaryGenerated }: 
   const [validationWarnings, setValidationWarnings] = useState<string[]>([]);
   const [payrollSettings, setPayrollSettings] = useState<any>(null);
   const [testMode, setTestMode] = useState(false);
+  const [reconciliationStatus, setReconciliationStatus] = useState<{
+    completed: boolean;
+    warning?: string;
+  }>({ completed: false });
 
   useEffect(() => {
     fetchUnits();
@@ -115,6 +123,41 @@ export function WageCalculatorDashboard({ selectedBatchId, onSalaryGenerated }: 
       console.log('WageCalculatorDashboard received batch ID:', selectedBatchId);
     }
   }, [selectedBatchId]);
+
+  useEffect(() => {
+    if (dateRange?.from && selectedUnit) {
+      checkReconciliationStatus();
+    }
+  }, [dateRange, selectedUnit]);
+
+  const checkReconciliationStatus = async () => {
+    if (!dateRange?.from || !selectedUnit) return;
+
+    try {
+      const monthDate = dateRange.from;
+      const monthNum = monthDate.getMonth() + 1;
+      const yearNum = monthDate.getFullYear();
+
+      const { data, error } = await supabase.rpc('get_reconciliation_status', {
+        p_month: monthNum,
+        p_year: yearNum,
+        p_unit_id: selectedUnit
+      });
+
+      if (error) {
+        console.error('Error checking reconciliation status:', error);
+        return;
+      }
+
+      const hasCompleted = data?.some((status: any) => status.is_completed) || false;
+      setReconciliationStatus({
+        completed: hasCompleted,
+        warning: hasCompleted ? undefined : 'Calculations will use raw attendance data instead of reconciled leave balances'
+      });
+    } catch (error) {
+      console.error('Error in reconciliation status check:', error);
+    }
+  };
 
   const fetchUnits = async () => {
     try {
@@ -265,8 +308,14 @@ export function WageCalculatorDashboard({ selectedBatchId, onSalaryGenerated }: 
       const startDate = dateRange.from.toISOString().split('T')[0];
       const endDate = dateRange.to.toISOString().split('T')[0];
 
+      // Add reconciliation warning if not completed
+      if (!reconciliationStatus.completed) {
+        warnings.push('⚠️ RECONCILIATION WARNING: Leave reconciliation not completed for this period. Calculations may be inaccurate.');
+      }
+
       // ENHANCED FETCH WITH DETAILED LOGGING FOR TESTING
       console.log(`📅 Fetching attendance data for period: ${startDate} to ${endDate}`);
+      console.log(`🔍 Reconciliation Status: ${reconciliationStatus.completed ? 'COMPLETED' : 'NOT COMPLETED'}`);
       
       let allAttendanceRecords: any[] = [];
       let offset = 0;
@@ -313,7 +362,7 @@ export function WageCalculatorDashboard({ selectedBatchId, onSalaryGenerated }: 
       // Get total calendar days in the month
       const totalDaysInMonth = new Date(dateRange.from.getFullYear(), dateRange.from.getMonth() + 1, 0).getDate();
 
-      console.log(`📊 SALARY CALCULATION - TOTAL PAID DAYS METHOD:`, {
+      console.log(`📊 SALARY CALCULATION - TOTAL PAID DAYS METHOD (${reconciliationStatus.completed ? 'WITH RECONCILIATION' : 'WITHOUT RECONCILIATION'}):`, {
         totalDaysInMonth,
         dateRange: { from: startDate, to: endDate },
         totalRecords: allAttendanceRecords.length,
@@ -390,7 +439,7 @@ export function WageCalculatorDashboard({ selectedBatchId, onSalaryGenerated }: 
           proRatedBaseSalary = baseSalary * paidRatio;
           proRatedHra = hraAmount * paidRatio;
           proRatedOtherConv = otherConvAmount * paidRatio;
-          warnings.push(`${employee.name}: ${totalPaidDays}/${totalDaysInMonth} paid days - Pro-rated salary`);
+          warnings.push(`${employee.name}: ${totalPaidDays}/${totalDaysInMonth} paid days - Pro-rated salary (${reconciliationStatus.completed ? 'reconciled' : 'raw data'})`);
         }
 
         // Enhanced overtime calculation with Sunday premium
@@ -445,7 +494,8 @@ export function WageCalculatorDashboard({ selectedBatchId, onSalaryGenerated }: 
             proRatedBaseSalary: proRatedBaseSalary.toFixed(2),
             grossSalary: grossSalary.toFixed(2),
             lwfDeduction: lwfDeduction.toFixed(2),
-            netSalary: netSalary.toFixed(2)
+            netSalary: netSalary.toFixed(2),
+            reconciliationStatus: reconciliationStatus.completed ? 'RECONCILED' : 'RAW_DATA'
           });
         }
 
@@ -503,7 +553,7 @@ export function WageCalculatorDashboard({ selectedBatchId, onSalaryGenerated }: 
       
       const message = isTestMode 
         ? `June 2025 Test Complete: ${allAttendanceRecords.length} records processed in ${totalTime}ms`
-        : `Calculated salaries using Total Paid Days method for ${results.length} employees`;
+        : `Calculated salaries using ${reconciliationStatus.completed ? 'reconciled' : 'raw'} data for ${results.length} employees`;
       
       toast.success(message, {
         description: `${zeroSalaryEmployees} with ₹0 salary, ${proRatedEmployees} pro-rated`
@@ -567,7 +617,7 @@ export function WageCalculatorDashboard({ selectedBatchId, onSalaryGenerated }: 
       return;
     }
 
-    const filename = `salary_data_june_2025_test_${selectedUnitInfo?.unit_code || 'unit'}_${format(dateRange?.from || new Date(), 'yyyy-MM')}.xlsx`;
+    const filename = `salary_data_${reconciliationStatus.completed ? 'reconciled' : 'raw'}_${selectedUnitInfo?.unit_code || 'unit'}_${format(dateRange?.from || new Date(), 'yyyy-MM')}.xlsx`;
     const ws = XLSX.utils.json_to_sheet(salaryResults);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Salary Data');
@@ -582,231 +632,264 @@ export function WageCalculatorDashboard({ selectedBatchId, onSalaryGenerated }: 
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Calculator className="w-5 h-5" />
-            Enhanced Wage Calculator - Total Paid Days Method
+            Enhanced Wage Calculator with Reconciliation
             {selectedBatchId && (
-              <span className="text-sm font-normal text-muted-foreground">
-                (Batch Mode)
-              </span>
+              <Badge variant="secondary">Batch Mode</Badge>
             )}
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          {/* June 2025 Test Section */}
-          <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-            <div className="flex items-center gap-2 mb-2">
-              <CheckCircle className="w-4 h-4 text-blue-600" />
-              <h3 className="font-medium text-blue-900">June 2025 Test Mode</h3>
-            </div>
-            <p className="text-sm text-blue-700 mb-3">
-              Test the system with June 2025 data to verify all 1,350 records are processed correctly.
-            </p>
-            <Button 
-              onClick={runJune2025Test}
-              disabled={isLoading || !selectedUnit}
-              className="bg-blue-600 hover:bg-blue-700"
-            >
-              {isLoading ? 'Running Test...' : 'Run June 2025 Test (1,350 Records)'}
-            </Button>
-          </div>
+        <CardContent>
+          <Tabs defaultValue="standard" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="standard">Standard Calculator</TabsTrigger>
+              <TabsTrigger value="reconciled">Reconciled Calculator</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="standard" className="space-y-4">
+              {/* Reconciliation Status Alert */}
+              {reconciliationStatus.completed !== null && (
+                <Alert className={reconciliationStatus.completed ? 'border-green-200 bg-green-50' : 'border-orange-200 bg-orange-50'}>
+                  {reconciliationStatus.completed ? (
+                    <CheckCircle className="h-4 w-4 text-green-600" />
+                  ) : (
+                    <AlertTriangle className="h-4 w-4 text-orange-600" />
+                  )}
+                  <AlertDescription className={reconciliationStatus.completed ? 'text-green-800' : 'text-orange-800'}>
+                    <strong>Reconciliation Status:</strong> {reconciliationStatus.completed ? 'Completed' : 'Not Completed'}
+                    {reconciliationStatus.warning && (
+                      <div className="mt-1 text-sm">{reconciliationStatus.warning}</div>
+                    )}
+                  </AlertDescription>
+                </Alert>
+              )}
 
-          {/* Test Results Display */}
-          {testResults && (
-            <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-              <div className="flex items-center gap-2 mb-2">
-                <CheckCircle className="w-4 h-4 text-green-600" />
-                <h3 className="font-medium text-green-900">Test Results</h3>
+              {/* June 2025 Test Section */}
+              <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="flex items-center gap-2 mb-2">
+                  <CheckCircle className="w-4 h-4 text-blue-600" />
+                  <h3 className="font-medium text-blue-900">June 2025 Test Mode</h3>
+                </div>
+                <p className="text-sm text-blue-700 mb-3">
+                  Test the system with June 2025 data to verify all 1,350 records are processed correctly.
+                </p>
+                <Button 
+                  onClick={runJune2025Test}
+                  disabled={isLoading || !selectedUnit}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  {isLoading ? 'Running Test...' : 'Run June 2025 Test (1,350 Records)'}
+                </Button>
               </div>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                <div>
-                  <p className="text-green-700">Records Fetched:</p>
-                  <p className="font-medium text-green-900">{testResults.totalRecordsFetched}</p>
-                </div>
-                <div>
-                  <p className="text-green-700">Unique Employees:</p>
-                  <p className="font-medium text-green-900">{testResults.uniqueEmployees}</p>
-                </div>
-                <div>
-                  <p className="text-green-700">Fetch Time:</p>
-                  <p className="font-medium text-green-900">{testResults.performanceMetrics.fetchTime}ms</p>
-                </div>
-                <div>
-                  <p className="text-green-700">Calculation Time:</p>
-                  <p className="font-medium text-green-900">{testResults.performanceMetrics.calculationTime}ms</p>
-                </div>
-              </div>
-              {testResults.totalRecordsFetched === 1350 && (
-                <div className="mt-2 text-green-700 font-medium">
-                  ✅ Successfully processed all 1,350 June 2025 records!
+
+              {/* Test Results Display */}
+              {testResults && (
+                <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                  <div className="flex items-center gap-2 mb-2">
+                    <CheckCircle className="w-4 h-4 text-green-600" />
+                    <h3 className="font-medium text-green-900">Test Results</h3>
+                  </div>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                    <div>
+                      <p className="text-green-700">Records Fetched:</p>
+                      <p className="font-medium text-green-900">{testResults.totalRecordsFetched}</p>
+                    </div>
+                    <div>
+                      <p className="text-green-700">Unique Employees:</p>
+                      <p className="font-medium text-green-900">{testResults.uniqueEmployees}</p>
+                    </div>
+                    <div>
+                      <p className="text-green-700">Fetch Time:</p>
+                      <p className="font-medium text-green-900">{testResults.performanceMetrics.fetchTime}ms</p>
+                    </div>
+                    <div>
+                      <p className="text-green-700">Calculation Time:</p>
+                      <p className="font-medium text-green-900">{testResults.performanceMetrics.calculationTime}ms</p>
+                    </div>
+                  </div>
+                  {testResults.totalRecordsFetched === 1350 && (
+                    <div className="mt-2 text-green-700 font-medium">
+                      ✅ Successfully processed all 1,350 June 2025 records!
+                    </div>
+                  )}
                 </div>
               )}
-            </div>
-          )}
 
-          <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-            <div className="flex items-center gap-2 mb-2">
-              <Info className="w-4 h-4 text-blue-600" />
-              <h3 className="font-medium text-blue-900">New Calculation Method</h3>
-            </div>
-            <p className="text-sm text-blue-700">
-              <strong>Total Paid Days = Days Present + Paid Weekly Offs + Paid Leave (CL/EL)</strong><br/>
-              Pro-rated Salary = (Component Salary ÷ Total Calendar Days) × Total Paid Days
-            </p>
-          </div>
+              <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="flex items-center gap-2 mb-2">
+                  <Info className="w-4 h-4 text-blue-600" />
+                  <h3 className="font-medium text-blue-900">Enhanced Calculation Method</h3>
+                </div>
+                <p className="text-sm text-blue-700">
+                  <strong>Total Paid Days = Days Present + Paid Weekly Offs + Paid Leave (CL/EL)</strong><br/>
+                  Pro-rated Salary = (Component Salary ÷ Total Calendar Days) × Total Paid Days<br/>
+                  <strong className={reconciliationStatus.completed ? 'text-green-800' : 'text-orange-800'}>
+                    {reconciliationStatus.completed ? '✅ Using reconciled leave data' : '⚠️ Using raw attendance data'}
+                  </strong>
+                </p>
+              </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="unit">Select Unit</Label>
-              <Select onValueChange={setSelectedUnit} disabled={isLoadingUnits}>
-                <SelectTrigger>
-                  <SelectValue placeholder={isLoadingUnits ? "Loading units..." : "Select a unit"} />
-                </SelectTrigger>
-                <SelectContent>
-                  {units.map((unit) => (
-                    <SelectItem key={unit.unit_id} value={unit.unit_id}>
-                      <div className="flex flex-col">
-                        <span className="font-medium">{unit.unit_code} - {unit.unit_name}</span>
-                        {unit.location && (
-                          <span className="text-xs text-muted-foreground">{unit.location}</span>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="unit">Select Unit</Label>
+                  <Select onValueChange={setSelectedUnit} disabled={isLoadingUnits}>
+                    <SelectTrigger>
+                      <SelectValue placeholder={isLoadingUnits ? "Loading units..." : "Select a unit"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {units.map((unit) => (
+                        <SelectItem key={unit.unit_id} value={unit.unit_id}>
+                          <div className="flex flex-col">
+                            <span className="font-medium">{unit.unit_code} - {unit.unit_name}</span>
+                            {unit.location && (
+                              <span className="text-xs text-muted-foreground">{unit.location}</span>
+                            )}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label>Select Date Range</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant={'outline'}
+                        className={cn(
+                          'w-[240px] justify-start text-left font-normal',
+                          !dateRange?.from && 'text-muted-foreground'
                         )}
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label>Select Date Range</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant={'outline'}
-                    className={cn(
-                      'w-[240px] justify-start text-left font-normal',
-                      !dateRange?.from && 'text-muted-foreground'
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {dateRange?.from ? (
-                      dateRange.to ? (
-                        `${format(dateRange.from, 'MMM dd, yyyy')} - ${format(
-                          dateRange.to,
-                          'MMM dd, yyyy'
-                        )}`
-                      ) : (
-                        format(dateRange.from, 'MMM dd, yyyy')
-                      )
-                    ) : (
-                      <span>Pick a date</span>
-                    )}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="center">
-                  <Calendar
-                    mode="range"
-                    defaultMonth={dateRange?.from}
-                    selected={dateRange}
-                    onSelect={setDateRange}
-                    numberOfMonths={2}
-                    className="pointer-events-auto"
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
-          </div>
-
-          {selectedUnitInfo && (
-            <div className="grid grid-cols-2 gap-4 p-4 bg-muted/50 rounded-lg">
-              <div className="flex items-center gap-2">
-                <Building2 className="w-4 h-4 text-muted-foreground" />
-                <div>
-                  <p className="text-sm font-medium">{selectedUnitInfo.unit_name}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {selectedUnitInfo.unit_code} • {selectedUnitInfo.location}
-                  </p>
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {dateRange?.from ? (
+                          dateRange.to ? (
+                            `${format(dateRange.from, 'MMM dd, yyyy')} - ${format(
+                              dateRange.to,
+                              'MMM dd, yyyy'
+                            )}`
+                          ) : (
+                            format(dateRange.from, 'MMM dd, yyyy')
+                          )
+                        ) : (
+                          <span>Pick a date</span>
+                        )}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="center">
+                      <Calendar
+                        mode="range"
+                        defaultMonth={dateRange?.from}
+                        selected={dateRange}
+                        onSelect={setDateRange}
+                        numberOfMonths={2}
+                        className="pointer-events-auto"
+                      />
+                    </PopoverContent>
+                  </Popover>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                <Users className="w-4 h-4 text-muted-foreground" />
-                <div>
-                  <p className="text-sm font-medium">{employeeCount} Active Employees</p>
-                  <p className="text-xs text-muted-foreground">In selected unit</p>
+
+              {selectedUnitInfo && (
+                <div className="grid grid-cols-2 gap-4 p-4 bg-muted/50 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <Building2 className="w-4 h-4 text-muted-foreground" />
+                    <div>
+                      <p className="text-sm font-medium">{selectedUnitInfo.unit_name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {selectedUnitInfo.unit_code} • {selectedUnitInfo.location}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Users className="w-4 h-4 text-muted-foreground" />
+                    <div>
+                      <p className="text-sm font-medium">{employeeCount} Active Employees</p>
+                      <p className="text-xs text-muted-foreground">In selected unit</p>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
-          )}
-          
-          <div className="flex gap-4">
-            <Button 
-              onClick={() => calculateSalaries(false)} 
-              disabled={isLoading || !dateRange?.from || !dateRange?.to || !selectedUnit}
-              className="flex-1"
-            >
-              {isLoading ? 'Calculating...' : 'Calculate Salaries (Total Paid Days)'}
-            </Button>
-            
-            {salaryResults.length > 0 && (
-              <>
+              )}
+              
+              <div className="flex gap-4">
                 <Button 
-                  onClick={saveSalaries}
-                  disabled={isSaving}
-                  variant="default"
+                  onClick={() => calculateSalaries(false)} 
+                  disabled={isLoading || !dateRange?.from || !dateRange?.to || !selectedUnit}
+                  className="flex-1"
                 >
-                  <Save className="w-4 h-4 mr-2" />
-                  {isSaving ? 'Saving...' : 'Save to Database'}
+                  {isLoading ? 'Calculating...' : 'Calculate Salaries (Total Paid Days)'}
                 </Button>
                 
-                <Button onClick={exportToCSV} variant="outline">
-                  <Download className="w-4 h-4 mr-2" />
-                  Export Excel
-                </Button>
-              </>
-            )}
-          </div>
+                {salaryResults.length > 0 && (
+                  <>
+                    <Button 
+                      onClick={saveSalaries}
+                      disabled={isSaving}
+                      variant="default"
+                    >
+                      <Save className="w-4 h-4 mr-2" />
+                      {isSaving ? 'Saving...' : 'Save to Database'}
+                    </Button>
+                    
+                    <Button onClick={exportToCSV} variant="outline">
+                      <Download className="w-4 h-4 mr-2" />
+                      Export Excel
+                    </Button>
+                  </>
+                )}
+              </div>
 
-          {validationWarnings.length > 0 && (
-            <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-              <div className="flex items-center gap-2 mb-2">
-                <AlertTriangle className="w-4 h-4 text-yellow-600" />
-                <h3 className="font-medium text-yellow-900">Salary Calculation Warnings</h3>
-              </div>
-              <div className="space-y-1 text-sm text-yellow-700">
-                {validationWarnings.map((warning, index) => (
-                  <p key={index}>• {warning}</p>
-                ))}
-              </div>
-            </div>
-          )}
+              {validationWarnings.length > 0 && (
+                <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <div className="flex items-center gap-2 mb-2">
+                    <AlertTriangle className="w-4 h-4 text-yellow-600" />
+                    <h3 className="font-medium text-yellow-900">Salary Calculation Warnings</h3>
+                  </div>
+                  <div className="space-y-1 text-sm text-yellow-700">
+                    {validationWarnings.map((warning, index) => (
+                      <p key={index}>• {warning}</p>
+                    ))}
+                  </div>
+                </div>
+              )}
 
-          {salaryResults.length > 0 && (
-            <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-              <h3 className="font-medium text-green-900 mb-2">Total Paid Days Calculation Summary</h3>
-              <div className="grid grid-cols-4 gap-4 text-sm">
-                <div>
-                  <p className="text-green-700">Employees Processed:</p>
-                  <p className="font-medium text-green-900">{salaryResults.length}</p>
+              {salaryResults.length > 0 && (
+                <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                  <h3 className="font-medium text-green-900 mb-2">
+                    Total Paid Days Calculation Summary {reconciliationStatus.completed ? '(With Reconciliation)' : '(Without Reconciliation)'}
+                  </h3>
+                  <div className="grid grid-cols-4 gap-4 text-sm">
+                    <div>
+                      <p className="text-green-700">Employees Processed:</p>
+                      <p className="font-medium text-green-900">{salaryResults.length}</p>
+                    </div>
+                    <div>
+                      <p className="text-green-700">Zero Salary Count:</p>
+                      <p className="font-medium text-green-900">
+                        {salaryResults.filter(r => r.net_salary === 0).length}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-green-700">Total Gross Amount:</p>
+                      <p className="font-medium text-green-900">
+                        ₹{salaryResults.reduce((sum, r) => sum + r.gross_salary, 0).toLocaleString()}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-green-700">Total Net Amount:</p>
+                      <p className="font-medium text-green-900">
+                        ₹{salaryResults.reduce((sum, r) => sum + r.net_salary, 0).toLocaleString()}
+                      </p>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-green-700">Zero Salary Count:</p>
-                  <p className="font-medium text-green-900">
-                    {salaryResults.filter(r => r.net_salary === 0).length}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-green-700">Total Gross Amount:</p>
-                  <p className="font-medium text-green-900">
-                    ₹{salaryResults.reduce((sum, r) => sum + r.gross_salary, 0).toLocaleString()}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-green-700">Total Net Amount:</p>
-                  <p className="font-medium text-green-900">
-                    ₹{salaryResults.reduce((sum, r) => sum + r.net_salary, 0).toLocaleString()}
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
+              )}
+            </TabsContent>
+            
+            <TabsContent value="reconciled">
+              <ReconciledPayrollCalculator selectedBatchId={selectedBatchId} />
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
 
@@ -859,7 +942,22 @@ export function WageCalculatorDashboard({ selectedBatchId, onSalaryGenerated }: 
                   {salaryResults.map((result) => (
                     <tr key={result.employee_id} className={result.net_salary === 0 ? 'bg-red-50' : result.attendance_validation.paid_percentage < 100 ? 'bg-yellow-50' : ''}>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        {result.employee_name}
+                        <div className="flex items-center">
+                          <div>
+                            <div className="text-sm font-medium text-gray-900">{result.employee_name}</div>
+                            <div className="text-xs text-gray-500">
+                              {reconciliationStatus.completed ? (
+                                <Badge variant="default" className="bg-green-100 text-green-800">
+                                  Reconciled
+                                </Badge>
+                              ) : (
+                                <Badge variant="secondary" className="bg-orange-100 text-orange-800">
+                                  Raw Data
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                        </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         {result.uan_number}

@@ -21,6 +21,15 @@ interface PayrollCalculation {
   esi_deduction: number;
   net_salary: number;
   month: string;
+  // New fields for reconciled leave data
+  reconciled_leave_data?: {
+    casual_leave_taken: number;
+    earned_leave_taken: number;
+    casual_leave_balance: number;
+    earned_leave_balance: number;
+    unpaid_leave_days: number;
+    leave_adjustment_applied: boolean;
+  };
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -29,7 +38,7 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    console.log('Starting enhanced monthly payroll processing with reconciliation validation...');
+    console.log('Starting enhanced monthly payroll processing with reconciled leave data...');
     
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -41,7 +50,7 @@ const handler = async (req: Request): Promise<Response> => {
     const monthString = processMonth.toISOString().slice(0, 7); // YYYY-MM format
     const preferredLanguage = language || 'english';
 
-    console.log(`Processing enhanced payroll for month: ${monthString}, unit: ${unit_id || 'all'}, language: ${preferredLanguage}`);
+    console.log(`Processing payroll with reconciled leave data for month: ${monthString}, unit: ${unit_id || 'all'}, language: ${preferredLanguage}`);
 
     // Check reconciliation status before processing
     const monthNum = processMonth.getMonth() + 1;
@@ -132,6 +141,18 @@ const handler = async (req: Request): Promise<Response> => {
       try {
         console.log(`Processing employee: ${employee.name} (${employee.id})`);
 
+        // Get reconciled leave balances for this employee
+        const { data: leaveBalance, error: leaveError } = await supabase
+          .from('employee_leave_balances')
+          .select('*')
+          .eq('employee_id', employee.id)
+          .eq('year', yearNum)
+          .single();
+
+        if (leaveError && leaveError.code !== 'PGRST116') {
+          console.error(`Error fetching leave balance for ${employee.name}:`, leaveError);
+        }
+
         // Get attendance for the month
         const { data: attendance, error: attError } = await supabase
           .from('attendance')
@@ -146,10 +167,53 @@ const handler = async (req: Request): Promise<Response> => {
           continue;
         }
 
-        // Calculate totals
+        // Calculate attendance metrics
         const totalHours = attendance?.reduce((sum, att) => sum + (att.hours_worked || 0), 0) || 0;
         const overtimeHours = attendance?.reduce((sum, att) => sum + (att.overtime_hours || 0), 0) || 0;
         const totalDays = attendance?.filter(att => att.hours_worked > 0).length || 0;
+
+        // Calculate leave days from attendance
+        const casualLeaveDays = attendance?.filter(att => att.status === 'CASUAL_LEAVE').length || 0;
+        const earnedLeaveDays = attendance?.filter(att => att.status === 'EARNED_LEAVE').length || 0;
+        const unpaidLeaveDays = attendance?.filter(att => att.status === 'UNPAID_LEAVE').length || 0;
+
+        // Use reconciled leave balances if available, otherwise use attendance data
+        let effectiveUnpaidLeaveDays = unpaidLeaveDays;
+        let reconciled_leave_data = null;
+
+        if (leaveBalance && hasCompletedReconciliation) {
+          console.log(`Using reconciled leave data for ${employee.name}`);
+          
+          // Calculate if employee has exceeded their leave entitlement
+          const totalLeaveTaken = casualLeaveDays + earnedLeaveDays;
+          const totalLeaveAvailable = (leaveBalance.casual_leave_balance || 0) + (leaveBalance.earned_leave_balance || 0);
+          
+          // If taken leave exceeds available, convert excess to unpaid leave
+          if (totalLeaveTaken > totalLeaveAvailable) {
+            const excessLeaveDays = totalLeaveTaken - totalLeaveAvailable;
+            effectiveUnpaidLeaveDays = unpaidLeaveDays + excessLeaveDays;
+            console.log(`Employee ${employee.name} has ${excessLeaveDays} excess leave days converted to unpaid`);
+          }
+
+          reconciled_leave_data = {
+            casual_leave_taken: casualLeaveDays,
+            earned_leave_taken: earnedLeaveDays,
+            casual_leave_balance: leaveBalance.casual_leave_balance || 0,
+            earned_leave_balance: leaveBalance.earned_leave_balance || 0,
+            unpaid_leave_days: effectiveUnpaidLeaveDays,
+            leave_adjustment_applied: true
+          };
+        } else {
+          console.log(`Using raw attendance data for ${employee.name} (no reconciliation)`);
+          reconciled_leave_data = {
+            casual_leave_taken: casualLeaveDays,
+            earned_leave_taken: earnedLeaveDays,
+            casual_leave_balance: 0,
+            earned_leave_balance: 0,
+            unpaid_leave_days: effectiveUnpaidLeaveDays,
+            leave_adjustment_applied: false
+          };
+        }
 
         // Get advances for the month
         const { data: advances, error: advError } = await supabase
@@ -167,15 +231,19 @@ const handler = async (req: Request): Promise<Response> => {
 
         const totalAdvances = advances?.reduce((sum, adv) => sum + (adv.advance_amount || 0), 0) || 0;
 
-        // Enhanced salary calculations with new components
+        // Enhanced salary calculations with reconciled leave data
         const baseSalary = employee.base_salary || 0;
         const hraAmount = employee.hra_amount || 0;
         const otherConvAmount = employee.other_conv_amount || 0;
         
-        // Pro-rate salary based on actual days worked
+        // Calculate working days in month and effective paid days
         const workingDaysInMonth = 26; // Standard working days
-        const workRatio = totalDays > 0 ? Math.min(totalDays / workingDaysInMonth, 1) : 0;
+        const effectivePaidDays = Math.max(0, workingDaysInMonth - effectiveUnpaidLeaveDays);
+        const workRatio = effectivePaidDays / workingDaysInMonth;
         
+        console.log(`Employee ${employee.name}: Working days: ${workingDaysInMonth}, Unpaid leave: ${effectiveUnpaidLeaveDays}, Effective paid: ${effectivePaidDays}, Ratio: ${workRatio}`);
+        
+        // Pro-rate salary based on effective paid days (considering reconciled leave)
         const proRatedBaseSalary = baseSalary * workRatio;
         const proRatedHra = hraAmount * workRatio;
         const proRatedOtherConv = otherConvAmount * workRatio;
@@ -212,12 +280,13 @@ const handler = async (req: Request): Promise<Response> => {
           esi_deduction: esiDeduction,
           net_salary: netSalary,
           month: monthString,
+          reconciled_leave_data: reconciled_leave_data
         };
 
         calculations.push(calculation);
         processedCount++;
 
-        console.log(`Enhanced calculation for ${employee.name}: Gross: ${grossSalary.toFixed(2)}, Net: ${netSalary.toFixed(2)}`);
+        console.log(`Reconciliation-aware calculation for ${employee.name}: Gross: ${grossSalary.toFixed(2)}, Net: ${netSalary.toFixed(2)}, Used reconciled data: ${reconciled_leave_data?.leave_adjustment_applied}`);
 
       } catch (error) {
         console.error(`Error processing employee ${employee.name}:`, error);
@@ -225,12 +294,24 @@ const handler = async (req: Request): Promise<Response> => {
       }
     }
 
-    // Insert salary disbursements with new structure
+    // Insert salary disbursements with reconciled leave data
     if (calculations.length > 0) {
       const { error: insertError } = await supabase
         .from('salary_disbursement')
         .insert(calculations.map(calc => ({
-          ...calc,
+          employee_id: calc.employee_id,
+          month: calc.month,
+          total_days_present: calc.total_days_present,
+          total_hours_worked: calc.total_hours_worked,
+          base_salary: calc.base_salary,
+          hra_amount: calc.hra_amount,
+          other_conv_amount: calc.other_conv_amount,
+          overtime_amount: calc.overtime_amount,
+          gross_salary: calc.gross_salary,
+          pf_deduction: calc.pf_deduction,
+          esi_deduction: calc.esi_deduction,
+          advances_deduction: calc.advances_deduction,
+          net_salary: calc.net_salary,
           disbursed_on: new Date().toISOString()
         })));
 
@@ -239,7 +320,7 @@ const handler = async (req: Request): Promise<Response> => {
         throw insertError;
       }
 
-      console.log(`Inserted ${calculations.length} enhanced salary calculations`);
+      console.log(`Inserted ${calculations.length} reconciliation-aware salary calculations`);
 
       // Create payroll reconciliation links if reconciliation was completed
       if (hasCompletedReconciliation) {
@@ -249,8 +330,8 @@ const handler = async (req: Request): Promise<Response> => {
           employee_id: calc.employee_id,
           month: monthNum,
           year: yearNum,
-          used_reconciled_data: true,
-          reconciliation_impact_amount: 0 // Could be calculated if needed
+          used_reconciled_data: calc.reconciled_leave_data?.leave_adjustment_applied || false,
+          reconciliation_impact_amount: calc.reconciled_leave_data?.unpaid_leave_days || 0
         }));
 
         const { error: linkError } = await supabase
@@ -264,7 +345,7 @@ const handler = async (req: Request): Promise<Response> => {
         }
       }
 
-      // Queue emails for enhanced salary slips
+      // Queue emails for enhanced salary slips with reconciliation data
       for (const calc of calculations) {
         const { data: employee } = await supabase
           .from('payroll_employees')
@@ -275,20 +356,29 @@ const handler = async (req: Request): Promise<Response> => {
         const esiStatus = calc.gross_salary > 21000 ? 'Exempt (Gross > ₹21,000)' : 'Applicable';
         const empLanguage = employee?.preferred_language || preferredLanguage;
         
-        // Generate language-specific content
+        // Generate language-specific content with reconciliation info
         const isHindi = empLanguage === 'hindi';
         const subject = isHindi 
-          ? `वेतन पर्ची - ${employee?.name} - ${monthString}`
-          : `Enhanced Salary Slip - ${employee?.name} - ${monthString}`;
+          ? `वेतन पर्ची (सुधारित छुट्टी डेटा) - ${employee?.name} - ${monthString}`
+          : `Enhanced Salary Slip (Reconciled Leave Data) - ${employee?.name} - ${monthString}`;
         
         const reconciliationNote = hasCompletedReconciliation 
-          ? (isHindi ? 'छुट्टी संतुलन सत्यापित' : 'Leave balances verified')
+          ? (isHindi ? 'छुट्टी संतुलन सत्यापित और लागू' : 'Leave balances verified and applied')
           : (isHindi ? 'चेतावनी: छुट्टी संतुलन सत्यापित नहीं' : 'Warning: Leave balances not verified');
+
+        const leaveInfo = calc.reconciled_leave_data ? `
+          ${isHindi ? 'छुट्टी विवरण:' : 'Leave Details:'}
+          ${isHindi ? 'आकस्मिक छुट्टी ली गई:' : 'Casual Leave Taken:'} ${calc.reconciled_leave_data.casual_leave_taken}
+          ${isHindi ? 'अर्जित छुट्टी ली गई:' : 'Earned Leave Taken:'} ${calc.reconciled_leave_data.earned_leave_taken}
+          ${isHindi ? 'अवैतनिक छुट्टी:' : 'Unpaid Leave:'} ${calc.reconciled_leave_data.unpaid_leave_days}
+          ${isHindi ? 'समायोजन लागू:' : 'Adjustment Applied:'} ${calc.reconciled_leave_data.leave_adjustment_applied ? (isHindi ? 'हाँ' : 'Yes') : (isHindi ? 'नहीं' : 'No')}
+        ` : '';
         
         const htmlContent = isHindi ? `
           <h2>${employee?.name} की वेतन पर्ची</h2>
           <p>महीना: ${monthString}</p>
           <p style="color: ${hasCompletedReconciliation ? 'green' : 'orange'};">${reconciliationNote}</p>
+          ${leaveInfo}
           <h3>आय:</h3>
           <p>मूल वेतन: ₹${calc.base_salary.toFixed(2)}</p>
           <p>महंगाई भत्ता: ₹${calc.hra_amount.toFixed(2)}</p>
@@ -304,6 +394,7 @@ const handler = async (req: Request): Promise<Response> => {
           <h2>Enhanced Salary Slip for ${employee?.name}</h2>
           <p>Month: ${monthString}</p>
           <p style="color: ${hasCompletedReconciliation ? 'green' : 'orange'};">${reconciliationNote}</p>
+          ${leaveInfo}
           <h3>Earnings:</h3>
           <p>Base Salary: ₹${calc.base_salary.toFixed(2)}</p>
           <p>HRA: ₹${calc.hra_amount.toFixed(2)}</p>
@@ -340,13 +431,13 @@ const handler = async (req: Request): Promise<Response> => {
       })
       .eq('id', bulkJob.id);
 
-    console.log(`Enhanced monthly payroll processing completed. Processed: ${processedCount}, Failed: ${failedCount}`);
+    console.log(`Reconciliation-aware payroll processing completed. Processed: ${processedCount}, Failed: ${failedCount}`);
     console.log(`Reconciliation status: ${hasCompletedReconciliation ? 'Used reconciled data' : 'Processed without reconciliation'}`);
 
     return new Response(
       JSON.stringify({
         success: true,
-        message: 'Enhanced monthly payroll processing completed',
+        message: 'Reconciliation-aware payroll processing completed',
         processed: processedCount,
         failed: failedCount,
         job_id: bulkJob.id,
@@ -363,7 +454,7 @@ const handler = async (req: Request): Promise<Response> => {
     );
 
   } catch (error: any) {
-    console.error('Error in enhanced monthly payroll processing:', error);
+    console.error('Error in reconciliation-aware payroll processing:', error);
     return new Response(
       JSON.stringify({ error: error.message }),
       {
