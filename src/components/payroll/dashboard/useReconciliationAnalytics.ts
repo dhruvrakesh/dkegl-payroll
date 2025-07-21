@@ -12,6 +12,7 @@ interface ReconciliationAnalytics {
     completionRate: number;
     adjustments: number;
     employees: number;
+    reconciliationCount: number;
   }>;
   employeeBalanceTrends: Array<{
     employee_id: string;
@@ -19,6 +20,18 @@ interface ReconciliationAnalytics {
     casual_balance_trend: number[];
     earned_balance_trend: number[];
     adjustment_frequency: number;
+    current_casual_balance: number;
+    current_earned_balance: number;
+    total_adjustments: number;
+  }>;
+  reconciliationHistory: Array<{
+    month: string;
+    year: number;
+    completion_date: string;
+    total_employees: number;
+    employees_adjusted: number;
+    unit_name: string;
+    reconciled_by: string;
   }>;
 }
 
@@ -35,104 +48,177 @@ export const useReconciliationAnalytics = ({ month, year, unitId }: UseReconcili
   const fetchAnalytics = async () => {
     setLoading(true);
     try {
-      // Get completion rate for last 6 months
-      const completionRateQuery = supabase
+      console.log('Fetching reconciliation analytics for:', { month, year, unitId });
+
+      // Get reconciliation status data for the last 12 months
+      const startDate = new Date(year - 1, month - 1, 1);
+      const endDate = new Date(year, month, 0);
+      
+      console.log('Date range:', startDate.toISOString(), 'to', endDate.toISOString());
+
+      const { data: reconciliationData, error: reconciliationError } = await supabase
         .from('leave_reconciliation_status')
-        .select('*')
-        .gte('reconciliation_date', new Date(year, month - 7, 1).toISOString())
-        .lte('reconciliation_date', new Date(year, month, 0).toISOString());
+        .select(`
+          *,
+          units!inner(unit_name)
+        `)
+        .gte('reconciliation_date', startDate.toISOString())
+        .lte('reconciliation_date', endDate.toISOString())
+        .eq(unitId ? 'unit_id' : 'unit_id', unitId || supabase.from('leave_reconciliation_status').select('unit_id'));
 
-      if (unitId) {
-        completionRateQuery.eq('unit_id', unitId);
+      if (reconciliationError) {
+        console.error('Error fetching reconciliation data:', reconciliationError);
       }
 
-      const { data: statusData } = await completionRateQuery;
+      console.log('Reconciliation data fetched:', reconciliationData?.length || 0, 'records');
 
-      // Get adjustment statistics
-      const adjustmentQuery = supabase
+      // Get leave adjustment history for the current period
+      const { data: adjustmentData, error: adjustmentError } = await supabase
         .from('leave_adjustment_history')
-        .select('*')
+        .select(`
+          *,
+          payroll_employees!inner(name, unit_id)
+        `)
         .gte('created_at', new Date(year, month - 1, 1).toISOString())
-        .lte('created_at', new Date(year, month, 0).toISOString());
+        .lte('created_at', new Date(year, month, 0).toISOString())
+        .eq(unitId ? 'payroll_employees.unit_id' : 'payroll_employees.unit_id', unitId || supabase.from('payroll_employees').select('unit_id'));
 
-      if (unitId) {
-        adjustmentQuery.eq('unit_id', unitId);
+      if (adjustmentError) {
+        console.error('Error fetching adjustment data:', adjustmentError);
       }
 
-      const { data: adjustmentData } = await adjustmentQuery;
+      console.log('Adjustment data fetched:', adjustmentData?.length || 0, 'records');
 
-      // Get employee balance trends
-      const { data: employeeBalances } = await supabase
+      // Get employee leave balances with trends
+      const { data: employeeBalances, error: balanceError } = await supabase
         .from('employee_leave_balances')
         .select(`
           *,
           payroll_employees!inner(name, unit_id)
         `)
         .eq('year', year)
-        .eq('payroll_employees.unit_id', unitId || null);
+        .eq(unitId ? 'payroll_employees.unit_id' : 'payroll_employees.unit_id', unitId || supabase.from('payroll_employees').select('unit_id'));
 
-      // Calculate analytics
-      const completionRate = statusData?.length 
-        ? (statusData.filter(s => s.is_completed).length / statusData.length) * 100 
-        : 0;
+      if (balanceError) {
+        console.error('Error fetching employee balances:', balanceError);
+      }
 
+      console.log('Employee balances fetched:', employeeBalances?.length || 0, 'records');
+
+      // Calculate completion rate
+      const completedReconciliations = reconciliationData?.filter(r => r.is_completed).length || 0;
+      const totalReconciliations = reconciliationData?.length || 0;
+      const completionRate = totalReconciliations > 0 ? (completedReconciliations / totalReconciliations) * 100 : 0;
+
+      console.log('Completion rate calculated:', completionRate, '%');
+
+      // Calculate total adjustments and affected employees
       const totalAdjustments = adjustmentData?.length || 0;
-      const affectedEmployees = new Set(adjustmentData?.map(a => a.employee_id)).size;
+      const affectedEmployees = new Set(adjustmentData?.map(a => a.employee_id) || []).size;
 
-      // Calculate average processing time (mock for now)
-      const avgProcessingTime = statusData?.reduce((acc, status) => {
-        if (status.reconciliation_date) {
-          // Mock calculation - in real scenario would calculate from start to completion
-          return acc + 15; // 15 minutes average
+      console.log('Adjustments:', totalAdjustments, 'Affected employees:', affectedEmployees);
+
+      // Calculate average processing time (mock calculation based on data)
+      const avgProcessingTime = reconciliationData?.reduce((acc, r) => {
+        if (r.reconciliation_date && r.created_at) {
+          const processTime = new Date(r.reconciliation_date).getTime() - new Date(r.created_at).getTime();
+          return acc + (processTime / (1000 * 60)); // Convert to minutes
         }
-        return acc;
-      }, 0) / Math.max(statusData?.length || 1, 1) || 0;
+        return acc + 15; // Default 15 minutes if no data
+      }, 0) / Math.max(reconciliationData?.length || 1, 1) || 15;
 
-      // Generate trend data for last 6 months
-      const trendData = Array.from({ length: 6 }, (_, i) => {
-        const monthDate = new Date(year, month - 6 + i, 1);
-        const monthData = statusData?.filter(s => {
-          const statusDate = new Date(s.reconciliation_date);
-          return statusDate.getMonth() === monthDate.getMonth() && 
-                 statusDate.getFullYear() === monthDate.getFullYear();
+      console.log('Average processing time:', avgProcessingTime, 'minutes');
+
+      // Generate trend data for last 12 months
+      const trendData = Array.from({ length: 12 }, (_, i) => {
+        const trendMonth = new Date(year, month - 12 + i, 1);
+        const monthName = trendMonth.toLocaleDateString('default', { month: 'short' });
+        
+        const monthReconciliations = reconciliationData?.filter(r => {
+          const rDate = new Date(r.reconciliation_date || r.created_at);
+          return rDate.getMonth() === trendMonth.getMonth() && 
+                 rDate.getFullYear() === trendMonth.getFullYear();
         }) || [];
 
+        const monthAdjustments = adjustmentData?.filter(a => {
+          const aDate = new Date(a.created_at);
+          return aDate.getMonth() === trendMonth.getMonth() && 
+                 aDate.getFullYear() === trendMonth.getFullYear();
+        }) || [];
+
+        const monthCompletionRate = monthReconciliations.length > 0 
+          ? (monthReconciliations.filter(r => r.is_completed).length / monthReconciliations.length) * 100 
+          : 0;
+
         return {
-          month: monthDate.toLocaleDateString('default', { month: 'short' }),
-          completionRate: monthData.length ? (monthData.filter(s => s.is_completed).length / monthData.length) * 100 : 0,
-          adjustments: adjustmentData?.filter(a => {
-            const adjDate = new Date(a.created_at);
-            return adjDate.getMonth() === monthDate.getMonth() && 
-                   adjDate.getFullYear() === monthDate.getFullYear();
-          }).length || 0,
-          employees: new Set(adjustmentData?.filter(a => {
-            const adjDate = new Date(a.created_at);
-            return adjDate.getMonth() === monthDate.getMonth() && 
-                   adjDate.getFullYear() === monthDate.getFullYear();
-          }).map(a => a.employee_id)).size
+          month: monthName,
+          completionRate: monthCompletionRate,
+          adjustments: monthAdjustments.length,
+          employees: new Set(monthAdjustments.map(a => a.employee_id)).size,
+          reconciliationCount: monthReconciliations.length
         };
       });
 
-      // Employee balance trends
-      const employeeBalanceTrends = employeeBalances?.map(balance => ({
-        employee_id: balance.employee_id,
-        employee_name: balance.payroll_employees.name,
-        casual_balance_trend: [balance.casual_leave_balance || 0],
-        earned_balance_trend: [balance.earned_leave_balance || 0],
-        adjustment_frequency: adjustmentData?.filter(a => a.employee_id === balance.employee_id).length || 0
+      console.log('Trend data generated for 12 months');
+
+      // Process employee balance trends with adjustment frequency
+      const employeeBalanceTrends = employeeBalances?.map(balance => {
+        const employeeAdjustments = adjustmentData?.filter(a => a.employee_id === balance.employee_id) || [];
+        const totalAdjustmentAmount = employeeAdjustments.reduce((sum, adj) => sum + Math.abs(adj.adjustment_amount || 0), 0);
+        
+        return {
+          employee_id: balance.employee_id,
+          employee_name: balance.payroll_employees?.name || 'Unknown',
+          casual_balance_trend: [balance.casual_leave_balance || 0],
+          earned_balance_trend: [balance.earned_leave_balance || 0],
+          adjustment_frequency: employeeAdjustments.length,
+          current_casual_balance: balance.casual_leave_balance || 0,
+          current_earned_balance: balance.earned_leave_balance || 0,
+          total_adjustments: totalAdjustmentAmount
+        };
+      }) || [];
+
+      console.log('Employee balance trends processed:', employeeBalanceTrends.length, 'employees');
+
+      // Process reconciliation history
+      const reconciliationHistory = reconciliationData?.map(r => ({
+        month: new Date(r.reconciliation_date || r.created_at).toLocaleDateString('default', { month: 'long' }),
+        year: new Date(r.reconciliation_date || r.created_at).getFullYear(),
+        completion_date: r.reconciliation_date || r.created_at,
+        total_employees: r.total_employees || 0,
+        employees_adjusted: r.employees_adjusted || 0,
+        unit_name: r.units?.unit_name || 'All Units',
+        reconciled_by: r.reconciled_by || 'System'
       })) || [];
 
-      setAnalytics({
+      console.log('Reconciliation history processed:', reconciliationHistory.length, 'records');
+
+      const analyticsResult = {
         completionRate,
         totalAdjustments,
         affectedEmployees,
         avgProcessingTime,
         trendData,
-        employeeBalanceTrends
-      });
+        employeeBalanceTrends,
+        reconciliationHistory
+      };
+
+      console.log('Analytics result prepared:', analyticsResult);
+      setAnalytics(analyticsResult);
 
     } catch (error) {
       console.error('Error fetching reconciliation analytics:', error);
+      
+      // Provide fallback data to prevent UI crashes
+      setAnalytics({
+        completionRate: 0,
+        totalAdjustments: 0,
+        affectedEmployees: 0,
+        avgProcessingTime: 0,
+        trendData: [],
+        employeeBalanceTrends: [],
+        reconciliationHistory: []
+      });
     } finally {
       setLoading(false);
     }
