@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -56,15 +55,21 @@ export const useReconciliationAnalytics = ({ month, year, unitId }: UseReconcili
       
       console.log('Date range:', startDate.toISOString(), 'to', endDate.toISOString());
 
-      const { data: reconciliationData, error: reconciliationError } = await supabase
+      // Build reconciliation query conditionally
+      let reconciliationQuery = supabase
         .from('leave_reconciliation_status')
         .select(`
           *,
           units!inner(unit_name)
         `)
         .gte('reconciliation_date', startDate.toISOString())
-        .lte('reconciliation_date', endDate.toISOString())
-        .eq(unitId ? 'unit_id' : 'unit_id', unitId || supabase.from('leave_reconciliation_status').select('unit_id'));
+        .lte('reconciliation_date', endDate.toISOString());
+
+      if (unitId) {
+        reconciliationQuery = reconciliationQuery.eq('unit_id', unitId);
+      }
+
+      const { data: reconciliationData, error: reconciliationError } = await reconciliationQuery;
 
       if (reconciliationError) {
         console.error('Error fetching reconciliation data:', reconciliationError);
@@ -72,16 +77,21 @@ export const useReconciliationAnalytics = ({ month, year, unitId }: UseReconcili
 
       console.log('Reconciliation data fetched:', reconciliationData?.length || 0, 'records');
 
-      // Get leave adjustment history for the current period
-      const { data: adjustmentData, error: adjustmentError } = await supabase
+      // Build adjustment query conditionally
+      let adjustmentQuery = supabase
         .from('leave_adjustment_history')
         .select(`
           *,
           payroll_employees!inner(name, unit_id)
         `)
         .gte('created_at', new Date(year, month - 1, 1).toISOString())
-        .lte('created_at', new Date(year, month, 0).toISOString())
-        .eq(unitId ? 'payroll_employees.unit_id' : 'payroll_employees.unit_id', unitId || supabase.from('payroll_employees').select('unit_id'));
+        .lte('created_at', new Date(year, month, 0).toISOString());
+
+      if (unitId) {
+        adjustmentQuery = adjustmentQuery.eq('payroll_employees.unit_id', unitId);
+      }
+
+      const { data: adjustmentData, error: adjustmentError } = await adjustmentQuery;
 
       if (adjustmentError) {
         console.error('Error fetching adjustment data:', adjustmentError);
@@ -89,15 +99,20 @@ export const useReconciliationAnalytics = ({ month, year, unitId }: UseReconcili
 
       console.log('Adjustment data fetched:', adjustmentData?.length || 0, 'records');
 
-      // Get employee leave balances with trends
-      const { data: employeeBalances, error: balanceError } = await supabase
+      // Build employee balances query conditionally
+      let balanceQuery = supabase
         .from('employee_leave_balances')
         .select(`
           *,
           payroll_employees!inner(name, unit_id)
         `)
-        .eq('year', year)
-        .eq(unitId ? 'payroll_employees.unit_id' : 'payroll_employees.unit_id', unitId || supabase.from('payroll_employees').select('unit_id'));
+        .eq('year', year);
+
+      if (unitId) {
+        balanceQuery = balanceQuery.eq('payroll_employees.unit_id', unitId);
+      }
+
+      const { data: employeeBalances, error: balanceError } = await balanceQuery;
 
       if (balanceError) {
         console.error('Error fetching employee balances:', balanceError);
