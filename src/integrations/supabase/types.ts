@@ -3292,6 +3292,121 @@ export type Database = {
           },
         ]
       }
+      leave_adjustment_history: {
+        Row: {
+          adjusted_by: string | null
+          adjustment_amount: number
+          adjustment_date: string
+          adjustment_reason: string
+          approved_at: string | null
+          approved_by: string | null
+          attendance_based_balance: number | null
+          batch_id: string | null
+          created_at: string
+          discrepancy_source: string | null
+          employee_id: string
+          id: string
+          leave_type: string
+          new_balance: number
+          original_calculated_balance: number | null
+          previous_balance: number
+          reconciliation_month: number
+          reconciliation_session_id: string | null
+          reconciliation_year: number
+          unit_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          adjusted_by?: string | null
+          adjustment_amount?: number
+          adjustment_date?: string
+          adjustment_reason: string
+          approved_at?: string | null
+          approved_by?: string | null
+          attendance_based_balance?: number | null
+          batch_id?: string | null
+          created_at?: string
+          discrepancy_source?: string | null
+          employee_id: string
+          id?: string
+          leave_type: string
+          new_balance?: number
+          original_calculated_balance?: number | null
+          previous_balance?: number
+          reconciliation_month: number
+          reconciliation_session_id?: string | null
+          reconciliation_year: number
+          unit_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          adjusted_by?: string | null
+          adjustment_amount?: number
+          adjustment_date?: string
+          adjustment_reason?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          attendance_based_balance?: number | null
+          batch_id?: string | null
+          created_at?: string
+          discrepancy_source?: string | null
+          employee_id?: string
+          id?: string
+          leave_type?: string
+          new_balance?: number
+          original_calculated_balance?: number | null
+          previous_balance?: number
+          reconciliation_month?: number
+          reconciliation_session_id?: string | null
+          reconciliation_year?: number
+          unit_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leave_adjustment_history_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_details_enhanced"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leave_adjustment_history_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "panchkula_payroll_calculation"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "leave_adjustment_history_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_calculation_enhanced"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "leave_adjustment_history_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leave_adjustment_history_reconciliation_session_id_fkey"
+            columns: ["reconciliation_session_id"]
+            isOneToOne: false
+            referencedRelation: "leave_reconciliation_status"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leave_adjustment_history_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "units"
+            referencedColumns: ["unit_id"]
+          },
+        ]
+      }
       leave_applications: {
         Row: {
           applied_by: string | null
@@ -3444,6 +3559,62 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "payroll_employees"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      leave_reconciliation_status: {
+        Row: {
+          created_at: string
+          employees_adjusted: number
+          id: string
+          is_completed: boolean
+          month: number
+          notes: string | null
+          reconciled_by: string | null
+          reconciliation_date: string
+          total_adjustments: number
+          total_employees: number
+          unit_id: string | null
+          updated_at: string
+          year: number
+        }
+        Insert: {
+          created_at?: string
+          employees_adjusted?: number
+          id?: string
+          is_completed?: boolean
+          month: number
+          notes?: string | null
+          reconciled_by?: string | null
+          reconciliation_date?: string
+          total_adjustments?: number
+          total_employees?: number
+          unit_id?: string | null
+          updated_at?: string
+          year: number
+        }
+        Update: {
+          created_at?: string
+          employees_adjusted?: number
+          id?: string
+          is_completed?: boolean
+          month?: number
+          notes?: string | null
+          reconciled_by?: string | null
+          reconciliation_date?: string
+          total_adjustments?: number
+          total_employees?: number
+          unit_id?: string | null
+          updated_at?: string
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leave_reconciliation_status_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "units"
+            referencedColumns: ["unit_id"]
           },
         ]
       }
@@ -5212,6 +5383,85 @@ export type Database = {
           version?: number | null
         }
         Relationships: []
+      }
+      payroll_reconciliation_links: {
+        Row: {
+          created_at: string
+          employee_id: string
+          id: string
+          month: number
+          payroll_job_id: string | null
+          reconciliation_impact_amount: number | null
+          reconciliation_session_id: string | null
+          used_reconciled_data: boolean
+          year: number
+        }
+        Insert: {
+          created_at?: string
+          employee_id: string
+          id?: string
+          month: number
+          payroll_job_id?: string | null
+          reconciliation_impact_amount?: number | null
+          reconciliation_session_id?: string | null
+          used_reconciled_data?: boolean
+          year: number
+        }
+        Update: {
+          created_at?: string
+          employee_id?: string
+          id?: string
+          month?: number
+          payroll_job_id?: string | null
+          reconciliation_impact_amount?: number | null
+          reconciliation_session_id?: string | null
+          used_reconciled_data?: boolean
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_reconciliation_links_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_details_enhanced"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payroll_reconciliation_links_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "panchkula_payroll_calculation"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "payroll_reconciliation_links_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_calculation_enhanced"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "payroll_reconciliation_links_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payroll_reconciliation_links_payroll_job_id_fkey"
+            columns: ["payroll_job_id"]
+            isOneToOne: false
+            referencedRelation: "bulk_payroll_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payroll_reconciliation_links_reconciliation_session_id_fkey"
+            columns: ["reconciliation_session_id"]
+            isOneToOne: false
+            referencedRelation: "leave_reconciliation_status"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       payroll_settings: {
         Row: {
@@ -7895,6 +8145,20 @@ export type Database = {
           unique_orders: number
         }[]
       }
+      get_reconciliation_status: {
+        Args: { p_month: number; p_year: number; p_unit_id?: string }
+        Returns: {
+          reconciliation_id: string
+          is_completed: boolean
+          reconciliation_date: string
+          reconciled_by: string
+          total_employees: number
+          employees_adjusted: number
+          total_adjustments: number
+          unit_name: string
+          notes: string
+        }[]
+      }
       get_user_jobs_safe: {
         Args: { p_user_id: string }
         Returns: {
@@ -8087,6 +8351,18 @@ export type Database = {
       reconcile_monthly_leaves: {
         Args: { p_month: number; p_year: number; p_unit_id?: string }
         Returns: Json
+      }
+      record_reconciliation_completion: {
+        Args: {
+          p_month: number
+          p_year: number
+          p_unit_id: string
+          p_total_employees: number
+          p_employees_adjusted: number
+          p_total_adjustments: number
+          p_notes?: string
+        }
+        Returns: string
       }
       refresh_analytics_materialized_views: {
         Args: Record<PropertyKey, never>
