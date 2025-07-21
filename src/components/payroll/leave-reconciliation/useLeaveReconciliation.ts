@@ -64,7 +64,7 @@ export const useLeaveReconciliation = () => {
         p_unit_id: selectedUnit || null
       };
 
-      const { data, error } = await supabase.rpc('reconcile_monthly_leaves', params);
+      const { data, error } = await (supabase.rpc as any)('reconcile_monthly_leaves', params);
 
       if (error) throw error;
       
@@ -115,7 +115,7 @@ export const useLeaveReconciliation = () => {
         p_year: selectedYear
       };
 
-      const { data, error } = await supabase.rpc('apply_leave_adjustments', params);
+      const { data, error } = await (supabase.rpc as any)('apply_leave_adjustments', params);
 
       if (error) throw error;
 
