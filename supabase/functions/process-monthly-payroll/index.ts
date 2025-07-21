@@ -29,27 +29,56 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    console.log('Starting enhanced monthly payroll processing...');
+    console.log('Starting enhanced monthly payroll processing with reconciliation validation...');
     
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    const { month, unit_id, language } = await req.json();
+    const { month, unit_id, language, reconciliation_override } = await req.json();
     const processMonth = month ? new Date(month) : new Date();
     const monthString = processMonth.toISOString().slice(0, 7); // YYYY-MM format
     const preferredLanguage = language || 'english';
 
     console.log(`Processing enhanced payroll for month: ${monthString}, unit: ${unit_id || 'all'}, language: ${preferredLanguage}`);
 
-    // Create bulk job record
+    // Check reconciliation status before processing
+    const monthNum = processMonth.getMonth() + 1;
+    const yearNum = processMonth.getFullYear();
+    
+    const { data: reconciliationStatus, error: reconciliationError } = await supabase
+      .rpc('get_reconciliation_status', {
+        p_month: monthNum,
+        p_year: yearNum,
+        p_unit_id: unit_id
+      });
+
+    if (reconciliationError) {
+      console.error('Error checking reconciliation status:', reconciliationError);
+    }
+
+    const hasCompletedReconciliation = reconciliationStatus?.some((status: any) => status.is_completed) || false;
+    const reconciliationWarning = !hasCompletedReconciliation && !reconciliation_override;
+
+    console.log(`Reconciliation status: ${hasCompletedReconciliation ? 'Completed' : 'Not completed'}`);
+    console.log(`Override provided: ${reconciliation_override || false}`);
+
+    if (reconciliationWarning) {
+      console.warn('Payroll processing without completed reconciliation - this may result in inaccurate calculations');
+    }
+
+    // Create bulk job record with reconciliation metadata
     const { data: bulkJob, error: jobError } = await supabase
       .from('bulk_payroll_jobs')
       .insert({
         month: monthString + '-01',
         status: 'processing',
-        started_at: new Date().toISOString()
+        started_at: new Date().toISOString(),
+        error_details: reconciliationWarning ? {
+          reconciliation_warning: 'Payroll processed without completed leave reconciliation',
+          reconciliation_override: reconciliation_override || false
+        } : null
       })
       .select()
       .single();
@@ -212,6 +241,29 @@ const handler = async (req: Request): Promise<Response> => {
 
       console.log(`Inserted ${calculations.length} enhanced salary calculations`);
 
+      // Create payroll reconciliation links if reconciliation was completed
+      if (hasCompletedReconciliation) {
+        const reconciliationLinks = calculations.map(calc => ({
+          payroll_job_id: bulkJob.id,
+          reconciliation_session_id: reconciliationStatus[0]?.reconciliation_id,
+          employee_id: calc.employee_id,
+          month: monthNum,
+          year: yearNum,
+          used_reconciled_data: true,
+          reconciliation_impact_amount: 0 // Could be calculated if needed
+        }));
+
+        const { error: linkError } = await supabase
+          .from('payroll_reconciliation_links')
+          .insert(reconciliationLinks);
+
+        if (linkError) {
+          console.error('Error creating reconciliation links:', linkError);
+        } else {
+          console.log(`Created ${reconciliationLinks.length} reconciliation links`);
+        }
+      }
+
       // Queue emails for enhanced salary slips
       for (const calc of calculations) {
         const { data: employee } = await supabase
@@ -229,9 +281,14 @@ const handler = async (req: Request): Promise<Response> => {
           ? `वेतन पर्ची - ${employee?.name} - ${monthString}`
           : `Enhanced Salary Slip - ${employee?.name} - ${monthString}`;
         
+        const reconciliationNote = hasCompletedReconciliation 
+          ? (isHindi ? 'छुट्टी संतुलन सत्यापित' : 'Leave balances verified')
+          : (isHindi ? 'चेतावनी: छुट्टी संतुलन सत्यापित नहीं' : 'Warning: Leave balances not verified');
+        
         const htmlContent = isHindi ? `
           <h2>${employee?.name} की वेतन पर्ची</h2>
           <p>महीना: ${monthString}</p>
+          <p style="color: ${hasCompletedReconciliation ? 'green' : 'orange'};">${reconciliationNote}</p>
           <h3>आय:</h3>
           <p>मूल वेतन: ₹${calc.base_salary.toFixed(2)}</p>
           <p>महंगाई भत्ता: ₹${calc.hra_amount.toFixed(2)}</p>
@@ -246,6 +303,7 @@ const handler = async (req: Request): Promise<Response> => {
         ` : `
           <h2>Enhanced Salary Slip for ${employee?.name}</h2>
           <p>Month: ${monthString}</p>
+          <p style="color: ${hasCompletedReconciliation ? 'green' : 'orange'};">${reconciliationNote}</p>
           <h3>Earnings:</h3>
           <p>Base Salary: ₹${calc.base_salary.toFixed(2)}</p>
           <p>HRA: ₹${calc.hra_amount.toFixed(2)}</p>
@@ -283,6 +341,7 @@ const handler = async (req: Request): Promise<Response> => {
       .eq('id', bulkJob.id);
 
     console.log(`Enhanced monthly payroll processing completed. Processed: ${processedCount}, Failed: ${failedCount}`);
+    console.log(`Reconciliation status: ${hasCompletedReconciliation ? 'Used reconciled data' : 'Processed without reconciliation'}`);
 
     return new Response(
       JSON.stringify({
@@ -290,7 +349,12 @@ const handler = async (req: Request): Promise<Response> => {
         message: 'Enhanced monthly payroll processing completed',
         processed: processedCount,
         failed: failedCount,
-        job_id: bulkJob.id
+        job_id: bulkJob.id,
+        reconciliation_status: {
+          completed: hasCompletedReconciliation,
+          override_used: reconciliation_override || false,
+          warning: reconciliationWarning
+        }
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

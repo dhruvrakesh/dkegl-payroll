@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,14 +7,17 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { Calendar, Play, Clock, CheckCircle, XCircle, AlertCircle, Users, Mail } from 'lucide-react';
+import { Calendar, Play, Clock, CheckCircle, XCircle, AlertCircle, Users, Mail, Shield } from 'lucide-react';
 import { JOB_STATUS, MESSAGE_TYPES } from '@/config/constants';
 import { getStatusColor } from '@/config/utils';
 import { useUnitsData } from '@/hooks/useUnitsData';
+import { useReconciliationStatus } from '@/hooks/useReconciliationStatus';
 import { PayrollDetailsTable } from './PayrollDetailsTable';
 import { BulkEmailUploader } from './BulkEmailUploader';
+import { ReconciliationConfirmationDialog } from './ReconciliationConfirmationDialog';
 
 interface BulkJob {
   id: string;
@@ -38,12 +40,30 @@ export const BulkPayrollOperations = () => {
   const [selectedUnit, setSelectedUnit] = useState<string>('all');
   const [selectedLanguage, setSelectedLanguage] = useState<string>('english');
   const [activeTab, setActiveTab] = useState('operations');
+  const [showReconciliationDialog, setShowReconciliationDialog] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const { toast } = useToast();
   const { units, loading: unitsLoading } = useUnitsData();
+  const { reconciliationStatus, loading: reconciliationLoading, checkReconciliationStatus } = useReconciliationStatus();
 
   useEffect(() => {
     fetchBulkJobs();
+    checkUserRole();
   }, []);
+
+  const checkUserRole = async () => {
+    try {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', (await supabase.auth.getUser()).data.user?.id)
+        .single();
+      
+      setIsAdmin(profile?.role === 'admin');
+    } catch (error) {
+      console.error('Error checking user role:', error);
+    }
+  };
 
   const fetchBulkJobs = async () => {
     try {
@@ -65,7 +85,7 @@ export const BulkPayrollOperations = () => {
     }
   };
 
-  const triggerMonthlyPayroll = async () => {
+  const handlePayrollProcessing = async () => {
     if (!selectedMonth) {
       toast({
         title: MESSAGE_TYPES.ERROR,
@@ -75,13 +95,41 @@ export const BulkPayrollOperations = () => {
       return;
     }
 
+    // Check reconciliation status before proceeding
+    const monthDate = new Date(selectedMonth + '-01');
+    const month = monthDate.getMonth() + 1;
+    const year = monthDate.getFullYear();
+
+    try {
+      const statusData = await checkReconciliationStatus(
+        month,
+        year,
+        selectedUnit === 'all' ? undefined : selectedUnit
+      );
+
+      // Show reconciliation confirmation dialog
+      setShowReconciliationDialog(true);
+    } catch (error) {
+      console.error('Error checking reconciliation status:', error);
+      toast({
+        title: MESSAGE_TYPES.ERROR,
+        description: 'Failed to check reconciliation status',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const proceedWithPayroll = async (withOverride = false) => {
+    setShowReconciliationDialog(false);
     setLoading(true);
+    
     try {
       const { data, error } = await supabase.functions.invoke('process-monthly-payroll', {
         body: { 
           month: selectedMonth + '-01',
           unit_id: selectedUnit === 'all' ? null : selectedUnit,
-          language: selectedLanguage
+          language: selectedLanguage,
+          reconciliation_override: withOverride
         }
       });
 
@@ -159,7 +207,8 @@ export const BulkPayrollOperations = () => {
                 Bulk Payroll Operations
               </CardTitle>
               <CardDescription>
-                Process monthly payroll for employees with unit-wise filtering and language preferences
+                Process monthly payroll for employees with unit-wise filtering and language preferences.
+                Leave reconciliation status will be verified before processing.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -204,8 +253,8 @@ export const BulkPayrollOperations = () => {
                 </div>
                 <div className="flex items-end">
                   <Button
-                    onClick={triggerMonthlyPayroll}
-                    disabled={loading || unitsLoading}
+                    onClick={handlePayrollProcessing}
+                    disabled={loading || unitsLoading || reconciliationLoading}
                     className="flex items-center gap-2 w-full"
                   >
                     <Play className="h-4 w-4" />
@@ -215,11 +264,22 @@ export const BulkPayrollOperations = () => {
               </div>
               
               {selectedUnit !== 'all' && (
-                <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                  <p className="text-sm text-blue-800">
+                <Alert>
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>
                     <strong>Unit-wise Processing:</strong> Only employees from the selected unit will be processed.
-                  </p>
-                </div>
+                    Leave reconciliation will be checked for this specific unit.
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {isAdmin && (
+                <Alert>
+                  <Shield className="h-4 w-4" />
+                  <AlertDescription>
+                    <strong>Admin Mode:</strong> You can override reconciliation requirements if needed.
+                  </AlertDescription>
+                </Alert>
               )}
             </CardContent>
           </Card>
@@ -237,7 +297,6 @@ export const BulkPayrollOperations = () => {
         </TabsContent>
 
         <TabsContent value="history" className="space-y-6">
-
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -328,6 +387,17 @@ export const BulkPayrollOperations = () => {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <ReconciliationConfirmationDialog
+        open={showReconciliationDialog}
+        onClose={() => setShowReconciliationDialog(false)}
+        onProceed={() => proceedWithPayroll(false)}
+        onProceedWithOverride={() => proceedWithPayroll(true)}
+        reconciliationStatus={reconciliationStatus}
+        selectedMonth={selectedMonth}
+        selectedUnit={selectedUnit}
+        isAdmin={isAdmin}
+      />
     </div>
   );
 };
