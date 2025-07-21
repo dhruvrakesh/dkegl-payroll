@@ -175,6 +175,7 @@ export const useLeaveReconciliation = () => {
     setSelectedYear,
     setSelectedUnit,
     setAdjustmentReason,
+    setSelectedEmployees,
     handleReconcile,
     handleApplyAdjustments,
     toggleEmployeeSelection,
