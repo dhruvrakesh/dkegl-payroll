@@ -7877,12 +7877,20 @@ export type Database = {
         }[]
       }
       apply_leave_adjustments: {
-        Args: {
-          p_adjustments: Json
-          p_reason: string
-          p_month: number
-          p_year: number
-        }
+        Args:
+          | {
+              p_adjustments: Json
+              p_reason: string
+              p_month: number
+              p_year: number
+            }
+          | {
+              p_adjustments: Json
+              p_reason: string
+              p_month: number
+              p_year: number
+              p_unit_id?: string
+            }
         Returns: Json
       }
       bytea_to_text: {

@@ -90,11 +90,16 @@ export const useLeaveReconciliation = () => {
     const adjustmentsToApply = (reconciliationData as any[])
       .filter((emp: any) => selectedEmployees.includes(emp.employee_id))
       .map((emp: any) => ({
+        employee_code: emp.employee_code,
         employee_id: emp.employee_id,
         current_casual_balance: emp.current_casual_balance,
         current_earned_balance: emp.current_earned_balance,
-        casual_adjustment: emp.suggested_adjustment.casual_adjustment,
-        earned_adjustment: emp.suggested_adjustment.earned_adjustment
+        casual_leave_adjustment: emp.suggested_adjustment.casual_adjustment,
+        earned_leave_adjustment: emp.suggested_adjustment.earned_adjustment,
+        casual_leave_balance: emp.current_casual_balance,
+        earned_leave_balance: emp.current_earned_balance,
+        attendance_based_casual: emp.leave_consumption.casual_taken,
+        attendance_based_earned: emp.leave_consumption.earned_taken
       }));
 
     setLoading(true);
@@ -103,7 +108,8 @@ export const useLeaveReconciliation = () => {
         p_adjustments: adjustmentsToApply,
         p_reason: adjustmentReason,
         p_month: selectedMonth,
-        p_year: selectedYear
+        p_year: selectedYear,
+        p_unit_id: selectedUnit === 'all' ? null : selectedUnit
       };
 
       const { data, error } = await supabase.rpc('apply_leave_adjustments', params);
@@ -113,11 +119,16 @@ export const useLeaveReconciliation = () => {
       const result: any = data;
       toast({
         title: "Success",
-        description: `Applied adjustments for ${result?.successCount || 0} employees`,
+        description: `Applied adjustments for ${result?.success_count || 0} employees`,
       });
 
-      if ((result?.errorCount || 0) > 0) {
+      if ((result?.error_count || 0) > 0) {
         console.error('Some adjustments failed:', result?.errors);
+        toast({
+          title: "Warning",
+          description: `${result.error_count} adjustments failed. Check console for details.`,
+          variant: "destructive",
+        });
       }
 
       // Clear selections and refresh data
