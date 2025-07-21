@@ -5,8 +5,8 @@ import { useToast } from '@/hooks/use-toast';
 import type { Unit, ReconciliationData, ReconciliationResult, AdjustmentResult } from './types';
 
 export const useLeaveReconciliation = () => {
-  const [reconciliationData, setReconciliationData] = useState<ReconciliationData[]>([]);
-  const [units, setUnits] = useState<Unit[]>([]);
+  const [reconciliationData, setReconciliationData] = useState([]);
+  const [units, setUnits] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
@@ -61,7 +61,7 @@ export const useLeaveReconciliation = () => {
 
       if (error) throw error;
       
-      const result = data as ReconciliationResult;
+      const result = data as unknown as ReconciliationResult;
       setReconciliationData(result?.employee_data || []);
       toast({
         title: "Success",
@@ -89,7 +89,7 @@ export const useLeaveReconciliation = () => {
       return;
     }
 
-    const adjustmentsToApply = reconciliationData
+    const adjustmentsToApply = (reconciliationData as ReconciliationData[])
       .filter(emp => selectedEmployees.includes(emp.employee_id))
       .map(emp => ({
         employee_id: emp.employee_id,
@@ -112,7 +112,7 @@ export const useLeaveReconciliation = () => {
 
       if (error) throw error;
 
-      const result = data as AdjustmentResult;
+      const result = data as unknown as AdjustmentResult;
       toast({
         title: "Success",
         description: `Applied adjustments for ${result?.successCount || 0} employees`,
@@ -146,7 +146,7 @@ export const useLeaveReconciliation = () => {
   };
 
   const selectAll = () => {
-    setSelectedEmployees(reconciliationData.map(emp => emp.employee_id));
+    setSelectedEmployees((reconciliationData as ReconciliationData[]).map(emp => emp.employee_id));
   };
 
   const clearAll = () => {
@@ -154,8 +154,8 @@ export const useLeaveReconciliation = () => {
   };
 
   return {
-    reconciliationData,
-    units,
+    reconciliationData: reconciliationData as ReconciliationData[],
+    units: units as Unit[],
     loading,
     selectedMonth,
     selectedYear,
