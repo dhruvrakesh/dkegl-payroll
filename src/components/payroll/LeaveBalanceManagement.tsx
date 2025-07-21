@@ -7,10 +7,14 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Edit, RefreshCw, Users, Calendar, Upload, ChevronDown, Search } from 'lucide-react';
+import { Plus, Edit, RefreshCw, Users, Calendar, Upload, ChevronDown, Search, Calculator, History } from 'lucide-react';
 import { LeaveBalanceCsvUploader } from './LeaveBalanceCsvUploader';
+import { LeaveReconciliation } from './LeaveReconciliationSimple';
+import { LeaveBalanceHistory } from './LeaveBalanceHistory';
+import { LeaveBalanceAdjustmentCsv } from './LeaveBalanceAdjustmentCsv';
 
 interface LeaveBalance {
   id: string;
@@ -478,6 +482,40 @@ export const LeaveBalanceManagement = () => {
           </Table>
         </CardContent>
       </Card>
+
+      <Tabs defaultValue="balances">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="balances">Current Balances</TabsTrigger>
+          <TabsTrigger value="reconciliation">
+            <Calculator className="w-4 h-4 mr-2" />
+            Monthly Reconciliation
+          </TabsTrigger>
+          <TabsTrigger value="adjustments">
+            <Upload className="w-4 h-4 mr-2" />
+            Bulk Adjustments
+          </TabsTrigger>
+          <TabsTrigger value="history">
+            <History className="w-4 h-4 mr-2" />
+            History
+          </TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="balances" className="space-y-0">
+          {/* Current content already shown above */}
+        </TabsContent>
+        
+        <TabsContent value="reconciliation">
+          <LeaveReconciliation />
+        </TabsContent>
+        
+        <TabsContent value="adjustments">
+          <LeaveBalanceAdjustmentCsv onUploadSuccess={fetchLeaveBalances} />
+        </TabsContent>
+        
+        <TabsContent value="history">
+          <LeaveBalanceHistory />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
