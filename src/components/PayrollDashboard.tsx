@@ -25,6 +25,7 @@ import { DepartmentManagement } from './payroll/DepartmentManagement';
 import { WeeklyOffScheduler } from './payroll/WeeklyOffScheduler';
 import { FormulaMonitoringDashboard } from './payroll/FormulaMonitoringDashboard';
 import { BulkLeaveApplicationSystem } from './payroll/BulkLeaveApplicationSystem';
+import { ReconciliationDashboard } from './payroll/ReconciliationDashboard';
 import { Users, AlertTriangle, Coffee, Building2, Calendar, Clock, Activity, FileText } from 'lucide-react';
 
 export function PayrollDashboard() {
@@ -81,6 +82,10 @@ export function PayrollDashboard() {
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList className="flex flex-wrap w-full gap-1 h-auto p-1">
           <TabsTrigger value="salary">Salary Management</TabsTrigger>
+          <TabsTrigger value="reconciliation-dashboard">
+            <Activity className="w-4 h-4 mr-1" />
+            Reconciliation Dashboard
+          </TabsTrigger>
           <TabsTrigger value="panchkula">Panchkula Calculator</TabsTrigger>
           <TabsTrigger value="employees">Employees</TabsTrigger>
           <TabsTrigger value="departments">
@@ -125,6 +130,10 @@ export function PayrollDashboard() {
 
         <TabsContent value="salary" className="space-y-6">
           <EnhancedSalaryDisbursement />
+        </TabsContent>
+
+        <TabsContent value="reconciliation-dashboard" className="space-y-6">
+          <ReconciliationDashboard />
         </TabsContent>
 
         <TabsContent value="panchkula" className="space-y-6">
