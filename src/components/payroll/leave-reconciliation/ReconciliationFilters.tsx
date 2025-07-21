@@ -84,7 +84,7 @@ export const ReconciliationFilters: React.FC<ReconciliationFiltersProps> = ({
               <SelectValue placeholder="All units" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Units</SelectItem>
+              <SelectItem value="all">All Units</SelectItem>
               {units.map(unit => (
                 <SelectItem key={unit.unit_id} value={unit.unit_id}>
                   {unit.unit_name}
