@@ -2,7 +2,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import type { Unit, ReconciliationData, ReconciliationResult, AdjustmentResult } from './types';
 
 export const useLeaveReconciliation = () => {
   const [reconciliationData, setReconciliationData] = useState([]);
@@ -12,7 +11,7 @@ export const useLeaveReconciliation = () => {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [selectedUnit, setSelectedUnit] = useState('');
   const [adjustmentReason, setAdjustmentReason] = useState('');
-  const [selectedEmployees, setSelectedEmployees] = useState<string[]>([]);
+  const [selectedEmployees, setSelectedEmployees] = useState([]);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -21,14 +20,14 @@ export const useLeaveReconciliation = () => {
 
   const fetchUnits = async () => {
     try {
-      const { data, error } = await supabase
+      const response = await (supabase as any)
         .from('units')
         .select('unit_id, unit_name, unit_code')
         .eq('active', true)
         .order('unit_name');
 
-      if (error) throw error;
-      setUnits(data || []);
+      if (response.error) throw response.error;
+      setUnits(response.data || []);
     } catch (error) {
       console.error('Error fetching units:', error);
       toast({
@@ -61,7 +60,7 @@ export const useLeaveReconciliation = () => {
 
       if (error) throw error;
       
-      const result = data as unknown as ReconciliationResult;
+      const result: any = data;
       setReconciliationData(result?.employee_data || []);
       toast({
         title: "Success",
@@ -89,9 +88,9 @@ export const useLeaveReconciliation = () => {
       return;
     }
 
-    const adjustmentsToApply = (reconciliationData as ReconciliationData[])
-      .filter(emp => selectedEmployees.includes(emp.employee_id))
-      .map(emp => ({
+    const adjustmentsToApply = (reconciliationData as any[])
+      .filter((emp: any) => selectedEmployees.includes(emp.employee_id))
+      .map((emp: any) => ({
         employee_id: emp.employee_id,
         current_casual_balance: emp.current_casual_balance,
         current_earned_balance: emp.current_earned_balance,
@@ -112,7 +111,7 @@ export const useLeaveReconciliation = () => {
 
       if (error) throw error;
 
-      const result = data as unknown as AdjustmentResult;
+      const result: any = data;
       toast({
         title: "Success",
         description: `Applied adjustments for ${result?.successCount || 0} employees`,
@@ -146,7 +145,7 @@ export const useLeaveReconciliation = () => {
   };
 
   const selectAll = () => {
-    setSelectedEmployees((reconciliationData as ReconciliationData[]).map(emp => emp.employee_id));
+    setSelectedEmployees((reconciliationData as any[]).map((emp: any) => emp.employee_id));
   };
 
   const clearAll = () => {
@@ -154,8 +153,8 @@ export const useLeaveReconciliation = () => {
   };
 
   return {
-    reconciliationData: reconciliationData as ReconciliationData[],
-    units: units as Unit[],
+    reconciliationData: reconciliationData as any[],
+    units: units as any[],
     loading,
     selectedMonth,
     selectedYear,
