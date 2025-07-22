@@ -1,1051 +1,449 @@
 
-# Complete Payroll Management System - User Manual v2.0
+# Comprehensive Payroll Management System - User Manual
 
 ## Table of Contents
-
 1. [System Overview](#system-overview)
 2. [Getting Started](#getting-started)
-3. [Employee Management](#employee-management)
-4. [Attendance Data Entry & Duplicate Protection](#attendance-data-entry--duplicate-protection)
-5. [Leave Management](#leave-management)
-6. [Formula Management & Validation](#formula-management--validation)
-7. [Payroll Processing](#payroll-processing)
-8. [Weekly Off & Holiday Management](#weekly-off--holiday-management)
-9. [Bulk Operations & CSV Management](#bulk-operations--csv-management)
-10. [Reports & Analytics](#reports--analytics)
-11. [System Administration](#system-administration)
-12. [Troubleshooting & Best Practices](#troubleshooting--best-practices)
+3. [Authentication & User Management](#authentication--user-management)
+4. [Core Payroll Operations](#core-payroll-operations)
+5. [Bulk Operations](#bulk-operations)
+6. [Leave Management & Reconciliation](#leave-management--reconciliation)
+7. [Salary Slip Generation](#salary-slip-generation)
+8. [Advanced Features](#advanced-features)
+9. [Troubleshooting & FAQ](#troubleshooting--faq)
+10. [Workflow Reference](#workflow-reference)
 
 ---
 
 ## System Overview
 
-### What is the Payroll Management System?
+### Main Dashboard Components
+The payroll system is organized into several key modules accessible through the main navigation:
 
-The Enhanced Payroll Management System is a comprehensive web-based application designed to streamline all aspects of payroll processing, from employee onboarding to salary disbursement. The system provides automated calculations, bulk data processing, leave management, and comprehensive audit trails with robust duplicate protection mechanisms.
+- **PayrollDashboard**: Central hub for all payroll operations
+- **Employee Management**: Complete employee lifecycle management
+- **Attendance Management**: Daily attendance tracking and bulk operations
+- **Leave Management**: Leave balance tracking and reconciliation
+- **Salary Processing**: Monthly payroll calculation and disbursement
+- **Reports & Analytics**: Comprehensive reporting suite
 
-### Key Features
-
-- **Employee Management**: Complete employee lifecycle management with auto-generated codes
-- **Attendance Tracking**: Individual and bulk attendance data entry with real-time validation
-- **Advanced Duplicate Protection**: Multi-layer safeguards preventing data duplication
-- **Leave Management**: Comprehensive leave balance tracking with bulk application processing
-- **Formula Management**: Configurable salary calculation formulas with real-time performance monitoring
-- **Weekly Off Management**: Systematic weekly off scheduling with unit-specific rules
-- **Overtime Calculation**: Automated OT calculations with Sunday overtime handling
-- **Payroll Processing**: Automated salary calculations with comprehensive audit trails
-- **Bulk Operations**: Advanced CSV-based bulk data entry and processing
-- **Real-time Monitoring**: Live formula performance and validation tracking
-- **Reports & Analytics**: Comprehensive reporting with visual dashboards and insights
-- **Audit & Compliance**: Complete audit trails and regulatory compliance reporting
-
-### System Architecture
-
-The system is built on:
-- **Frontend**: React with TypeScript for type safety
-- **Backend**: Supabase for database and authentication
-- **Real-time Updates**: Live data synchronization
-- **Security**: Row-level security and role-based access control
-- **Duplicate Protection**: Multi-layer validation and constraint system
+### User Roles & Permissions
+- **Admin**: Full system access, user management, system configuration
+- **HR Manager**: Employee management, payroll processing, reporting
+- **Manager**: Unit-specific operations, employee supervision
+- **Employee**: Self-service access to personal data and salary slips
 
 ---
 
 ## Getting Started
 
-### System Requirements
+### Quick Start Guide for New Users
 
-- Modern web browser (Chrome, Firefox, Safari, Edge)
-- Internet connection
-- Valid user account with appropriate permissions
-
-### Logging In
-
+#### Step 1: System Login
 1. Navigate to the application URL
-2. Enter your email and password
-3. Click "Sign In"
-4. If this is your first login, wait for admin approval
+2. Click "Sign In" button
+3. Enter your email and password
+4. Wait for profile verification and approval
 
-### Navigation Overview
+#### Step 2: Dashboard Navigation
+- **Main Tabs**: Payroll, Employees, Attendance, Leave Management
+- **Quick Actions**: Located in the top-right corner
+- **Status Indicators**: Real-time system status and alerts
 
-The system uses a tabbed interface with the following main sections:
-
-- **Salary Management**: Main payroll processing dashboard
-- **Employees**: Employee data management
-- **Departments**: Department and unit management
-- **Attendance**: Attendance tracking and management
-- **Leave Balance**: Leave management system
-- **Sunday Overtime**: Special overtime calculations
-- **Formulas**: Salary calculation formula management
-- **Bulk Operations**: Mass data processing tools
-- **Audit & Logs**: System audit trails and monitoring
-
----
-
-## Employee Management
-
-### Adding New Employees
-
-#### Individual Employee Entry
-
-1. Navigate to **Employees** tab
-2. Click **"Add New Employee"**
-3. Fill in required information:
-   - **Basic Information**: Name, email, phone
-   - **Employment Details**: Department, unit, position
-   - **Salary Information**: Basic salary, allowances
-   - **Leave Entitlements**: Annual leave quotas
-   - **Bank Details**: Account information for salary transfer
-
-4. Click **"Save Employee"**
-
-#### Required Fields
-- Employee Name (Full legal name)
-- Employee Code (Auto-generated or manual)
-- UAN Number (Unique Identification)
-- Department/Unit
-- Basic Salary
-- Date of Joining
-
-#### Optional Fields
-- Email address
-- Phone number
-- Address details
-- Emergency contact
-- Bank account details
-- PF/ESI numbers
-
-### Employee Code Management
-
-The system automatically generates employee codes in the format: `EMP-{UNIT_CODE}-{SEQUENCE}`
-
-Example: `EMP-MFG-0001` for the first employee in Manufacturing unit
-
-### Bulk Employee Import
-
-1. Navigate to **Employees** tab
-2. Click **"Bulk Import"**
-3. Download the employee template CSV
-4. Fill in employee data following the template format
-5. Upload the completed CSV file
-6. Review validation results
-7. Confirm import
-
-#### CSV Template Format
-```csv
-name,email,phone,department_code,unit_code,basic_salary,date_of_joining,uan_number
-John Doe,john@company.com,9876543210,HR,HRU,50000,2024-01-15,123456789012
-Jane Smith,jane@company.com,9876543211,IT,ITU,60000,2024-01-20,123456789013
-```
-
-### Employee Status Management
-
-- **Active**: Employee is currently working
-- **Inactive**: Employee is temporarily inactive
-- **Terminated**: Employee has left the organization
-
-### Employee Data Validation
-
-The system validates:
-- Unique employee codes
-- Valid UAN numbers (12 digits)
-- Email format validation
-- Phone number format
-- Salary amount validation
-- Department/unit existence
+#### Step 3: Initial Setup (Admin Only)
+1. Go to **System Initializer**
+2. Configure basic settings:
+   - Units and departments
+   - Leave policies
+   - Salary components
+   - Formula configurations
 
 ---
 
-## Attendance Data Entry & Duplicate Protection
+## Authentication & User Management
 
-### 🔒 CRITICAL: Understanding Duplicate Protection
-
-The system employs **FOUR LAYERS** of duplicate protection:
-
-#### 1. Database-Level Constraints
-- **Primary Protection**: Unique constraint on `(employee_id, attendance_date)`
-- **Secondary Protection**: Composite unique index preventing duplicate entries
-- **Physical Prevention**: Database physically rejects duplicate records
-
-#### 2. Application-Level Validation
-- **Pre-Insert Checks**: Validates data before database insertion
-- **Real-time Validation**: Immediate feedback on duplicate attempts
-- **Detailed Error Reporting**: Specific error messages with resolution guidance
-
-#### 3. UI/UX Separation
-- **Upload vs Update**: Separate interfaces for different operations
-- **Clear Process Flow**: Visual distinction between new entry and corrections
-- **User Guidance**: Built-in help text and process explanations
-
-#### 4. Audit Trail System
-- **Complete Logging**: Every operation recorded with timestamp
-- **User Tracking**: Who performed what action when
-- **Change History**: Full audit trail of all modifications
-
-### Individual Attendance Entry
-
-1. Navigate to **Attendance** tab
-2. Select **"Individual Entry"** view
-3. Choose employee from dropdown
-4. Select attendance date
-5. Enter attendance details:
-   - **Hours Worked**: Regular working hours (0-24)
-   - **Overtime Hours**: Additional hours beyond regular time
-   - **Status**: Present, Leave, Weekly Off, etc.
-   - **Unit**: Override default unit if needed
-
-6. Click **"Save Attendance"**
-
-### Attendance Status Types
-
-- **PRESENT**: Employee was present and worked
-- **CASUAL_LEAVE**: Casual leave taken
-- **EARNED_LEAVE**: Earned leave taken
-- **SICK_LEAVE**: Sick leave taken
-- **UNPAID_LEAVE**: Leave without pay
-- **WEEKLY_OFF**: Scheduled weekly off day
-- **HOLIDAY**: Public holiday
-
-### 🚨 CRITICAL: Bulk Upload vs Bulk Update
-
-#### Bulk Upload (New Records Only)
-**Use When**: Adding new attendance records that don't exist
-
-1. Navigate to **Attendance** tab → **Bulk Upload**
-2. Click **"Download Template"**
-3. Fill in the CSV template with NEW attendance data
-4. Upload the completed file
-5. Review validation results
-6. Confirm upload
-
-**Duplicate Protection**: System **REJECTS** any duplicate entries with detailed error messages
-
-#### Bulk Update (Existing Records Only)
-**Use When**: Modifying existing attendance records (e.g., adding overtime hours)
-
-1. Navigate to **Attendance** tab → **Bulk Update**
-2. **REQUIRED**: Enter update reason (for audit purposes)
-3. Download update template
-4. Fill in corrections/additions
-5. Upload file
-6. Review changes
-7. Confirm updates
-
-**Protection**: System **UPDATES** existing records only, maintains full audit trail
-
-### 📋 Common Scenario: Adding Overtime Hours
-
-#### ❌ WRONG Method - Using Upload Again
+### Login Process
 ```
-Scenario: You uploaded attendance without OT hours, now want to add OT
-Method: Upload same data again with OT hours
-Result: ERROR - "Duplicate attendance record for employee EMP-001 on 2024-01-15"
-Status: Upload rejected, original data unchanged (SAFE)
+1. Access Application → 2. Enter Credentials → 3. Profile Verification → 4. Dashboard Access
 ```
 
-#### ✅ CORRECT Method - Using Bulk Update
-```
-Scenario: You uploaded attendance without OT hours, now want to add OT
-Method: Use Bulk Update with update reason
-Process:
-1. Navigate to Attendance → Bulk Update
-2. Enter reason: "Adding overtime hours to existing records"
-3. Upload CSV with OT data
-4. System updates existing records
-5. Complete audit trail maintained
-```
+### User Account Management
+- **Profile Setup**: Complete employee profile with all required fields
+- **Role Assignment**: Proper role assignment for access control
+- **Organization Mapping**: Users automatically mapped to organization based on email domain
 
-### CSV Template Format
-
-#### Upload Template (New Records)
-```csv
-employee_code,date,hours_worked,overtime_hours,unit_code
-EMP-MFG-0001,2024-01-15,8,0,MFG
-EMP-MFG-0002,2024-01-15,9,1,MFG
-EMP-HR-0001,2024-01-15,8,0,HR
-```
-
-#### Update Template (Existing Records)
-```csv
-employee_code,date,hours_worked,overtime_hours,unit_code
-EMP-MFG-0001,2024-01-15,8,2,MFG
-EMP-MFG-0002,2024-01-15,9,3,MFG
-```
-
-### Enhanced Validation Rules
-
-- **Hours Worked**: Must be between 0-24
-- **Overtime Hours**: Must be ≥ 0
-- **Date Format**: YYYY-MM-DD or DD-MM-YYYY
-- **Employee Code**: Must exist in system
-- **No Future Dates**: Attendance cannot be future-dated
-- **No Duplicates**: One record per employee per date (enforced at multiple levels)
-
-### Error Handling and Recovery
-
-#### Error Categories
-1. **Duplicate Errors**: Existing record conflicts
-2. **Validation Errors**: Data format issues
-3. **Business Rule Violations**: Policy conflicts
-4. **Missing References**: Invalid employee codes
-
-#### Detailed Error Reports
-The system provides comprehensive error reports with:
-- **Row Number**: Exact location of error in CSV
-- **Error Category**: Type of validation failure
-- **Original Data**: What was submitted
-- **Resolved Employee**: System-found employee details
-- **Suggested Action**: How to fix the error
-
-#### Sample Error Report
-```json
-{
-  "successCount": 2,
-  "errorCount": 1,
-  "errors": [
-    {
-      "rowNumber": 3,
-      "data": {"employee_code": "EMP-001", "date": "2024-01-15"},
-      "reason": "Duplicate attendance record for employee EMP-001 on 2024-01-15",
-      "category": "duplicate",
-      "suggestion": "Use Bulk Update to modify existing records"
-    }
-  ]
-}
-```
-
-### Sunday Overtime Handling
-
-The system automatically handles Sunday overtime:
-- All Sunday working hours are treated as overtime
-- Regular hours are still recorded for calculation purposes
-- Special overtime rates may apply (configurable)
-
-### Attendance Calendar View
-
-- Visual calendar showing attendance status
-- Color-coded status indicators
-- Quick daily summary
-- Monthly overview
-- Filter by employee, unit, or department
+### Security Features
+- Row-Level Security (RLS) for data protection
+- Role-based access control
+- Audit logging for all operations
+- Session management and timeout
 
 ---
 
-## Leave Management
-
-### Leave Types
-
-The system supports multiple leave types:
-
-- **Casual Leave**: Short-term personal leaves
-- **Earned Leave**: Annual vacation entitlement
-- **Sick Leave**: Medical leave
-- **Maternity Leave**: Maternity benefit
-- **Paternity Leave**: Paternity benefit
-- **Unpaid Leave**: Leave without pay
-
-### Leave Balance Management
-
-#### Individual Leave Balance Entry
-
-1. Navigate to **Leave Balance** tab
-2. Select employee
-3. Choose year
-4. Enter opening balances:
-   - Casual Leave balance
-   - Earned Leave balance
-   - Other leave types as applicable
-5. Save balances
-
-#### Bulk Leave Balance Import
-
-1. Click **"Bulk Import"** in Leave Balance section
-2. Download leave balance template
-3. Fill in employee leave balances
-4. Upload CSV file
-5. Review and confirm
-
-#### CSV Template Format
-```csv
-employee_code,year,casual_leave_balance,earned_leave_balance
-EMP-MFG-0001,2024,12,21
-EMP-MFG-0002,2024,10,18
-```
-
-### Enhanced Leave Application System
-
-#### Individual Leave Application
-
-1. Navigate to **Leave Balance** tab
-2. Click **"Apply Leave"**
-3. Select employee and leave type
-4. Choose start and end dates
-5. Enter reason
-6. Submit application
-
-#### Bulk Leave Applications
-
-1. Navigate to **Leave Balance** tab → **Bulk Applications**
-2. Download bulk application template
-3. Fill in multiple leave applications
-4. Upload CSV file
-5. Review applications
-6. Approve/reject in bulk
-
-#### Bulk Application Template
-```csv
-employee_code,leave_type,start_date,end_date,reason
-EMP-MFG-0001,CASUAL_LEAVE,2024-01-15,2024-01-17,Personal work
-EMP-MFG-0002,EARNED_LEAVE,2024-01-20,2024-01-25,Family vacation
-```
-
-### Automated Leave Processing
-
-Upon leave application approval, the system automatically:
-- **Deducts Leave Balance**: Updates employee leave balances
-- **Creates Attendance Records**: Marks leave days in attendance
-- **Sends Notifications**: Email alerts to relevant parties
-- **Audit Trail**: Complete logging of all changes
-
-### Leave Validation System
-
-The system validates:
-- Sufficient leave balance
-- No overlapping leave applications
-- Maximum consecutive days (configurable)
-- Advance notice requirements
-- Department-specific rules
-
-### Leave Balance Tracking
-
-- Real-time balance calculations
-- Automatic deduction on approval
-- Balance carry-forward rules
-- Encashment calculations
-- Prorated balances for new joiners
-
-### Leave Calendar Integration
-
-- Visual leave calendar
-- Team leave overview
-- Conflict detection
-- Resource planning assistance
-
----
-
-## Formula Management & Validation
-
-### Understanding Salary Formulas
-
-The system uses configurable formulas for salary calculations:
-
-#### Basic Salary Components
-- **Basic Salary**: Base salary amount
-- **HRA**: House Rent Allowance
-- **Transport Allowance**: Travel allowance
-- **Medical Allowance**: Medical benefits
-- **Other Allowances**: Miscellaneous allowances
-
-#### Deductions
-- **PF**: Provident Fund
-- **ESI**: Employee State Insurance
-- **TDS**: Tax Deducted at Source
-- **Loan Deductions**: Advance recoveries
-- **Other Deductions**: Miscellaneous deductions
-
-### Formula Creation and Editing
-
-1. Navigate to **Formulas** tab
-2. Click **"Create New Formula"**
-3. Define formula components:
-   - Formula name and description
-   - Calculation logic
-   - Variables and constants
-   - Conditional rules
-
-4. Test formula with sample data
-5. Save and activate
-
-### Real-Time Formula Performance Monitoring
-
-#### Accessing the Formula Dashboard
-
-1. Navigate to **Formulas** tab → **Monitoring**
-2. View comprehensive performance metrics:
-   - **Execution Count**: Number of times each formula has run
-   - **Average Execution Time**: Performance metrics in milliseconds
-   - **Success Rate**: Percentage of successful calculations
-   - **Error Count**: Failed calculation tracking
-   - **Status**: Overall formula health (Healthy/Warning/Error)
-
-#### Formula Performance Metrics
-
-The system automatically tracks:
-- **Execution Performance**: Real-time calculation speed
-- **Success Rates**: Percentage of successful formula executions
-- **Error Tracking**: Detailed error logs and frequencies
-- **Resource Usage**: System resource consumption monitoring
-
-#### Status Indicators
-
-- **Healthy** (Green): >95% success rate, normal execution time
-- **Warning** (Yellow): 80-95% success rate or slower performance
-- **Error** (Red): <80% success rate or critical issues
-
-### Enhanced Overtime Validation System
-
-#### Daily Validation Process
-
-1. **Automatic Validation**: System runs daily overtime validations
-2. **Manual Validation**: Click **"Run Validation"** for immediate checks
-3. **Validation Results**: View detailed validation reports showing:
-   - Employee count processed
-   - Total overtime hours calculated
-   - Discrepancies found
-   - Validation status (Passed/Warning/Failed)
-
-#### Validation Database Logging
-
-All validations are logged to `overtime_validation_log` table:
-- Validation date and time
-- Employee count and OT hours
-- Discrepancies and status
-- Detailed validation results in JSON format
-- User who initiated the validation
-
-### Formula Validation Process
-
-#### Automatic Validation
-- Real-time syntax checking
-- Variable validation
-- Calculation accuracy verification
-- Performance monitoring
-
-#### Manual Testing
-1. Navigate to **Formulas** tab → **Testing**
-2. Select formula to test
-3. Input test employee data
-4. Run calculation
-5. Verify results
-6. Compare with expected values
-
-### Overtime Calculation Rules
-
-#### Regular Overtime
-- Standard multiplier: 1.5x or 2x base rate
-- Calculation period: Daily or weekly
-- Maximum overtime limits
-- Holiday overtime rates
-
-#### Sunday Overtime
-Special handling for Sunday work:
-1. Navigate to **Sunday Overtime** tab
-2. Configure Sunday overtime rules:
-   - Overtime rate multiplier
-   - Minimum hours for overtime
-   - Unit-specific rules
-   - Holiday integration
-
-### Formula Audit and Compliance
-
-- Complete calculation audit trails
-- Regulatory compliance checks
-- Formula change history
-- Impact analysis for formula updates
-
----
-
-## Payroll Processing
+## Core Payroll Operations
 
 ### Monthly Payroll Workflow
 
-#### Preparation Phase
-1. Ensure all attendance data is complete
-2. Verify leave balances are updated
-3. Check advance and deduction entries
-4. Validate employee master data
+#### Phase 1: Pre-Processing (Days 1-5 of month)
+1. **Attendance Verification**
+   - Review attendance data for previous month
+   - Handle attendance discrepancies
+   - Process bulk attendance updates if needed
 
-#### Processing Phase
-1. Navigate to **Salary Management** tab
-2. Select processing month
-3. Choose employees/units to process
-4. Click **"Generate Payroll"**
-5. Review calculations
-6. Approve for processing
+2. **Leave Reconciliation**
+   - Navigate to **Leave Reconciliation** tab
+   - Select month and year
+   - Click "Start Reconciliation"
+   - Review discrepancies and apply adjustments
 
-#### Verification Phase
-1. Review salary calculations
-2. Check for anomalies or errors
-3. Verify statutory deductions
-4. Cross-check with previous months
-5. Generate payroll reports
+3. **Employee Data Validation**
+   - Verify active employee list
+   - Update salary components if changed
+   - Check advance deductions
 
-### Salary Calculation Engine
+#### Phase 2: Payroll Calculation (Days 6-10)
+1. **Bulk Payroll Processing**
+   - Go to **Bulk Payroll Operations**
+   - Select processing month
+   - Choose processing scope (All units/Specific unit)
+   - Click "Start Bulk Processing"
+   - Monitor progress in real-time
 
-The system calculates:
-- **Gross Salary**: All earnings combined
-- **Statutory Deductions**: PF, ESI, TDS
-- **Other Deductions**: Advances, loans
-- **Net Salary**: Final payable amount
-- **Total Paid Days**: Working days calculation
+2. **Individual Payroll Review**
+   - Access **Payroll Details Table**
+   - Review calculated salaries
+   - Handle exceptions and special cases
+   - Approve payroll calculations
 
-### Bulk Payroll Operations
+#### Phase 3: Salary Disbursement (Days 11-15)
+1. **Enhanced Salary Disbursement**
+   - Navigate to **Salary Disbursement** tab
+   - Review disbursement summary
+   - Generate bank transfer files
+   - Process salary payments
 
-1. Navigate to **Bulk Operations** tab
-2. Select **"Process Monthly Payroll"**
-3. Choose processing month
-4. Set processing parameters
-5. Start bulk processing
-6. Monitor progress
-7. Review results
+2. **Salary Slip Generation**
+   - Select language preference (English/Hindi)
+   - Generate individual or bulk salary slips
+   - Download PDF files
+   - Email distribution (if configured)
 
-### Salary Disbursement
+### Employee Management Operations
 
-#### Bank Transfer Integration
-1. Generate bank transfer file
-2. Review transfer details
-3. Upload to bank portal
-4. Update payment status
-5. Generate payment confirmations
+#### Adding New Employees
+1. Navigate to **Employees Management**
+2. Click "Add New Employee"
+3. Fill required information:
+   - Personal details
+   - Employment information
+   - Salary structure
+   - Unit assignment
+4. Employee code auto-generation
+5. Activate employee account
 
-#### Payslip Generation
-1. Automatic payslip creation
-2. Digital payslip distribution
-3. Email notifications
-4. Physical printing options
-
-### Payroll Audit Trail
-
-Complete tracking of:
-- Calculation steps
-- Formula applications
-- Manual adjustments
-- Approval workflows
-- Payment confirmations
-
----
-
-## Weekly Off & Holiday Management
-
-### Weekly Off Scheduler
-
-#### Setting Up Weekly Off Rules
-
-1. Navigate to **Weekly Off** management (under Bulk Operations)
-2. Click **"Create Weekly Off Rule"**
-3. Configure weekly off settings:
-   - **Unit Selection**: Choose the unit/department
-   - **Weekly Off Day**: Select day of the week (Sunday-Saturday)
-   - **Effective From**: Start date for the rule
-   - **Notes**: Optional description
-4. Click **"Save Configuration"**
-
-#### Managing Weekly Off Rules
-
-- **View Current Rules**: See all active weekly off configurations
-- **Unit-Specific Rules**: Different units can have different weekly off days
-- **Date Range Management**: Rules can have effective start and end dates
-- **Override Capabilities**: Temporary changes for special circumstances
-
-#### Database Integration
-
-All weekly off rules are stored in the `weekly_off_rules` table with:
-- Complete audit trail
-- User tracking for changes
-- Historical data preservation
-- Real-time validation
-
-### Holiday Calendar Management
-
-1. Navigate to **Settings** → **Holiday Calendar**
-2. Add public holidays:
-   - Holiday name and description
-   - Date and duration
-   - Applicable units/departments
-   - Pay rules (paid/unpaid)
-
-3. Import holiday calendars from CSV
-4. Set regional holiday variations
-
-### Weekly Off Validation
-
-The system ensures:
-- No conflicts with attendance entries
-- Proper overtime calculations
-- Leave application validations
-- Payroll calculation accuracy
+#### Employee Lifecycle Management
+- **Onboarding**: Complete profile setup and documentation
+- **Transfers**: Unit transfers with proper audit trail
+- **Promotions**: Salary structure updates and approvals
+- **Terminations**: Proper exit process and final settlements
 
 ---
 
-## Enhanced Bulk Operations & CSV Management
+## Bulk Operations
 
-### Understanding Bulk Operations
+### Attendance Bulk Upload
 
-The system provides distinct bulk operations for different purposes:
+#### CSV File Format
+```csv
+employee_code,date,hours_worked,overtime_hours,status
+EMP-PAN-0001,2025-06-01,8,0,PRESENT
+EMP-PAN-0001,2025-06-02,0,0,CASUAL_LEAVE
+EMP-PAN-0001,2025-06-08,0,0,WEEKLY_OFF
+```
 
-#### 1. Bulk Upload (New Data)
-- **Purpose**: Adding new records to the system
-- **Protection**: Rejects duplicates with error messages
-- **Use Cases**: Initial data entry, new employee attendance
+#### Upload Process
+1. Navigate to **Attendance Management**
+2. Select "Bulk Upload" option
+3. Download template file
+4. Fill data according to format
+5. Upload file and review validation results
+6. Confirm and process valid records
 
-#### 2. Bulk Update (Existing Data)
-- **Purpose**: Modifying existing records
-- **Protection**: Updates only, maintains audit trail
-- **Use Cases**: Corrections, adding overtime hours, salary adjustments
+### Bulk Leave Applications
+1. Access **Bulk Leave Application System**
+2. Select employees and date ranges
+3. Specify leave type and reason
+4. Submit for approval workflow
+5. Track application status
 
-### CSV Upload Best Practices
+### Monthly Payroll Bulk Processing
+1. **Preparation Phase**
+   - Ensure all attendance data is complete
+   - Complete leave reconciliation
+   - Verify employee active status
 
-#### File Preparation
-- Use UTF-8 encoding
-- Follow exact column headers
-- Remove empty rows
-- Validate data before upload
-- Keep backup copies
+2. **Processing Phase**
+   - Select **Bulk Payroll Operations**
+   - Configure processing parameters
+   - Monitor real-time progress
+   - Handle processing errors
 
-#### Error Prevention Guidelines
-1. **Always download templates** before data entry
-2. **Validate employee codes** against master data
-3. **Check date formats** (YYYY-MM-DD preferred)
-4. **Verify numerical ranges** (hours 0-24, overtime ≥ 0)
-5. **Remove duplicates** before upload
-
-### Advanced Error Handling
-
-#### Comprehensive Error Reporting
-The system provides detailed error analysis:
-- **Error Categorization**: Groups errors by type
-- **Row-by-Row Details**: Exact location of each error
-- **Resolution Guidance**: Specific steps to fix issues
-- **Batch Processing**: Continue processing valid records
-
-#### Error Categories
-1. **Validation Errors**: Data format issues
-2. **Business Rule Violations**: Policy conflicts
-3. **Duplicate Data**: Existing record conflicts
-4. **Missing References**: Invalid employee codes
-
-### Bulk Update Operations
-
-#### Attendance Corrections
-1. Navigate to **Attendance** → **Bulk Update**
-2. **MANDATORY**: Provide update reason
-3. Upload correction file
-4. Review changes
-5. Approve updates
-
-#### Salary Adjustments
-1. Navigate to **Salary Management** → **Bulk Adjustments**
-2. Upload adjustment file
-3. Verify calculations
-4. Process adjustments
-
-### CSV Template Management
-
-The system provides templates for:
-- Employee master data
-- Attendance records
-- Leave balances
-- Leave applications
-- Salary adjustments
-- Advance entries
-- Deduction entries
+3. **Validation Phase**
+   - Review processing results
+   - Validate calculations
+   - Generate summary reports
 
 ---
 
-## Reports & Analytics
+## Leave Management & Reconciliation
 
-### Standard Reports
+### Leave Balance Management
 
-#### Employee Reports
-- Employee master list
-- Department-wise employee count
-- New joiners and exits
-- Employee demographics
+#### Initial Setup
+1. Navigate to **Leave Balance Management**
+2. Set annual leave entitlements per employee
+3. Configure leave types and policies
+4. Set carry-forward rules
 
-#### Attendance Reports
-- Monthly attendance summary
-- Overtime analysis
-- Leave utilization
-- Absenteeism patterns
+#### Monthly Reconciliation Process
+1. **Access Reconciliation Module**
+   - Go to **Leave Reconciliation Enhanced**
+   - Select month, year, and unit
+   - Provide reconciliation reason
 
-#### Payroll Reports
-- Salary register
-- Statutory compliance reports
-- Bank transfer files
-- Tax reports
+2. **Reconciliation Execution**
+   - Click "Calculate Discrepancies"
+   - Review suggested adjustments
+   - Use smart filters for bulk selection
+   - Apply adjustments with preview
 
-#### Leave Reports
-- Leave balance summary
-- Leave utilization trends
-- Department-wise leave analysis
+3. **Adjustment Categories**
+   - **Excess Leave**: Convert to unpaid leave
+   - **Negative Balance**: Adjust from salary
+   - **Carry Forward**: Apply organization policies
 
-### Custom Report Builder
+### Leave Adjustment Workflow
+```
+Attendance Review → Discrepancy Identification → Adjustment Calculation → Preview & Confirm → Balance Update
+```
 
-1. Navigate to **Reports** section
-2. Select **"Custom Report Builder"**
-3. Choose data sources
-4. Define filters and parameters
-5. Select output format
-6. Generate report
-
-### Dashboard Analytics
-
-#### Management Dashboard
-- Key performance indicators
-- Attendance trends
-- Cost analysis
-- Compliance status
-
-#### HR Dashboard
-- Employee metrics
-- Leave patterns
-- Overtime trends
-- Department comparisons
-
-### Data Export Options
-
-- **PDF**: Formatted reports
-- **Excel**: Data analysis
-- **CSV**: Data exchange
-- **API**: System integration
+### Bulk Selection Tools
+- **Select by Discrepancy**: Choose employees with adjustments above threshold
+- **Select by Type**: Filter by positive/negative adjustments
+- **Smart Filters**: Advanced filtering options
+- **Preview Mode**: Review before final application
 
 ---
 
-## System Administration
+## Salary Slip Generation
 
-### User Management
+### Multi-Language Support
 
-#### User Roles
-- **Admin**: Full system access
-- **HR Manager**: Employee and payroll management
-- **Unit Manager**: Unit-specific access
-- **Employee**: Self-service access
+#### English Salary Slips
+1. Navigate to **Enhanced Salary Disbursement**
+2. Select employees for slip generation
+3. Choose "English" as language
+4. Click "Generate Salary Slips"
+5. Download individual or bulk PDF files
 
-#### User Access Control
-1. Navigate to **Users** tab (Admin only)
-2. Manage user accounts:
-   - Create new users
-   - Assign roles
-   - Set permissions
-   - Manage approval status
+#### Hindi Salary Slips (हिंदी वेतन पर्ची)
+1. Same process as English
+2. Select "Hindi/हिंदी" as language preference
+3. System automatically translates:
+   - Salary components
+   - Deduction categories
+   - Employee information
+   - Company details
 
-### System Configuration
+### Salary Slip Components
+- **Earnings**: Basic salary, allowances, overtime
+- **Deductions**: PF, ESI, TDS, advances
+- **Net Salary**: Final take-home amount
+- **Leave Summary**: Leave balance and usage
+- **Company Information**: Address and registration details
 
-#### Organization Setup
-- Company information
-- Multiple unit management
-- Department structure
-- Approval workflows
-
-#### System Parameters
-- Default values
-- Validation rules
-- Calculation parameters
-- Integration settings
-
-### Data Backup and Security
-
-#### Automatic Backups
-- Daily data backups
-- Version control
-- Recovery procedures
-- Data integrity checks
-
-#### Security Features
-- Role-based access control
-- Audit trail logging
-- Data encryption
-- Session management
-
-### Integration Management
-
-#### External System Integration
-- Bank file formats
-- Government reporting
-- Third-party HR systems
-- API management
+### Bulk Generation Process
+1. Select month and processing unit
+2. Filter employees if needed
+3. Choose output format (PDF/Email)
+4. Set language preference
+5. Generate and download zip file
 
 ---
 
-## Troubleshooting & Best Practices
+## Advanced Features
 
-### Common Issues and Solutions
+### Formula Management
+1. **Access Formula Management Module**
+2. **Custom Formula Creation**:
+   - Salary calculation formulas
+   - Overtime computation
+   - Deduction calculations
+   - Leave encashment rules
 
-#### Attendance Entry Issues
+3. **Formula Monitoring**:
+   - Performance metrics
+   - Error tracking
+   - Usage analytics
 
-**Problem**: CSV upload fails with validation errors
-**Solution**:
-1. Check date format (YYYY-MM-DD)
-2. Verify employee codes exist
-3. Ensure hours are within valid range (0-24)
-4. Remove duplicate entries
+### Wage Calculator Dashboard
+- **Panchkula Wage Calculator**: Specialized wage calculations
+- **Multiple wage structures support**
+- **Real-time calculation preview**
+- **Historical wage data comparison**
 
-**Problem**: Duplicate entry errors during upload
-**Solution**:
-1. Check if records already exist
-2. Use **Bulk Update** instead of **Bulk Upload**
-3. Provide update reason for audit
-4. Review error report for specific duplicates
+### Analytics & Reporting
+1. **Reconciliation Dashboard**:
+   - Monthly reconciliation status
+   - Completion rates and trends
+   - Employee analytics
+   - Custom reports
 
-**Problem**: Overtime not calculating correctly
-**Solution**:
-1. Check formula configuration
-2. Verify Sunday overtime rules
-3. Review unit-specific settings
-4. Test with manual calculation
+2. **Payroll Analytics**:
+   - Cost analysis by department
+   - Salary distribution reports
+   - Year-over-year comparisons
+   - Budget vs actual analysis
 
-#### Leave Management Issues
+---
 
-**Problem**: Leave balance not updating
-**Solution**:
-1. Check leave application status
-2. Verify approval workflow
-3. Review leave type configuration
-4. Check for system errors
+## Troubleshooting & FAQ
 
-**Problem**: Insufficient leave balance error
-**Solution**:
-1. Verify current leave balance
-2. Check leave policy rules
-3. Review previous applications
-4. Update balance if needed
+### Common Issues & Solutions
 
-#### Formula and Calculation Issues
+#### Issue: Attendance Upload Fails
+**Symptoms**: CSV upload errors, validation failures
+**Solutions**:
+1. Check CSV format matches template exactly
+2. Ensure employee codes exist in system
+3. Verify date formats (YYYY-MM-DD or DD-MM-YYYY)
+4. Check for special characters in data
 
-**Problem**: Salary calculation errors
-**Solution**:
-1. Review formula syntax
-2. Check variable definitions
-3. Test with sample data
-4. Verify input data accuracy
+#### Issue: Leave Reconciliation Discrepancies
+**Symptoms**: Unexpected leave adjustments
+**Solutions**:
+1. Verify attendance data accuracy
+2. Check leave balance initialization
+3. Review leave policy configurations
+4. Cross-reference with manual calculations
 
-**Problem**: Performance issues with large datasets
-**Solution**:
-1. Process in smaller batches
-2. Check system resources
-3. Optimize formula logic
-4. Contact system administrator
+#### Issue: Salary Calculation Errors
+**Symptoms**: Incorrect salary amounts
+**Solutions**:
+1. Verify employee salary structure
+2. Check formula configurations
+3. Review attendance and leave data
+4. Validate advance and deduction entries
 
-### Data Quality Best Practices
-
-#### Data Entry Guidelines
-- Always validate data before bulk upload
-- Use standardized formats
-- Maintain data consistency
-- Regular data audits
-
-#### Duplicate Prevention Best Practices
-1. **Understand the Process**: Know when to use Upload vs Update
-2. **Read Error Messages**: System provides specific guidance
-3. **Use Correct Templates**: Download latest templates
-4. **Test Small Batches**: Verify process before large uploads
-5. **Maintain Audit Trail**: Always provide update reasons
-
-#### System Maintenance
-- Regular backup verification
-- Performance monitoring
-- User access reviews
-- System updates
+#### Issue: PDF Generation Fails
+**Symptoms**: Salary slip download errors
+**Solutions**:
+1. Check browser pop-up settings
+2. Ensure sufficient system resources
+3. Verify employee data completeness
+4. Try smaller batch sizes
 
 ### Performance Optimization
+- **Large Dataset Handling**: Use filters and pagination
+- **Bulk Operations**: Process in smaller batches
+- **Report Generation**: Schedule during off-peak hours
+- **Data Cleanup**: Regular maintenance of old records
 
-#### Bulk Operations
-- Process data in optimal batch sizes
-- Schedule heavy operations during off-hours
-- Monitor system resources
-- Use incremental updates when possible
+### Data Validation Best Practices
+1. **Regular Backups**: Automated daily backups
+2. **Data Integrity Checks**: Monthly validation routines
+3. **Audit Trail**: Complete operation logging
+4. **Error Monitoring**: Real-time error notifications
 
-#### Report Generation
-- Use filters to limit data scope
-- Schedule large reports during low usage
-- Cache frequently accessed reports
-- Optimize query parameters
+---
+
+## Workflow Reference
+
+### Daily Operations Checklist
+- [ ] Review attendance submissions
+- [ ] Process leave applications
+- [ ] Handle employee queries
+- [ ] Update employee information
+- [ ] Monitor system alerts
+
+### Weekly Operations Checklist
+- [ ] Bulk attendance corrections
+- [ ] Leave balance reviews
+- [ ] Department-wise reporting
+- [ ] System maintenance tasks
+- [ ] User access reviews
+
+### Monthly Operations Checklist
+- [ ] Complete leave reconciliation
+- [ ] Process monthly payroll
+- [ ] Generate salary slips
+- [ ] Distribute payments
+- [ ] Generate monthly reports
+- [ ] Archive processed data
+
+### Key Performance Indicators (KPIs)
+1. **Processing Time**: Average time for payroll completion
+2. **Accuracy Rate**: Percentage of error-free calculations
+3. **Employee Satisfaction**: Feedback on salary slip delivery
+4. **System Uptime**: Availability during critical periods
+5. **Compliance Rate**: Adherence to labor regulations
 
 ### Emergency Procedures
-
-#### System Downtime
-1. Check system status
-2. Contact administrator
-3. Use backup procedures
-4. Document issues
-
-#### Data Recovery
-1. Identify affected data
-2. Use backup restoration
-3. Verify data integrity
-4. Update stakeholders
-
-### 🔒 Duplicate Protection Summary
-
-The system's multi-layer duplicate protection ensures:
-
-1. **Physical Prevention**: Database constraints prevent duplicate storage
-2. **Application Validation**: Pre-validation catches duplicates before processing
-3. **User Guidance**: Clear UI separation between Upload and Update operations
-4. **Audit Trail**: Complete logging of all operations for compliance
-
-### Best Practices Summary
-
-1. **Regular Data Validation**: Implement checks at every stage
-2. **Backup Procedures**: Maintain regular backups
-3. **User Training**: Ensure proper user education
-4. **Documentation**: Keep processes documented
-5. **Audit Trails**: Maintain complete audit logs
-6. **Performance Monitoring**: Regular system health checks
-7. **Security Compliance**: Follow security protocols
-8. **Change Management**: Proper change control procedures
-9. **Duplicate Prevention**: Use correct processes for data operations
-10. **Error Resolution**: Address issues promptly with proper procedures
+1. **System Downtime**: Backup manual processes
+2. **Data Corruption**: Recovery procedures
+3. **Payment Delays**: Communication protocols
+4. **Security Breaches**: Incident response plan
 
 ---
 
-## Quick Reference Guide
+## Support & Training
 
-### Essential Navigation Shortcuts
+### Getting Help
+- **In-App Help**: Context-sensitive help tooltips
+- **User Manual**: This comprehensive guide
+- **Training Videos**: Step-by-step video tutorials
+- **Support Tickets**: Technical support system
 
-- **Ctrl + 1**: Navigate to Salary Management
-- **Ctrl + 2**: Navigate to Employees
-- **Ctrl + 3**: Navigate to Attendance
-- **Ctrl + 4**: Navigate to Leave Management
-- **F5**: Refresh current view
-- **Ctrl + S**: Save current form (when applicable)
+### Training Recommendations
+1. **New Users**: Complete onboarding program
+2. **Role-Specific Training**: Tailored to user responsibilities
+3. **Regular Updates**: Monthly feature updates training
+4. **Best Practices**: Quarterly best practices sessions
 
-### Critical Decision Tree: Upload vs Update
-
-```
-Question: Do the attendance records already exist in the system?
-
-├── YES → Use "Bulk Update"
-│   ├── Navigate to Attendance → Bulk Update
-│   ├── Provide update reason (mandatory)
-│   ├── Upload CSV with corrections
-│   └── Records updated with audit trail
-│
-└── NO → Use "Bulk Upload"
-    ├── Navigate to Attendance → Bulk Upload
-    ├── Download template
-    ├── Upload CSV with new data
-    └── New records created
-```
-
-### Critical Contact Information
-
-- **System Administrator**: Contact for technical issues
-- **HR Help Desk**: Contact for process questions
-- **IT Support**: Contact for access issues
-
-### Emergency Contacts
-
-Maintain updated contact information for:
-- System administrator
-- Database administrator
-- Network support
-- Vendor support
+### System Updates
+- **Release Notes**: Regular feature announcements
+- **Migration Guides**: Upgrade procedures
+- **Backup Procedures**: Data protection protocols
+- **Rollback Plans**: Emergency recovery procedures
 
 ---
 
-**Document Version**: 2.0  
-**Last Updated**: 2024-01-21  
-**Next Review**: 2024-07-21  
-**Key Updates**: Enhanced duplicate protection documentation, Upload vs Update clarification, comprehensive error handling guide
+## Appendices
 
-For additional support or questions not covered in this manual, please contact your system administrator or HR department.
+### Appendix A: CSV Templates
+Available templates for bulk operations:
+- Attendance upload template
+- Employee master template
+- Leave balance template
+- Salary structure template
+
+### Appendix B: Formula Examples
+Common payroll formulas:
+- Basic salary calculations
+- Overtime computations
+- Leave encashment formulas
+- Tax deduction calculations
+
+### Appendix C: Error Codes
+Complete list of system error codes and their meanings
+
+### Appendix D: API Documentation
+For system integrations and custom development
+
+---
+
+*This manual is updated regularly. Please check for the latest version and feature updates.*
+
+**Version**: 2.0  
+**Last Updated**: January 2025  
+**Next Review**: April 2025
