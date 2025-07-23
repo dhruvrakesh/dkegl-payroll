@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Separator } from '@/components/ui/separator';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Edit, Trash2, Calculator, Download, FileSpreadsheet, Upload, Filter, Search, Calendar, Users, Building2, FileText } from 'lucide-react';
+import { Plus, Edit, Trash2, Calculator, Download, FileSpreadsheet, Upload, Filter, Search, Calendar, Users, Building2, FileText, Mail, Globe } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { BulkEmployeeUploader } from './BulkEmployeeUploader';
 
@@ -30,6 +29,8 @@ interface Employee {
   other_conv_amount: number;
   pan_number: string;
   aadhaar_number: string;
+  email?: string;
+  preferred_language?: string;
   active: boolean;
   units?: { unit_name: string; unit_code: string; location: string };
   departments?: { name: string; code: string };
@@ -91,6 +92,8 @@ export const EmployeesManagement = () => {
     other_conv_amount: '',
     pan_number: '',
     aadhaar_number: '',
+    email: '',
+    preferred_language: 'english',
     id_proof_file_path: '',
     active: true
   });
@@ -212,6 +215,11 @@ export const EmployeesManagement = () => {
     return aadhaarRegex.test(aadhaar);
   };
 
+  const validateEmail = (email: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
   const calculateTotalSalary = () => {
     const base = parseFloat(formData.base_salary) || 0;
     const hra = parseFloat(formData.hra_amount) || 0;
@@ -312,6 +320,16 @@ export const EmployeesManagement = () => {
       return;
     }
 
+    // Validate email if provided
+    if (formData.email && !validateEmail(formData.email)) {
+      toast({
+        title: "Validation Error",
+        description: "Please enter a valid email address",
+        variant: "destructive",
+      });
+      return;
+    }
+
     // Validate age if DOB is provided
     if (formData.date_of_birth) {
       const age = calculateAge(formData.date_of_birth);
@@ -336,6 +354,8 @@ export const EmployeesManagement = () => {
         date_of_birth: formData.date_of_birth || null,
         pan_number: formData.pan_number || null,
         aadhaar_number: formData.aadhaar_number || null,
+        email: formData.email || null,
+        preferred_language: formData.preferred_language || 'english',
         id_proof_file_path: formData.id_proof_file_path || null
       };
 
@@ -390,6 +410,8 @@ export const EmployeesManagement = () => {
       other_conv_amount: '',
       pan_number: '',
       aadhaar_number: '',
+      email: '',
+      preferred_language: 'english',
       id_proof_file_path: '',
       active: true
     });
@@ -412,6 +434,8 @@ export const EmployeesManagement = () => {
       other_conv_amount: (employee.other_conv_amount || 0).toString(),
       pan_number: employee.pan_number || '',
       aadhaar_number: employee.aadhaar_number || '',
+      email: employee.email || '',
+      preferred_language: employee.preferred_language || 'english',
       id_proof_file_path: employee.id_proof_file_path || '',
       active: employee.active
     });
@@ -676,6 +700,45 @@ export const EmployeesManagement = () => {
                 </CardContent>
               </Card>
 
+              {/* Communication Preferences */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Mail className="w-5 h-5" />
+                    Communication Preferences
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="email">Email Address</Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        placeholder="employee@company.com"
+                        value={formData.email}
+                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="preferred_language">Preferred Language</Label>
+                      <Select 
+                        value={formData.preferred_language} 
+                        onValueChange={(value) => setFormData({ ...formData, preferred_language: value })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select language" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="english">English</SelectItem>
+                          <SelectItem value="hindi">Hindi</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
               {/* Identity Documents */}
               <Card>
                 <CardHeader>
@@ -926,6 +989,7 @@ export const EmployeesManagement = () => {
             <TableHead>Name</TableHead>
             <TableHead>UAN Number</TableHead>
             <TableHead>Unit/Department</TableHead>
+            <TableHead>Contact Info</TableHead>
             <TableHead>Service & Age</TableHead>
             <TableHead>Documents</TableHead>
             <TableHead>Salary Components</TableHead>
@@ -963,6 +1027,23 @@ export const EmployeesManagement = () => {
                         {showFilters ? employee.department_name : employee.departments?.name}
                       </Badge>
                     )}
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div className="text-xs space-y-1">
+                    {employee.email && (
+                      <div className="flex items-center gap-1">
+                        <Mail className="w-3 h-3" />
+                        <span className="truncate max-w-24">{employee.email}</span>
+                      </div>
+                    )}
+                    {employee.preferred_language && (
+                      <div className="flex items-center gap-1">
+                        <Globe className="w-3 h-3" />
+                        <span className="capitalize">{employee.preferred_language}</span>
+                      </div>
+                    )}
+                    {!employee.email && !employee.preferred_language && '-'}
                   </div>
                 </TableCell>
                 <TableCell>
