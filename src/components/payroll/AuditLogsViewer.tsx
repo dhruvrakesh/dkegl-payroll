@@ -11,18 +11,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { History, Search, Filter, Download, Eye, User, Clock, Database } from 'lucide-react';
 
-interface AuditLog {
-  id: string;
-  table_name: string;
-  operation: string;
-  old_data: any;
-  new_data: any;
-  user_id: string;
-  timestamp: string;
-  ip_address?: string;
-  user_agent?: string;
-}
-
 interface PayrollAuditLog {
   id: string;
   table_name: string;

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -22,6 +21,9 @@ import { AdvancesManagement } from './payroll/AdvancesManagement';
 import { AutomationDashboard } from './payroll/AutomationDashboard';
 import { WageCalculatorDashboard } from './payroll/WageCalculatorDashboard';
 import { EmailQueue } from './payroll/EmailQueue';
+import { AuditLogsViewer } from './payroll/AuditLogsViewer';
+import { BulkOperationsCenter } from './payroll/BulkOperationsCenter';
+import { SystemAdministration } from './payroll/SystemAdministration';
 import { Header } from './layout/Header';
 
 export const PayrollDashboard = () => {
