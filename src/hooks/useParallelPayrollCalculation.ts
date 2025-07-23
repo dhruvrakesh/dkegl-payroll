@@ -216,6 +216,7 @@ export const useParallelPayrollCalculation = ({ month, unit_id }: UseParallelPay
       }
 
       const batch = employees.slice(i, i + batchSize);
+      console.log(`🔄 Processing batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(employees.length / batchSize)} (${batch.length} employees)`);
       
       // Process batch in parallel
       const batchPromises = batch.map(async (employee) => {
