@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Calculator, RefreshCw, Users, Calendar, FileText, Settings, Building, DollarSign, Clock, BarChart3, Shield, Bot } from 'lucide-react';
+import { Calculator, RefreshCw, Users, Calendar, FileText, Settings, Building, DollarSign, Clock, BarChart3, Shield, Bot, Mail, Database, History, Zap } from 'lucide-react';
 import { EmployeesManagement } from './payroll/EmployeesManagement';
 import { AttendanceManagement } from './payroll/AttendanceManagement';
 import { LeaveBalanceManagement } from './payroll/LeaveBalanceManagement';
@@ -15,12 +15,13 @@ import { UnitsManagement } from './payroll/UnitsManagement';
 import { UserManagement } from './payroll/UserManagement';
 import { ReconciliationDashboard } from './payroll/ReconciliationDashboard';
 import { ReconciledPayrollCalculator } from './payroll/ReconciledPayrollCalculator';
-import { PanchkulaWageCalculator } from './payroll/PanchkulaWageCalculator';
+import PanchkulaWageCalculator from './payroll/PanchkulaWageCalculator';
 import { SalaryDisbursement } from './payroll/SalaryDisbursement';
 import { EnhancedSalaryDisbursement } from './payroll/EnhancedSalaryDisbursement';
 import { AdvancesManagement } from './payroll/AdvancesManagement';
 import { AutomationDashboard } from './payroll/AutomationDashboard';
 import { WageCalculatorDashboard } from './payroll/WageCalculatorDashboard';
+import { EmailQueue } from './payroll/EmailQueue';
 import { Header } from './layout/Header';
 
 export const PayrollDashboard = () => {
@@ -52,7 +53,7 @@ export const PayrollDashboard = () => {
         </div>
 
         <Tabs defaultValue="enhanced-calculator" className="w-full" value={activeTab} onValueChange={handleTabChange}>
-          <TabsList className="grid w-full grid-cols-6 lg:grid-cols-12 gap-1">
+          <TabsList className="grid w-full grid-cols-4 lg:grid-cols-8 gap-1">
             <TabsTrigger value="enhanced-calculator" className="flex items-center gap-1 text-xs">
               <Calculator className="w-3 h-3" />
               Enhanced Calculator
@@ -85,27 +86,27 @@ export const PayrollDashboard = () => {
               <Calendar className="w-3 h-3" />
               Attendance
             </TabsTrigger>
-            <TabsTrigger value="leaves" className="flex items-center gap-1 text-xs">
-              <FileText className="w-3 h-3" />
-              Leaves
-            </TabsTrigger>
-            <TabsTrigger value="reconciliation" className="flex items-center gap-1 text-xs">
-              <BarChart3 className="w-3 h-3" />
-              Reconciliation
-            </TabsTrigger>
-            <TabsTrigger value="salary-disbursement" className="flex items-center gap-1 text-xs">
-              <DollarSign className="w-3 h-3" />
-              Salary Disbursement
-            </TabsTrigger>
-            <TabsTrigger value="enhanced-disbursement" className="flex items-center gap-1 text-xs">
-              <DollarSign className="w-3 h-3" />
-              Enhanced Disbursement
-            </TabsTrigger>
           </TabsList>
 
           <div className="mt-4">
             <Tabs value={activeTab} onValueChange={handleTabChange}>
-              <TabsList className="grid w-full grid-cols-5 lg:grid-cols-10 gap-1">
+              <TabsList className="grid w-full grid-cols-4 lg:grid-cols-8 gap-1">
+                <TabsTrigger value="leaves" className="flex items-center gap-1 text-xs">
+                  <FileText className="w-3 h-3" />
+                  Leaves
+                </TabsTrigger>
+                <TabsTrigger value="reconciliation" className="flex items-center gap-1 text-xs">
+                  <BarChart3 className="w-3 h-3" />
+                  Reconciliation
+                </TabsTrigger>
+                <TabsTrigger value="salary-disbursement" className="flex items-center gap-1 text-xs">
+                  <DollarSign className="w-3 h-3" />
+                  Salary Disbursement
+                </TabsTrigger>
+                <TabsTrigger value="enhanced-disbursement" className="flex items-center gap-1 text-xs">
+                  <DollarSign className="w-3 h-3" />
+                  Enhanced Disbursement
+                </TabsTrigger>
                 <TabsTrigger value="advances" className="flex items-center gap-1 text-xs">
                   <DollarSign className="w-3 h-3" />
                   Advances
@@ -122,6 +123,13 @@ export const PayrollDashboard = () => {
                   <Shield className="w-3 h-3" />
                   Users
                 </TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </div>
+
+          <div className="mt-4">
+            <Tabs value={activeTab} onValueChange={handleTabChange}>
+              <TabsList className="grid w-full grid-cols-4 lg:grid-cols-8 gap-1">
                 <TabsTrigger value="automation" className="flex items-center gap-1 text-xs">
                   <Bot className="w-3 h-3" />
                   Automation
@@ -129,6 +137,22 @@ export const PayrollDashboard = () => {
                 <TabsTrigger value="settings" className="flex items-center gap-1 text-xs">
                   <Settings className="w-3 h-3" />
                   Settings
+                </TabsTrigger>
+                <TabsTrigger value="email-queue" className="flex items-center gap-1 text-xs">
+                  <Mail className="w-3 h-3" />
+                  Email Queue
+                </TabsTrigger>
+                <TabsTrigger value="audit-logs" className="flex items-center gap-1 text-xs">
+                  <History className="w-3 h-3" />
+                  Audit Logs
+                </TabsTrigger>
+                <TabsTrigger value="bulk-operations" className="flex items-center gap-1 text-xs">
+                  <Zap className="w-3 h-3" />
+                  Bulk Operations
+                </TabsTrigger>
+                <TabsTrigger value="system-admin" className="flex items-center gap-1 text-xs">
+                  <Database className="w-3 h-3" />
+                  System Admin
                 </TabsTrigger>
               </TabsList>
             </Tabs>
@@ -204,6 +228,22 @@ export const PayrollDashboard = () => {
 
           <TabsContent value="settings" className="space-y-4">
             <PayrollSettings />
+          </TabsContent>
+
+          <TabsContent value="email-queue" className="space-y-4">
+            <EmailQueue />
+          </TabsContent>
+
+          <TabsContent value="audit-logs" className="space-y-4">
+            <AuditLogsViewer />
+          </TabsContent>
+
+          <TabsContent value="bulk-operations" className="space-y-4">
+            <BulkOperationsCenter />
+          </TabsContent>
+
+          <TabsContent value="system-admin" className="space-y-4">
+            <SystemAdministration />
           </TabsContent>
         </Tabs>
       </div>
