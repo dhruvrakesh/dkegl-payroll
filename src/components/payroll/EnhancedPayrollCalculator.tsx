@@ -5,13 +5,13 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
 import { Calculator, TrendingUp, Users, DollarSign } from 'lucide-react';
-import { useEnhancedPayrollCalculation } from '@/hooks/useEnhancedPayrollCalculation';
+import { useParallelPayrollCalculation } from '@/hooks/useParallelPayrollCalculation';
 import { useUnitsData } from '@/hooks/useUnitsData';
 import { EnhancedPayrollTable } from './enhanced-payroll/EnhancedPayrollTable';
 import { PayrollMetrics } from './enhanced-payroll/PayrollMetrics';
 import { FormulaTransparencyPanel } from './enhanced-payroll/FormulaTransparencyPanel';
+import { PayrollProgressIndicator } from './enhanced-payroll/PayrollProgressIndicator';
 
 export const EnhancedPayrollCalculator = () => {
   const [selectedMonth, setSelectedMonth] = useState(() => {
@@ -23,10 +23,13 @@ export const EnhancedPayrollCalculator = () => {
   const { units, loading: unitsLoading } = useUnitsData();
   const { 
     payrollData, 
-    isLoading, 
+    isCalculating, 
+    progress,
     formulaMetrics, 
-    calculateEnhancedPayroll 
-  } = useEnhancedPayrollCalculation({
+    calculateEnhancedPayroll,
+    cancelCalculation,
+    canCancel
+  } = useParallelPayrollCalculation({
     month: selectedMonth,
     unit_id: selectedUnit === 'all_units' ? undefined : selectedUnit
   });
@@ -67,7 +70,7 @@ export const EnhancedPayrollCalculator = () => {
             Enhanced Payroll Calculator
           </CardTitle>
           <CardDescription>
-            Advanced payroll calculation with formula transparency and leave reconciliation
+            Advanced payroll calculation with parallel processing and formula transparency
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -108,15 +111,23 @@ export const EnhancedPayrollCalculator = () => {
             <div className="flex items-end">
               <Button 
                 onClick={calculateEnhancedPayroll}
-                disabled={isLoading || unitsLoading}
+                disabled={isCalculating || unitsLoading}
                 className="w-full"
               >
-                {isLoading ? 'Calculating...' : 'Calculate Payroll'}
+                {isCalculating ? 'Calculating...' : 'Calculate Payroll'}
               </Button>
             </div>
           </div>
         </CardContent>
       </Card>
+
+      {/* Progress Indicator */}
+      <PayrollProgressIndicator 
+        progress={progress}
+        isCalculating={isCalculating}
+        canCancel={canCancel}
+        onCancel={cancelCalculation}
+      />
 
       {/* Formula Metrics */}
       {payrollData.length > 0 && (
