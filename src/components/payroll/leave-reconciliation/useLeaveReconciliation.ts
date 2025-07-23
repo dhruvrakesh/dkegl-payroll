@@ -9,7 +9,7 @@ export const useLeaveReconciliation = () => {
   const [loading, setLoading] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
-  const [selectedUnit, setSelectedUnit] = useState('all');
+  const [selectedUnit, setSelectedUnit] = useState('all_units');
   const [adjustmentReason, setAdjustmentReason] = useState('');
   const [selectedEmployees, setSelectedEmployees] = useState([]);
   const { toast } = useToast();
@@ -52,7 +52,7 @@ export const useLeaveReconciliation = () => {
       const params = {
         p_month: selectedMonth,
         p_year: selectedYear,
-        p_unit_id: selectedUnit === 'all' ? null : selectedUnit
+        p_unit_id: selectedUnit === 'all_units' ? null : selectedUnit
       };
 
       const { data, error } = await supabase.rpc('reconcile_monthly_leaves', params);
@@ -109,7 +109,7 @@ export const useLeaveReconciliation = () => {
         p_reason: adjustmentReason,
         p_month: selectedMonth,
         p_year: selectedYear,
-        p_unit_id: selectedUnit === 'all' ? null : selectedUnit
+        p_unit_id: selectedUnit === 'all_units' ? null : selectedUnit
       };
 
       const { data, error } = await supabase.rpc('apply_leave_adjustments', params);

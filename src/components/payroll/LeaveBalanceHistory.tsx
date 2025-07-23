@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -39,8 +40,8 @@ export const LeaveBalanceHistory = () => {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedEmployee, setSelectedEmployee] = useState<string>('');
-  const [selectedBalanceType, setSelectedBalanceType] = useState<string>('');
+  const [selectedEmployee, setSelectedEmployee] = useState<string>('all_employees');
+  const [selectedBalanceType, setSelectedBalanceType] = useState<string>('all_types');
   const { toast } = useToast();
 
   useEffect(() => {
@@ -106,11 +107,11 @@ export const LeaveBalanceHistory = () => {
       );
     }
 
-    if (selectedEmployee) {
+    if (selectedEmployee !== 'all_employees') {
       filtered = filtered.filter(record => record.employee_id === selectedEmployee);
     }
 
-    if (selectedBalanceType) {
+    if (selectedBalanceType !== 'all_types') {
       filtered = filtered.filter(record => record.balance_type === selectedBalanceType);
     }
 
@@ -172,7 +173,7 @@ export const LeaveBalanceHistory = () => {
                 <SelectValue placeholder="All employees" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Employees</SelectItem>
+                <SelectItem value="all_employees">All Employees</SelectItem>
                 {employees.map(emp => (
                   <SelectItem key={emp.id} value={emp.id}>
                     {emp.name} ({emp.employee_code})
@@ -189,7 +190,7 @@ export const LeaveBalanceHistory = () => {
                 <SelectValue placeholder="All types" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Types</SelectItem>
+                <SelectItem value="all_types">All Types</SelectItem>
                 <SelectItem value="CASUAL_LEAVE">Casual Leave</SelectItem>
                 <SelectItem value="EARNED_LEAVE">Earned Leave</SelectItem>
               </SelectContent>
