@@ -12,6 +12,8 @@ import { Separator } from '@/components/ui/separator';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Plus, Edit, Trash2, Calculator, Download, FileSpreadsheet, Upload, Filter, Search, Calendar, Users, Building2, FileText } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { BulkEmployeeUploader } from './BulkEmployeeUploader';
 
 interface Employee {
   id: string;
@@ -544,16 +546,27 @@ export const EmployeesManagement = () => {
             <Download className="w-4 h-4 mr-2" />
             Download Master
           </Button>
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={() => {
-              setEditingEmployee(null);
-              resetForm();
-            }}>
-              <Plus className="w-4 h-4 mr-2" />
-              Add Employee
-            </Button>
-          </DialogTrigger>
+        </div>
+      </div>
+
+      <Tabs defaultValue="manage" className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="manage">Manage Employees</TabsTrigger>
+          <TabsTrigger value="bulk-upload">Bulk Upload</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="manage" className="space-y-4">
+          <div className="flex justify-end">
+            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <DialogTrigger asChild>
+              <Button onClick={() => {
+                setEditingEmployee(null);
+                resetForm();
+              }}>
+                <Plus className="w-4 h-4 mr-2" />
+                Add Employee
+              </Button>
+            </DialogTrigger>
           <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{editingEmployee ? 'Edit Employee' : 'Add New Employee'}</DialogTitle>
@@ -786,11 +799,10 @@ export const EmployeesManagement = () => {
             </form>
           </DialogContent>
         </Dialog>
-        </div>
-      </div>
+          </div>
 
-      {/* Advanced Filters */}
-      {showFilters && (
+          {/* Advanced Filters */}
+          {showFilters && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -897,17 +909,17 @@ export const EmployeesManagement = () => {
             </div>
           </CardContent>
         </Card>
-      )}
+          )}
 
-      {/* Results Summary */}
-      {showFilters && enhancedEmployees.length > 0 && (
-        <div className="text-sm text-muted-foreground">
-          Showing {enhancedEmployees.length} filtered employee(s)
-        </div>
-      )}
+          {/* Results Summary */}
+          {showFilters && enhancedEmployees.length > 0 && (
+            <div className="text-sm text-muted-foreground">
+              Showing {enhancedEmployees.length} filtered employee(s)
+            </div>
+          )}
 
-      {/* Employee Table */}
-      <Table>
+          {/* Employee Table */}
+          <Table>
         <TableHeader>
           <TableRow>
             <TableHead>Employee Code</TableHead>
@@ -1015,7 +1027,18 @@ export const EmployeesManagement = () => {
             );
           })}
         </TableBody>
-      </Table>
+          </Table>
+        </TabsContent>
+        
+        <TabsContent value="bulk-upload">
+          <BulkEmployeeUploader 
+            onUploadComplete={() => {
+              fetchEmployees();
+              if (showFilters) fetchEnhancedEmployees();
+            }} 
+          />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

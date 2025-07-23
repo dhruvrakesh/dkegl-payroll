@@ -464,6 +464,60 @@ export type Database = {
           },
         ]
       }
+      approval_matrix: {
+        Row: {
+          approval_level: number
+          approver_id: string | null
+          approver_role: string | null
+          category: string | null
+          created_at: string | null
+          delegate_to: string | null
+          department: string | null
+          entity_type: string
+          escalation_hours: number | null
+          id: string
+          is_active: boolean | null
+          is_mandatory: boolean | null
+          max_amount: number | null
+          min_amount: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          approval_level: number
+          approver_id?: string | null
+          approver_role?: string | null
+          category?: string | null
+          created_at?: string | null
+          delegate_to?: string | null
+          department?: string | null
+          entity_type: string
+          escalation_hours?: number | null
+          id?: string
+          is_active?: boolean | null
+          is_mandatory?: boolean | null
+          max_amount?: number | null
+          min_amount?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          approval_level?: number
+          approver_id?: string | null
+          approver_role?: string | null
+          category?: string | null
+          created_at?: string | null
+          delegate_to?: string | null
+          department?: string | null
+          entity_type?: string
+          escalation_hours?: number | null
+          id?: string
+          is_active?: boolean | null
+          is_mandatory?: boolean | null
+          max_amount?: number | null
+          min_amount?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       approvals: {
         Row: {
           approved_at: string | null
@@ -1457,6 +1511,70 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      category_audit_log: {
+        Row: {
+          action: string
+          business_justification: string | null
+          category_id: string | null
+          changed_fields: string[] | null
+          created_at: string | null
+          id: string
+          ip_address: unknown | null
+          new_data: Json | null
+          old_data: Json | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          business_justification?: string | null
+          category_id?: string | null
+          changed_fields?: string[] | null
+          created_at?: string | null
+          id?: string
+          ip_address?: unknown | null
+          new_data?: Json | null
+          old_data?: Json | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          business_justification?: string | null
+          category_id?: string | null
+          changed_fields?: string[] | null
+          created_at?: string | null
+          id?: string
+          ip_address?: unknown | null
+          new_data?: Json | null
+          old_data?: Json | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "category_audit_log_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "category_stats_mv"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "category_audit_log_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "satguru_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "category_audit_log_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "satguru_category_stats"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       colour_targets: {
         Row: {
@@ -3157,6 +3275,272 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "stock_summary"
             referencedColumns: ["category_id"]
+          },
+        ]
+      }
+      item_price_history: {
+        Row: {
+          approved_by: string | null
+          business_justification: string | null
+          change_reason: string | null
+          change_type: string | null
+          changed_by: string | null
+          created_at: string | null
+          effective_date: string | null
+          id: string
+          item_code: string
+          new_price: number
+          old_price: number | null
+          price_change_percentage: number | null
+          record_id: string | null
+          upload_id: string | null
+          validation_flags: Json | null
+        }
+        Insert: {
+          approved_by?: string | null
+          business_justification?: string | null
+          change_reason?: string | null
+          change_type?: string | null
+          changed_by?: string | null
+          created_at?: string | null
+          effective_date?: string | null
+          id?: string
+          item_code: string
+          new_price: number
+          old_price?: number | null
+          price_change_percentage?: number | null
+          record_id?: string | null
+          upload_id?: string | null
+          validation_flags?: Json | null
+        }
+        Update: {
+          approved_by?: string | null
+          business_justification?: string | null
+          change_reason?: string | null
+          change_type?: string | null
+          changed_by?: string | null
+          created_at?: string | null
+          effective_date?: string | null
+          id?: string
+          item_code?: string
+          new_price?: number
+          old_price?: number | null
+          price_change_percentage?: number | null
+          record_id?: string | null
+          upload_id?: string | null
+          validation_flags?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "item_price_history_record_id_fkey"
+            columns: ["record_id"]
+            isOneToOne: false
+            referencedRelation: "item_pricing_upload_records"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "item_price_history_upload_id_fkey"
+            columns: ["upload_id"]
+            isOneToOne: false
+            referencedRelation: "item_pricing_csv_uploads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      item_pricing_csv_uploads: {
+        Row: {
+          approved_records: number
+          completed_at: string | null
+          created_at: string | null
+          error_details: Json | null
+          file_size_bytes: number
+          filename: string
+          id: string
+          pending_records: number
+          processed_records: number
+          processing_status: string | null
+          rejected_records: number
+          total_records: number
+          upload_date: string | null
+          uploaded_by: string | null
+          validation_summary: Json | null
+        }
+        Insert: {
+          approved_records?: number
+          completed_at?: string | null
+          created_at?: string | null
+          error_details?: Json | null
+          file_size_bytes?: number
+          filename: string
+          id?: string
+          pending_records?: number
+          processed_records?: number
+          processing_status?: string | null
+          rejected_records?: number
+          total_records?: number
+          upload_date?: string | null
+          uploaded_by?: string | null
+          validation_summary?: Json | null
+        }
+        Update: {
+          approved_records?: number
+          completed_at?: string | null
+          created_at?: string | null
+          error_details?: Json | null
+          file_size_bytes?: number
+          filename?: string
+          id?: string
+          pending_records?: number
+          processed_records?: number
+          processing_status?: string | null
+          rejected_records?: number
+          total_records?: number
+          upload_date?: string | null
+          uploaded_by?: string | null
+          validation_summary?: Json | null
+        }
+        Relationships: []
+      }
+      item_pricing_master: {
+        Row: {
+          approval_status: string | null
+          approved_at: string | null
+          approved_by: string | null
+          category: string | null
+          cost_category: string | null
+          created_at: string | null
+          created_by: string | null
+          current_price: number
+          effective_date: string | null
+          id: string
+          is_active: boolean | null
+          item_code: string
+          item_name: string | null
+          previous_price: number | null
+          price_change_reason: string | null
+          price_source: string | null
+          supplier: string | null
+          uom: string | null
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          approval_status?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          category?: string | null
+          cost_category?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          current_price?: number
+          effective_date?: string | null
+          id?: string
+          is_active?: boolean | null
+          item_code: string
+          item_name?: string | null
+          previous_price?: number | null
+          price_change_reason?: string | null
+          price_source?: string | null
+          supplier?: string | null
+          uom?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          approval_status?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          category?: string | null
+          cost_category?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          current_price?: number
+          effective_date?: string | null
+          id?: string
+          is_active?: boolean | null
+          item_code?: string
+          item_name?: string | null
+          previous_price?: number | null
+          price_change_reason?: string | null
+          price_source?: string | null
+          supplier?: string | null
+          uom?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      item_pricing_upload_records: {
+        Row: {
+          auto_approved: boolean | null
+          change_reason: string | null
+          cost_category: string | null
+          created_at: string | null
+          current_price: number | null
+          effective_date: string | null
+          id: string
+          item_code: string
+          price_change_percentage: number | null
+          proposed_price: number
+          review_notes: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          row_number: number
+          supplier: string | null
+          upload_id: string | null
+          validation_errors: Json | null
+          validation_status: string | null
+          validation_warnings: Json | null
+        }
+        Insert: {
+          auto_approved?: boolean | null
+          change_reason?: string | null
+          cost_category?: string | null
+          created_at?: string | null
+          current_price?: number | null
+          effective_date?: string | null
+          id?: string
+          item_code: string
+          price_change_percentage?: number | null
+          proposed_price: number
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          row_number: number
+          supplier?: string | null
+          upload_id?: string | null
+          validation_errors?: Json | null
+          validation_status?: string | null
+          validation_warnings?: Json | null
+        }
+        Update: {
+          auto_approved?: boolean | null
+          change_reason?: string | null
+          cost_category?: string | null
+          created_at?: string | null
+          current_price?: number | null
+          effective_date?: string | null
+          id?: string
+          item_code?: string
+          price_change_percentage?: number | null
+          proposed_price?: number
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          row_number?: number
+          supplier?: string | null
+          upload_id?: string | null
+          validation_errors?: Json | null
+          validation_status?: string | null
+          validation_warnings?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "item_pricing_upload_records_upload_id_fkey"
+            columns: ["upload_id"]
+            isOneToOne: false
+            referencedRelation: "item_pricing_csv_uploads"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -5743,6 +6127,60 @@ export type Database = {
         }
         Relationships: []
       }
+      procurement_csv_uploads: {
+        Row: {
+          batch_id: string | null
+          created_at: string | null
+          error_details: Json | null
+          failed_rows: number | null
+          file_name: string
+          file_size_bytes: number | null
+          id: string
+          processing_time_ms: number | null
+          status: string | null
+          successful_rows: number | null
+          total_rows: number | null
+          updated_at: string | null
+          upload_date: string | null
+          upload_type: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          batch_id?: string | null
+          created_at?: string | null
+          error_details?: Json | null
+          failed_rows?: number | null
+          file_name: string
+          file_size_bytes?: number | null
+          id?: string
+          processing_time_ms?: number | null
+          status?: string | null
+          successful_rows?: number | null
+          total_rows?: number | null
+          updated_at?: string | null
+          upload_date?: string | null
+          upload_type: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          batch_id?: string | null
+          created_at?: string | null
+          error_details?: Json | null
+          failed_rows?: number | null
+          file_name?: string
+          file_size_bytes?: number | null
+          id?: string
+          processing_time_ms?: number | null
+          status?: string | null
+          successful_rows?: number | null
+          total_rows?: number | null
+          updated_at?: string | null
+          upload_date?: string | null
+          upload_type?: string
+          uploaded_by?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
@@ -5819,6 +6257,312 @@ export type Database = {
           year?: number | null
         }
         Relationships: []
+      }
+      purchase_order_approvals: {
+        Row: {
+          approval_level: number
+          approval_status: Database["public"]["Enums"]["approval_status"] | null
+          approved_at: string | null
+          approver_id: string | null
+          comments: string | null
+          created_at: string | null
+          delegation_from: string | null
+          escalation_date: string | null
+          id: string
+          notification_sent: boolean | null
+          po_id: string | null
+          rejected_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          approval_level: number
+          approval_status?:
+            | Database["public"]["Enums"]["approval_status"]
+            | null
+          approved_at?: string | null
+          approver_id?: string | null
+          comments?: string | null
+          created_at?: string | null
+          delegation_from?: string | null
+          escalation_date?: string | null
+          id?: string
+          notification_sent?: boolean | null
+          po_id?: string | null
+          rejected_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          approval_level?: number
+          approval_status?:
+            | Database["public"]["Enums"]["approval_status"]
+            | null
+          approved_at?: string | null
+          approver_id?: string | null
+          comments?: string | null
+          created_at?: string | null
+          delegation_from?: string | null
+          escalation_date?: string | null
+          id?: string
+          notification_sent?: boolean | null
+          po_id?: string | null
+          rejected_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_order_approvals_po_id_fkey"
+            columns: ["po_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      purchase_order_items: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          discount_amount: number | null
+          discount_percentage: number | null
+          id: string
+          is_closed: boolean | null
+          item_code: string
+          item_name: string
+          line_number: number
+          line_total: number
+          pending_quantity: number | null
+          po_id: string | null
+          quantity: number
+          received_quantity: number | null
+          required_date: string | null
+          specifications: Json | null
+          tax_amount: number | null
+          tax_percentage: number | null
+          unit_price: number
+          uom: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          discount_amount?: number | null
+          discount_percentage?: number | null
+          id?: string
+          is_closed?: boolean | null
+          item_code: string
+          item_name: string
+          line_number: number
+          line_total: number
+          pending_quantity?: number | null
+          po_id?: string | null
+          quantity: number
+          received_quantity?: number | null
+          required_date?: string | null
+          specifications?: Json | null
+          tax_amount?: number | null
+          tax_percentage?: number | null
+          unit_price: number
+          uom: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          discount_amount?: number | null
+          discount_percentage?: number | null
+          id?: string
+          is_closed?: boolean | null
+          item_code?: string
+          item_name?: string
+          line_number?: number
+          line_total?: number
+          pending_quantity?: number | null
+          po_id?: string | null
+          quantity?: number
+          received_quantity?: number | null
+          required_date?: string | null
+          specifications?: Json | null
+          tax_amount?: number | null
+          tax_percentage?: number | null
+          unit_price?: number
+          uom?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_order_items_po_id_fkey"
+            columns: ["po_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      purchase_order_sequences: {
+        Row: {
+          created_at: string | null
+          fiscal_year: number
+          id: string
+          last_sequence: number
+          prefix: string
+        }
+        Insert: {
+          created_at?: string | null
+          fiscal_year: number
+          id?: string
+          last_sequence?: number
+          prefix?: string
+        }
+        Update: {
+          created_at?: string | null
+          fiscal_year?: number
+          id?: string
+          last_sequence?: number
+          prefix?: string
+        }
+        Relationships: []
+      }
+      purchase_orders: {
+        Row: {
+          approval_required: boolean | null
+          approval_status: Database["public"]["Enums"]["approval_status"] | null
+          approved_at: string | null
+          approved_by: string | null
+          billing_address: Json | null
+          closed_at: string | null
+          closed_by: string | null
+          cost_center: string | null
+          created_at: string | null
+          created_by: string | null
+          currency: string | null
+          delivery_date: string | null
+          department: string | null
+          discount_amount: number | null
+          exchange_rate: number | null
+          id: string
+          issued_at: string | null
+          issued_by: string | null
+          notes: string | null
+          parent_po_id: string | null
+          po_date: string
+          po_number: string
+          priority:
+            | Database["public"]["Enums"]["purchase_order_priority"]
+            | null
+          project_code: string | null
+          reference_number: string | null
+          required_date: string | null
+          revision_number: number | null
+          shipping_address: Json | null
+          status: Database["public"]["Enums"]["purchase_order_status"] | null
+          subtotal: number | null
+          supplier_id: string
+          tax_amount: number | null
+          terms_conditions: string | null
+          total_amount: number | null
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          approval_required?: boolean | null
+          approval_status?:
+            | Database["public"]["Enums"]["approval_status"]
+            | null
+          approved_at?: string | null
+          approved_by?: string | null
+          billing_address?: Json | null
+          closed_at?: string | null
+          closed_by?: string | null
+          cost_center?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          currency?: string | null
+          delivery_date?: string | null
+          department?: string | null
+          discount_amount?: number | null
+          exchange_rate?: number | null
+          id?: string
+          issued_at?: string | null
+          issued_by?: string | null
+          notes?: string | null
+          parent_po_id?: string | null
+          po_date?: string
+          po_number: string
+          priority?:
+            | Database["public"]["Enums"]["purchase_order_priority"]
+            | null
+          project_code?: string | null
+          reference_number?: string | null
+          required_date?: string | null
+          revision_number?: number | null
+          shipping_address?: Json | null
+          status?: Database["public"]["Enums"]["purchase_order_status"] | null
+          subtotal?: number | null
+          supplier_id: string
+          tax_amount?: number | null
+          terms_conditions?: string | null
+          total_amount?: number | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          approval_required?: boolean | null
+          approval_status?:
+            | Database["public"]["Enums"]["approval_status"]
+            | null
+          approved_at?: string | null
+          approved_by?: string | null
+          billing_address?: Json | null
+          closed_at?: string | null
+          closed_by?: string | null
+          cost_center?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          currency?: string | null
+          delivery_date?: string | null
+          department?: string | null
+          discount_amount?: number | null
+          exchange_rate?: number | null
+          id?: string
+          issued_at?: string | null
+          issued_by?: string | null
+          notes?: string | null
+          parent_po_id?: string | null
+          po_date?: string
+          po_number?: string
+          priority?:
+            | Database["public"]["Enums"]["purchase_order_priority"]
+            | null
+          project_code?: string | null
+          reference_number?: string | null
+          required_date?: string | null
+          revision_number?: number | null
+          shipping_address?: Json | null
+          status?: Database["public"]["Enums"]["purchase_order_status"] | null
+          subtotal?: number | null
+          supplier_id?: string
+          tax_amount?: number | null
+          terms_conditions?: string | null
+          total_amount?: number | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_orders_parent_po_id_fkey"
+            columns: ["parent_po_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_orders_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       quality_checkpoints: {
         Row: {
@@ -5918,6 +6662,158 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      reorder_rules: {
+        Row: {
+          auto_reorder_enabled: boolean | null
+          category_specific_rules: Json | null
+          consumption_rate: number | null
+          created_at: string | null
+          created_by: string | null
+          economic_order_quantity: number | null
+          id: string
+          is_active: boolean | null
+          item_code: string
+          last_consumption_date: string | null
+          lead_time_days: number
+          maximum_stock: number | null
+          minimum_order_quantity: number | null
+          priority_level: number | null
+          reorder_level: number
+          reorder_quantity: number
+          safety_stock: number | null
+          seasonal_factor: number | null
+          supplier_id: string | null
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          auto_reorder_enabled?: boolean | null
+          category_specific_rules?: Json | null
+          consumption_rate?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          economic_order_quantity?: number | null
+          id?: string
+          is_active?: boolean | null
+          item_code: string
+          last_consumption_date?: string | null
+          lead_time_days?: number
+          maximum_stock?: number | null
+          minimum_order_quantity?: number | null
+          priority_level?: number | null
+          reorder_level: number
+          reorder_quantity: number
+          safety_stock?: number | null
+          seasonal_factor?: number | null
+          supplier_id?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          auto_reorder_enabled?: boolean | null
+          category_specific_rules?: Json | null
+          consumption_rate?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          economic_order_quantity?: number | null
+          id?: string
+          is_active?: boolean | null
+          item_code?: string
+          last_consumption_date?: string | null
+          lead_time_days?: number
+          maximum_stock?: number | null
+          minimum_order_quantity?: number | null
+          priority_level?: number | null
+          reorder_level?: number
+          reorder_quantity?: number
+          safety_stock?: number | null
+          seasonal_factor?: number | null
+          supplier_id?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reorder_rules_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reorder_suggestions: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string | null
+          current_stock: number
+          estimated_cost: number | null
+          estimated_stockout_date: string | null
+          id: string
+          item_code: string
+          po_id: string | null
+          reason: string | null
+          reorder_level: number
+          status: string | null
+          suggested_quantity: number
+          supplier_id: string | null
+          updated_at: string | null
+          urgency_level: string | null
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string | null
+          current_stock: number
+          estimated_cost?: number | null
+          estimated_stockout_date?: string | null
+          id?: string
+          item_code: string
+          po_id?: string | null
+          reason?: string | null
+          reorder_level: number
+          status?: string | null
+          suggested_quantity: number
+          supplier_id?: string | null
+          updated_at?: string | null
+          urgency_level?: string | null
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string | null
+          current_stock?: number
+          estimated_cost?: number | null
+          estimated_stockout_date?: string | null
+          id?: string
+          item_code?: string
+          po_id?: string | null
+          reason?: string | null
+          reorder_level?: number
+          status?: string | null
+          suggested_quantity?: number
+          supplier_id?: string | null
+          updated_at?: string | null
+          urgency_level?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reorder_suggestions_po_id_fkey"
+            columns: ["po_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reorder_suggestions_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       resource_links: {
         Row: {
@@ -6149,27 +7045,76 @@ export type Database = {
       }
       satguru_categories: {
         Row: {
+          business_rules: Json | null
+          category_code: string | null
+          category_level: number | null
           category_name: string
+          category_type: string | null
           created_at: string
           description: string | null
           id: string
+          is_active: boolean | null
+          last_modified_by: string | null
+          metadata: Json | null
+          parent_category_id: string | null
+          sort_order: number | null
           updated_at: string
         }
         Insert: {
+          business_rules?: Json | null
+          category_code?: string | null
+          category_level?: number | null
           category_name: string
+          category_type?: string | null
           created_at?: string
           description?: string | null
           id?: string
+          is_active?: boolean | null
+          last_modified_by?: string | null
+          metadata?: Json | null
+          parent_category_id?: string | null
+          sort_order?: number | null
           updated_at?: string
         }
         Update: {
+          business_rules?: Json | null
+          category_code?: string | null
+          category_level?: number | null
           category_name?: string
+          category_type?: string | null
           created_at?: string
           description?: string | null
           id?: string
+          is_active?: boolean | null
+          last_modified_by?: string | null
+          metadata?: Json | null
+          parent_category_id?: string | null
+          sort_order?: number | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "satguru_categories_parent_category_id_fkey"
+            columns: ["parent_category_id"]
+            isOneToOne: false
+            referencedRelation: "category_stats_mv"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "satguru_categories_parent_category_id_fkey"
+            columns: ["parent_category_id"]
+            isOneToOne: false
+            referencedRelation: "satguru_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "satguru_categories_parent_category_id_fkey"
+            columns: ["parent_category_id"]
+            isOneToOne: false
+            referencedRelation: "satguru_category_stats"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       satguru_csv_upload_log: {
         Row: {
@@ -6324,6 +7269,7 @@ export type Database = {
         Row: {
           amount_inr: number | null
           created_at: string
+          data_source: string | null
           date: string
           grn_number: string
           id: string
@@ -6339,6 +7285,7 @@ export type Database = {
         Insert: {
           amount_inr?: number | null
           created_at?: string
+          data_source?: string | null
           date?: string
           grn_number: string
           id?: string
@@ -6354,6 +7301,7 @@ export type Database = {
         Update: {
           amount_inr?: number | null
           created_at?: string
+          data_source?: string | null
           date?: string
           grn_number?: string
           id?: string
@@ -6381,11 +7329,19 @@ export type Database = {
             referencedRelation: "satguru_stock_summary"
             referencedColumns: ["item_code"]
           },
+          {
+            foreignKeyName: "satguru_grn_log_item_code_fkey"
+            columns: ["item_code"]
+            isOneToOne: false
+            referencedRelation: "satguru_stock_summary_view"
+            referencedColumns: ["item_code"]
+          },
         ]
       }
       satguru_issue_log: {
         Row: {
           created_at: string
+          data_source: string | null
           date: string
           id: string
           item_code: string
@@ -6396,6 +7352,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          data_source?: string | null
           date?: string
           id?: string
           item_code: string
@@ -6406,6 +7363,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          data_source?: string | null
           date?: string
           id?: string
           item_code?: string
@@ -6429,7 +7387,50 @@ export type Database = {
             referencedRelation: "satguru_stock_summary"
             referencedColumns: ["item_code"]
           },
+          {
+            foreignKeyName: "satguru_issue_log_item_code_fkey"
+            columns: ["item_code"]
+            isOneToOne: false
+            referencedRelation: "satguru_stock_summary_view"
+            referencedColumns: ["item_code"]
+          },
         ]
+      }
+      satguru_issue_log_backup_cleanup: {
+        Row: {
+          backup_timestamp: string | null
+          created_at: string | null
+          date: string | null
+          id: string | null
+          item_code: string | null
+          purpose: string | null
+          qty_issued: number | null
+          remarks: string | null
+          total_issued_qty: number | null
+        }
+        Insert: {
+          backup_timestamp?: string | null
+          created_at?: string | null
+          date?: string | null
+          id?: string | null
+          item_code?: string | null
+          purpose?: string | null
+          qty_issued?: number | null
+          remarks?: string | null
+          total_issued_qty?: number | null
+        }
+        Update: {
+          backup_timestamp?: string | null
+          created_at?: string | null
+          date?: string | null
+          id?: string | null
+          item_code?: string | null
+          purpose?: string | null
+          qty_issued?: number | null
+          remarks?: string | null
+          total_issued_qty?: number | null
+        }
+        Relationships: []
       }
       satguru_item_master: {
         Row: {
@@ -6481,6 +7482,13 @@ export type Database = {
           usage_type?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "satguru_item_master_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "category_stats_mv"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "satguru_item_master_category_id_fkey"
             columns: ["category_id"]
@@ -6541,6 +7549,13 @@ export type Database = {
             columns: ["item_code"]
             isOneToOne: true
             referencedRelation: "satguru_stock_summary"
+            referencedColumns: ["item_code"]
+          },
+          {
+            foreignKeyName: "satguru_stock_item_code_fkey"
+            columns: ["item_code"]
+            isOneToOne: true
+            referencedRelation: "satguru_stock_summary_view"
             referencedColumns: ["item_code"]
           },
         ]
@@ -7231,6 +8246,87 @@ export type Database = {
         }
         Relationships: []
       }
+      suppliers: {
+        Row: {
+          address: Json | null
+          bank_details: Json | null
+          category: string | null
+          certifications: Json | null
+          contact_person: string | null
+          created_at: string | null
+          created_by: string | null
+          credit_limit: number | null
+          email: string | null
+          id: string
+          is_active: boolean | null
+          is_approved: boolean | null
+          lead_time_days: number | null
+          material_categories: string[] | null
+          minimum_order_value: number | null
+          payment_terms: string | null
+          performance_rating: number | null
+          phone: string | null
+          supplier_code: string
+          supplier_name: string
+          supplier_type: string | null
+          tax_details: Json | null
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          address?: Json | null
+          bank_details?: Json | null
+          category?: string | null
+          certifications?: Json | null
+          contact_person?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          credit_limit?: number | null
+          email?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_approved?: boolean | null
+          lead_time_days?: number | null
+          material_categories?: string[] | null
+          minimum_order_value?: number | null
+          payment_terms?: string | null
+          performance_rating?: number | null
+          phone?: string | null
+          supplier_code: string
+          supplier_name: string
+          supplier_type?: string | null
+          tax_details?: Json | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          address?: Json | null
+          bank_details?: Json | null
+          category?: string | null
+          certifications?: Json | null
+          contact_person?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          credit_limit?: number | null
+          email?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_approved?: boolean | null
+          lead_time_days?: number | null
+          material_categories?: string[] | null
+          minimum_order_value?: number | null
+          payment_terms?: string | null
+          performance_rating?: number | null
+          phone?: string | null
+          supplier_code?: string
+          supplier_name?: string
+          supplier_type?: string | null
+          tax_details?: Json | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       templates: {
         Row: {
           created_at: string | null
@@ -7505,6 +8601,74 @@ export type Database = {
           },
         ]
       }
+      vendor_price_lists: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          currency: string | null
+          discount_percentage: number | null
+          effective_from: string
+          effective_to: string | null
+          id: string
+          is_active: boolean | null
+          item_code: string
+          lead_time_days: number | null
+          minimum_order_quantity: number | null
+          payment_terms: string | null
+          supplier_id: string
+          unit_price: number
+          updated_at: string | null
+          updated_by: string | null
+          validity_days: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          currency?: string | null
+          discount_percentage?: number | null
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          is_active?: boolean | null
+          item_code: string
+          lead_time_days?: number | null
+          minimum_order_quantity?: number | null
+          payment_terms?: string | null
+          supplier_id: string
+          unit_price: number
+          updated_at?: string | null
+          updated_by?: string | null
+          validity_days?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          currency?: string | null
+          discount_percentage?: number | null
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          is_active?: boolean | null
+          item_code?: string
+          lead_time_days?: number | null
+          minimum_order_quantity?: number | null
+          payment_terms?: string | null
+          supplier_id?: string
+          unit_price?: number
+          updated_at?: string | null
+          updated_by?: string | null
+          validity_days?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendor_price_lists_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       weekly_off_rules: {
         Row: {
           created_at: string | null
@@ -7554,6 +8718,36 @@ export type Database = {
       }
     }
     Views: {
+      category_hierarchy_view: {
+        Row: {
+          category_code: string | null
+          category_level: number | null
+          category_name: string | null
+          full_path: string | null
+          id: string | null
+          parent_category_id: string | null
+          path: string[] | null
+        }
+        Relationships: []
+      }
+      category_stats_mv: {
+        Row: {
+          active_items: number | null
+          avg_item_value: number | null
+          category_name: string | null
+          consumable_items: number | null
+          created_at: string | null
+          description: string | null
+          fg_items: number | null
+          id: string | null
+          last_item_added: string | null
+          packaging_items: number | null
+          rm_items: number | null
+          total_items: number | null
+          updated_at: string | null
+        }
+        Relationships: []
+      }
       employee_details_enhanced: {
         Row: {
           aadhaar_number: string | null
@@ -7747,6 +8941,13 @@ export type Database = {
             referencedRelation: "satguru_stock_summary"
             referencedColumns: ["item_code"]
           },
+          {
+            foreignKeyName: "satguru_issue_log_item_code_fkey"
+            columns: ["item_code"]
+            isOneToOne: false
+            referencedRelation: "satguru_stock_summary_view"
+            referencedColumns: ["item_code"]
+          },
         ]
       }
       satguru_category_stats: {
@@ -7784,43 +8985,28 @@ export type Database = {
           category_name: string | null
           consumption_30_days: number | null
           current_qty: number | null
+          data_quality: string | null
           item_code: string | null
           item_name: string | null
           last_updated: string | null
+          legacy_baseline: number | null
+          legacy_consumed_indicator: number | null
+          legacy_grns: number | null
+          legacy_issues: number | null
+          legacy_received_indicator: number | null
+          metrics_period: string | null
+          net_operational_movement: number | null
+          opening_stock: number | null
+          operational_grns: number | null
+          operational_issues: number | null
           received_30_days: number | null
           reorder_level: number | null
           stock_status: string | null
+          total_grns: number | null
+          total_issues: number | null
+          uom: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "satguru_item_master_category_id_fkey"
-            columns: ["category_id"]
-            isOneToOne: false
-            referencedRelation: "satguru_categories"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "satguru_item_master_category_id_fkey"
-            columns: ["category_id"]
-            isOneToOne: false
-            referencedRelation: "satguru_category_stats"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "satguru_stock_item_code_fkey"
-            columns: ["item_code"]
-            isOneToOne: true
-            referencedRelation: "satguru_item_master"
-            referencedColumns: ["item_code"]
-          },
-          {
-            foreignKeyName: "satguru_stock_item_code_fkey"
-            columns: ["item_code"]
-            isOneToOne: true
-            referencedRelation: "satguru_stock_summary"
-            referencedColumns: ["item_code"]
-          },
-        ]
+        Relationships: []
       }
       stock_summary: {
         Row: {
@@ -7893,6 +9079,14 @@ export type Database = {
             }
         Returns: Json
       }
+      bulk_create_employees_from_csv: {
+        Args: { rows: Json }
+        Returns: Json
+      }
+      bulk_update_categories: {
+        Args: { p_operations: Json }
+        Returns: Json
+      }
       bytea_to_text: {
         Args: { data: string }
         Returns: string
@@ -7937,6 +9131,10 @@ export type Database = {
           weekly_offs: number
           leave_days: number
         }[]
+      }
+      calculate_reorder_suggestions: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
       }
       can_transition_to_stage: {
         Args: {
@@ -8080,6 +9278,10 @@ export type Database = {
         }
         Returns: string
       }
+      generate_po_number: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       get_active_items_for_selection: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -8120,11 +9322,33 @@ export type Database = {
           viscosity_cps: number
         }[]
       }
+      get_employee_csv_template: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          name: string
+          uan_number: string
+          unit_code: string
+          department_code: string
+          joining_date: string
+          date_of_birth: string
+          base_salary: string
+          hra_amount: string
+          other_conv_amount: string
+          pan_number: string
+          aadhaar_number: string
+          email: string
+          preferred_language: string
+        }[]
+      }
       get_next_manufacturing_stage: {
         Args: {
           p_current_status: Database["public"]["Enums"]["process_status"]
         }
         Returns: Database["public"]["Enums"]["process_status"]
+      }
+      get_operational_cutoff_date: {
+        Args: Record<PropertyKey, never>
+        Returns: string
       }
       get_order_material_progress: {
         Args: { p_uiorn: string }
@@ -8352,6 +9576,23 @@ export type Database = {
         Args: { p_rows: Json }
         Returns: Json
       }
+      process_po_approval: {
+        Args: {
+          p_po_id: string
+          p_approver_id: string
+          p_action: string
+          p_comments?: string
+        }
+        Returns: Json
+      }
+      process_pricing_upload_batch: {
+        Args: {
+          p_upload_id: string
+          p_records: Json
+          p_auto_approve_threshold?: number
+        }
+        Returns: Json
+      }
       process_queued_jobs: {
         Args: Record<PropertyKey, never>
         Returns: undefined
@@ -8373,6 +9614,10 @@ export type Database = {
         Returns: string
       }
       refresh_analytics_materialized_views: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      refresh_category_stats: {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
@@ -8508,14 +9753,6 @@ export type Database = {
         Args: { p_item_code: string }
         Returns: boolean
       }
-      satguru_validate_stock_transaction: {
-        Args: {
-          p_item_code: string
-          p_transaction_type: string
-          p_quantity: number
-        }
-        Returns: boolean
-      }
       satguru_validate_unique_item_code: {
         Args: { p_item_code: string; p_exclude_id?: string }
         Returns: boolean
@@ -8590,6 +9827,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      update_item_price: {
+        Args: { p_item_code: string; p_new_price: number; p_reason?: string }
+        Returns: boolean
+      }
       update_job_status: {
         Args: {
           p_job_id: string
@@ -8641,6 +9882,14 @@ export type Database = {
         Args: { data: Json } | { string: string } | { string: string }
         Returns: string
       }
+      validate_category_data: {
+        Args: {
+          p_category_name: string
+          p_category_code?: string
+          p_parent_id?: string
+        }
+        Returns: Json
+      }
       validate_employee_emails_csv: {
         Args: { rows: Json }
         Returns: Json
@@ -8674,8 +9923,19 @@ export type Database = {
         }
         Returns: boolean
       }
+      validate_pricing_record: {
+        Args: {
+          p_item_code: string
+          p_proposed_price: number
+          p_effective_date?: string
+          p_cost_category?: string
+          p_supplier?: string
+        }
+        Returns: Json
+      }
     }
     Enums: {
+      approval_status: "PENDING" | "APPROVED" | "REJECTED" | "ESCALATED"
       asset_condition: "new" | "good" | "fair" | "poor"
       asset_status: "active" | "maintenance" | "retired" | "disposed"
       attendance_status:
@@ -8707,6 +9967,21 @@ export type Database = {
         | "LAMINATION_COATING"
         | "ADHESIVE_COATING"
         | "SLITTING_PACKING"
+      purchase_order_priority:
+        | "LOW"
+        | "MEDIUM"
+        | "HIGH"
+        | "URGENT"
+        | "EMERGENCY"
+      purchase_order_status:
+        | "DRAFT"
+        | "SUBMITTED"
+        | "APPROVED"
+        | "ISSUED"
+        | "PARTIALLY_RECEIVED"
+        | "RECEIVED"
+        | "CLOSED"
+        | "CANCELLED"
       stage: "printing" | "lamination" | "adhesive" | "slitting" | "dispatch"
       transfer_status: "pending" | "approved" | "rejected" | "completed"
       variable_type: "fixed" | "calculated" | "employee_specific" | "system"
@@ -8853,6 +10128,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      approval_status: ["PENDING", "APPROVED", "REJECTED", "ESCALATED"],
       asset_condition: ["new", "good", "fair", "poor"],
       asset_status: ["active", "maintenance", "retired", "disposed"],
       attendance_status: [
@@ -8886,6 +10162,17 @@ export const Constants = {
         "LAMINATION_COATING",
         "ADHESIVE_COATING",
         "SLITTING_PACKING",
+      ],
+      purchase_order_priority: ["LOW", "MEDIUM", "HIGH", "URGENT", "EMERGENCY"],
+      purchase_order_status: [
+        "DRAFT",
+        "SUBMITTED",
+        "APPROVED",
+        "ISSUED",
+        "PARTIALLY_RECEIVED",
+        "RECEIVED",
+        "CLOSED",
+        "CANCELLED",
       ],
       stage: ["printing", "lamination", "adhesive", "slitting", "dispatch"],
       transfer_status: ["pending", "approved", "rejected", "completed"],
