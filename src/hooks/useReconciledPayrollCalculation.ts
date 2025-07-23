@@ -56,7 +56,7 @@ export const useReconciledPayrollCalculation = ({ month, unit_id }: UseReconcile
       const hasCompleted = data?.some((status: any) => status.is_completed) || false;
       setReconciliationStatus({
         completed: hasCompleted,
-        warning: hasCompleted ? undefined : 'Payroll calculations will use raw attendance data instead of reconciled leave balances'
+        warning: hasCompleted ? undefined : 'Payroll calculations will use enhanced formula system with raw attendance data'
       });
     } catch (error) {
       console.error('Error in reconciliation status check:', error);
@@ -71,6 +71,8 @@ export const useReconciledPayrollCalculation = ({ month, unit_id }: UseReconcile
 
     setIsLoading(true);
     try {
+      console.log('🚀 Starting reconciled payroll calculation with enhanced formula system');
+
       // Get employees for the selected unit
       let employeeQuery = supabase
         .from('payroll_employees')
@@ -91,13 +93,37 @@ export const useReconciledPayrollCalculation = ({ month, unit_id }: UseReconcile
         return;
       }
 
-      const monthDate = new Date(month + '-01');
-      const yearNum = monthDate.getFullYear();
+      console.log(`📊 Processing ${employees.length} employees with enhanced formula system`);
+
       const results: ReconciledPayrollData[] = [];
 
       for (const employee of employees) {
         try {
+          console.log(`👤 Processing employee: ${employee.name} (${employee.employee_code})`);
+
+          // Use the enhanced calculate-payroll function
+          const { data: calculationResult, error: calcError } = await supabase.functions.invoke('calculate-payroll', {
+            body: {
+              employee_id: employee.id,
+              month: month,
+              custom_variables: {}
+            }
+          });
+
+          if (calcError) {
+            console.error(`❌ Calculation error for ${employee.name}:`, calcError);
+            continue;
+          }
+
+          if (!calculationResult) {
+            console.error(`❌ No calculation result for ${employee.name}`);
+            continue;
+          }
+
           // Get reconciled leave balances
+          const monthDate = new Date(month + '-01');
+          const yearNum = monthDate.getFullYear();
+
           const { data: leaveBalance } = await supabase
             .from('employee_leave_balances')
             .select('*')
@@ -150,34 +176,22 @@ export const useReconciledPayrollCalculation = ({ month, unit_id }: UseReconcile
             leave_impact_amount = dailySalary * effectiveUnpaidLeaveDays;
           }
 
-          // Calculate pro-rated salary
-          const workingDaysInMonth = 26;
-          const effectivePaidDays = Math.max(0, workingDaysInMonth - effectiveUnpaidLeaveDays);
-          const workRatio = effectivePaidDays / workingDaysInMonth;
-          
-          const baseSalary = employee.base_salary || 0;
-          const hraAmount = employee.hra_amount || 0;
-          const otherConvAmount = employee.other_conv_amount || 0;
-          
-          const proRatedBaseSalary = baseSalary * workRatio;
-          const proRatedHra = hraAmount * workRatio;
-          const proRatedOtherConv = otherConvAmount * workRatio;
-          
-          const grossSalary = proRatedBaseSalary + proRatedHra + proRatedOtherConv;
-          const netSalary = grossSalary * 0.85; // Simplified calculation
-
+          // Use enhanced calculation results
           results.push({
             employee_id: employee.id,
             employee_name: employee.name,
-            base_salary: proRatedBaseSalary,
-            gross_salary: grossSalary,
-            net_salary: netSalary,
+            base_salary: calculationResult.base_salary,
+            gross_salary: calculationResult.gross_salary,
+            net_salary: calculationResult.net_salary,
             reconciled_leave_data,
             leave_impact_amount,
-            reconciliation_warning: reconciliationStatus.completed ? undefined : 'Using raw attendance data - reconciliation not completed'
+            reconciliation_warning: reconciliationStatus.completed ? 
+              `Enhanced formula system used. Overtime: ${calculationResult.overtime_rate_source}` : 
+              'Using enhanced formula system with raw attendance data - reconciliation not completed'
           });
+
         } catch (error) {
-          console.error(`Error calculating payroll for ${employee.name}:`, error);
+          console.error(`❌ Error calculating payroll for ${employee.name}:`, error);
         }
       }
 
@@ -186,12 +200,12 @@ export const useReconciledPayrollCalculation = ({ month, unit_id }: UseReconcile
       const reconciledCount = results.filter(r => r.reconciled_leave_data?.leave_adjustment_applied).length;
       const totalImpact = results.reduce((sum, r) => sum + r.leave_impact_amount, 0);
       
-      toast.success(`Calculated payroll for ${results.length} employees`, {
-        description: `${reconciledCount} used reconciled data. Total leave impact: ₹${totalImpact.toFixed(2)}`
+      toast.success(`Enhanced reconciled payroll calculated for ${results.length} employees`, {
+        description: `${reconciledCount} with reconciled data. Total leave impact: ₹${totalImpact.toFixed(2)}`
       });
     } catch (error) {
-      console.error('Error calculating reconciled payroll:', error);
-      toast.error('Failed to calculate payroll');
+      console.error('❌ Error calculating reconciled payroll:', error);
+      toast.error('Failed to calculate reconciled payroll');
     } finally {
       setIsLoading(false);
     }
