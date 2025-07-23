@@ -18,7 +18,7 @@ interface PayrollAuditLog {
   old_data: any;
   new_data: any;
   user_id: string;
-  created_at: string;
+  timestamp: string;
 }
 
 interface SalaryAuditLog {
@@ -27,7 +27,7 @@ interface SalaryAuditLog {
   action: string;
   details: any;
   performed_by: string;
-  created_at: string;
+  performed_at: string;
 }
 
 export const AuditLogsViewer = () => {
@@ -50,7 +50,7 @@ export const AuditLogsViewer = () => {
       const { data: payrollData, error: payrollError } = await supabase
         .from('payroll_audit_log')
         .select('*')
-        .order('created_at', { ascending: false })
+        .order('timestamp', { ascending: false })
         .limit(100);
 
       if (payrollError) throw payrollError;
@@ -60,7 +60,7 @@ export const AuditLogsViewer = () => {
       const { data: salaryData, error: salaryError } = await supabase
         .from('salary_audit_log')
         .select('*')
-        .order('created_at', { ascending: false })
+        .order('performed_at', { ascending: false })
         .limit(100);
 
       if (salaryError) throw salaryError;
@@ -212,7 +212,7 @@ export const AuditLogsViewer = () => {
                         <TableCell>
                           <div className="flex items-center gap-2">
                             <Clock className="h-4 w-4 text-muted-foreground" />
-                            {formatTimestamp(log.created_at)}
+                            {formatTimestamp(log.timestamp)}
                           </div>
                         </TableCell>
                         <TableCell>
@@ -268,7 +268,7 @@ export const AuditLogsViewer = () => {
                         <TableCell>
                           <div className="flex items-center gap-2">
                             <Clock className="h-4 w-4 text-muted-foreground" />
-                            {formatTimestamp(log.created_at)}
+                            {formatTimestamp(log.performed_at)}
                           </div>
                         </TableCell>
                         <TableCell>
