@@ -1,10 +1,11 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Calculator, RefreshCw } from 'lucide-react';
-import { EmployeeManagement } from './payroll/EmployeeManagement';
-import { AttendanceDashboard } from './payroll/AttendanceDashboard';
-import { LeaveManagement } from './payroll/LeaveManagement';
+import { EmployeesManagement } from './payroll/EmployeesManagement';
+import { AttendanceManagement } from './payroll/AttendanceManagement';
+import { LeaveBalanceManagement } from './payroll/LeaveBalanceManagement';
 import { OvertimeRatesManager } from './payroll/OvertimeRatesManager';
 import { FormulaManagement } from './payroll/FormulaManagement';
 import { PayrollSettings } from './payroll/PayrollSettings';
@@ -51,15 +52,15 @@ export const PayrollDashboard = () => {
         </TabsContent>
 
         <TabsContent value="employees" className="space-y-4">
-          <EmployeeManagement />
+          <EmployeesManagement />
         </TabsContent>
 
         <TabsContent value="attendance" className="space-y-4">
-          <AttendanceDashboard />
+          <AttendanceManagement />
         </TabsContent>
 
         <TabsContent value="leaves" className="space-y-4">
-          <LeaveManagement />
+          <LeaveBalanceManagement />
         </TabsContent>
 
         <TabsContent value="ot-rates" className="space-y-4">
