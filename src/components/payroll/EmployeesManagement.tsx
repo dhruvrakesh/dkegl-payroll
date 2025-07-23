@@ -27,6 +27,7 @@ interface Employee {
   base_salary: number;
   hra_amount: number;
   other_conv_amount: number;
+  overtime_rate_per_hour?: number;
   pan_number: string;
   aadhaar_number: string;
   email?: string;
@@ -90,6 +91,7 @@ export const EmployeesManagement = () => {
     base_salary: '',
     hra_amount: '',
     other_conv_amount: '',
+    overtime_rate_per_hour: '',
     pan_number: '',
     aadhaar_number: '',
     email: '',
@@ -349,6 +351,7 @@ export const EmployeesManagement = () => {
         base_salary: parseFloat(formData.base_salary),
         hra_amount: parseFloat(formData.hra_amount) || 0,
         other_conv_amount: parseFloat(formData.other_conv_amount) || 0,
+        overtime_rate_per_hour: formData.overtime_rate_per_hour ? parseFloat(formData.overtime_rate_per_hour) : null,
         unit_id: formData.unit_id || null,
         department_id: formData.department_id || null,
         date_of_birth: formData.date_of_birth || null,
@@ -408,6 +411,7 @@ export const EmployeesManagement = () => {
       base_salary: '',
       hra_amount: '',
       other_conv_amount: '',
+      overtime_rate_per_hour: '',
       pan_number: '',
       aadhaar_number: '',
       email: '',
@@ -432,6 +436,7 @@ export const EmployeesManagement = () => {
       base_salary: employee.base_salary.toString(),
       hra_amount: (employee.hra_amount || 0).toString(),
       other_conv_amount: (employee.other_conv_amount || 0).toString(),
+      overtime_rate_per_hour: (employee.overtime_rate_per_hour || '').toString(),
       pan_number: employee.pan_number || '',
       aadhaar_number: employee.aadhaar_number || '',
       email: employee.email || '',
@@ -805,7 +810,7 @@ export const EmployeesManagement = () => {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="grid grid-cols-3 gap-4">
+                  <div className="grid grid-cols-2 gap-4">
                     <div>
                       <Label htmlFor="base_salary">Base Salary *</Label>
                       <Input
@@ -827,6 +832,8 @@ export const EmployeesManagement = () => {
                         onChange={(e) => setFormData({ ...formData, hra_amount: e.target.value })}
                       />
                     </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
                     <div>
                       <Label htmlFor="other_conv_amount">Other/Conveyance</Label>
                       <Input
@@ -836,6 +843,20 @@ export const EmployeesManagement = () => {
                         value={formData.other_conv_amount}
                         onChange={(e) => setFormData({ ...formData, other_conv_amount: e.target.value })}
                       />
+                    </div>
+                    <div>
+                      <Label htmlFor="overtime_rate_per_hour">Overtime Rate (₹/hour)</Label>
+                      <Input
+                        id="overtime_rate_per_hour"
+                        type="number"
+                        step="0.01"
+                        placeholder="e.g., 50.00"
+                        value={formData.overtime_rate_per_hour}
+                        onChange={(e) => setFormData({ ...formData, overtime_rate_per_hour: e.target.value })}
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Leave empty to use formula-based calculation
+                      </p>
                     </div>
                   </div>
                   {totalSalary > 0 && (

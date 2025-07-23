@@ -18,6 +18,7 @@ import { LeaveBalanceManagement } from './payroll/LeaveBalanceManagement';
 import { LeaveBalanceValidator } from './payroll/LeaveBalanceValidator';
 import { LeaveAssignmentManager } from './payroll/LeaveAssignmentManager';
 import { SundayOvertimeManager } from './payroll/SundayOvertimeManager';
+import { OvertimeRatesManager } from './payroll/OvertimeRatesManager';
 import PanchkulaWageCalculator from './payroll/PanchkulaWageCalculator';
 import { EmployeeCodeStatus } from './payroll/EmployeeCodeStatus';
 import { AdminDashboard } from './admin/AdminDashboard';
@@ -106,6 +107,10 @@ export function PayrollDashboard() {
             <Coffee className="w-4 h-4 mr-1" />
             Sunday Overtime
           </TabsTrigger>
+          <TabsTrigger value="overtime-rates">
+            <Clock className="w-4 h-4 mr-1" />
+            OT Rates
+          </TabsTrigger>
           <TabsTrigger value="weekly-off">
             <Calendar className="w-4 h-4 mr-1" />
             Weekly Off
@@ -171,6 +176,10 @@ export function PayrollDashboard() {
 
         <TabsContent value="sunday-overtime" className="space-y-6">
           <SundayOvertimeManager />
+        </TabsContent>
+
+        <TabsContent value="overtime-rates" className="space-y-6">
+          <OvertimeRatesManager />
         </TabsContent>
 
         <TabsContent value="weekly-off" className="space-y-6">

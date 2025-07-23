@@ -1512,6 +1512,76 @@ export type Database = {
         }
         Relationships: []
       }
+      category_approvals: {
+        Row: {
+          approval_notes: string | null
+          approval_status: string
+          approved_by: string | null
+          business_justification: string | null
+          category_id: string | null
+          change_data: Json
+          change_type: string
+          created_at: string | null
+          id: string
+          processed_at: string | null
+          requested_at: string | null
+          requested_by: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          approval_notes?: string | null
+          approval_status?: string
+          approved_by?: string | null
+          business_justification?: string | null
+          category_id?: string | null
+          change_data: Json
+          change_type: string
+          created_at?: string | null
+          id?: string
+          processed_at?: string | null
+          requested_at?: string | null
+          requested_by?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          approval_notes?: string | null
+          approval_status?: string
+          approved_by?: string | null
+          business_justification?: string | null
+          category_id?: string | null
+          change_data?: Json
+          change_type?: string
+          created_at?: string | null
+          id?: string
+          processed_at?: string | null
+          requested_at?: string | null
+          requested_by?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "category_approvals_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "category_stats_mv"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "category_approvals_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "satguru_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "category_approvals_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "satguru_category_stats"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       category_audit_log: {
         Row: {
           action: string
@@ -1569,6 +1639,97 @@ export type Database = {
           },
           {
             foreignKeyName: "category_audit_log_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "satguru_category_stats"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      category_recommendations: {
+        Row: {
+          based_on_items: string[] | null
+          confidence_score: number | null
+          created_at: string | null
+          created_by: string | null
+          id: string
+          processed_at: string | null
+          processed_by: string | null
+          reasoning: string | null
+          status: string | null
+          suggested_category_code: string | null
+          suggested_category_name: string
+        }
+        Insert: {
+          based_on_items?: string[] | null
+          confidence_score?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          processed_at?: string | null
+          processed_by?: string | null
+          reasoning?: string | null
+          status?: string | null
+          suggested_category_code?: string | null
+          suggested_category_name: string
+        }
+        Update: {
+          based_on_items?: string[] | null
+          confidence_score?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          processed_at?: string | null
+          processed_by?: string | null
+          reasoning?: string | null
+          status?: string | null
+          suggested_category_code?: string | null
+          suggested_category_name?: string
+        }
+        Relationships: []
+      }
+      category_usage_tracking: {
+        Row: {
+          category_id: string | null
+          created_at: string | null
+          id: string
+          metadata: Json | null
+          usage_type: string
+          user_id: string | null
+        }
+        Insert: {
+          category_id?: string | null
+          created_at?: string | null
+          id?: string
+          metadata?: Json | null
+          usage_type: string
+          user_id?: string | null
+        }
+        Update: {
+          category_id?: string | null
+          created_at?: string | null
+          id?: string
+          metadata?: Json | null
+          usage_type?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "category_usage_tracking_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "category_stats_mv"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "category_usage_tracking_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "satguru_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "category_usage_tracking_category_id_fkey"
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "satguru_category_stats"
@@ -2357,6 +2518,74 @@ export type Database = {
           },
         ]
       }
+      employee_overtime_rate_history: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          change_reason: string | null
+          changed_by: string | null
+          created_at: string | null
+          effective_from: string
+          employee_id: string
+          id: string
+          new_rate: number | null
+          old_rate: number | null
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          change_reason?: string | null
+          changed_by?: string | null
+          created_at?: string | null
+          effective_from?: string
+          employee_id: string
+          id?: string
+          new_rate?: number | null
+          old_rate?: number | null
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          change_reason?: string | null
+          changed_by?: string | null
+          created_at?: string | null
+          effective_from?: string
+          employee_id?: string
+          id?: string
+          new_rate?: number | null
+          old_rate?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_overtime_rate_history_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_details_enhanced"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_overtime_rate_history_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "panchkula_payroll_calculation"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "employee_overtime_rate_history_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_calculation_enhanced"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "employee_overtime_rate_history_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employee_variable_overrides: {
         Row: {
           created_at: string | null
@@ -2739,6 +2968,74 @@ export type Database = {
             columns: ["period_id"]
             isOneToOne: true
             referencedRelation: "financial_periods"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      formula_execution_audit: {
+        Row: {
+          calculated_result: number | null
+          employee_id: string | null
+          executed_at: string | null
+          executed_by: string | null
+          execution_time_ms: number | null
+          formula_expression: string
+          formula_type: string
+          id: string
+          month_year: string
+          variables_used: Json
+        }
+        Insert: {
+          calculated_result?: number | null
+          employee_id?: string | null
+          executed_at?: string | null
+          executed_by?: string | null
+          execution_time_ms?: number | null
+          formula_expression: string
+          formula_type: string
+          id?: string
+          month_year: string
+          variables_used: Json
+        }
+        Update: {
+          calculated_result?: number | null
+          employee_id?: string | null
+          executed_at?: string | null
+          executed_by?: string | null
+          execution_time_ms?: number | null
+          formula_expression?: string
+          formula_type?: string
+          id?: string
+          month_year?: string
+          variables_used?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "formula_execution_audit_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_details_enhanced"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "formula_execution_audit_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "panchkula_payroll_calculation"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "formula_execution_audit_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_calculation_enhanced"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "formula_execution_audit_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_employees"
             referencedColumns: ["id"]
           },
         ]
@@ -5276,6 +5573,119 @@ export type Database = {
         }
         Relationships: []
       }
+      overtime_rates_audit_log: {
+        Row: {
+          action: string
+          batch_id: string | null
+          employee_id: string | null
+          id: string
+          ip_address: unknown | null
+          new_data: Json | null
+          old_data: Json | null
+          timestamp: string | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          batch_id?: string | null
+          employee_id?: string | null
+          id?: string
+          ip_address?: unknown | null
+          new_data?: Json | null
+          old_data?: Json | null
+          timestamp?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          batch_id?: string | null
+          employee_id?: string | null
+          id?: string
+          ip_address?: unknown | null
+          new_data?: Json | null
+          old_data?: Json | null
+          timestamp?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "overtime_rates_audit_log_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_details_enhanced"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "overtime_rates_audit_log_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "panchkula_payroll_calculation"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "overtime_rates_audit_log_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_calculation_enhanced"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "overtime_rates_audit_log_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      overtime_rates_upload_history: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          batch_id: string
+          error_details: Json | null
+          failed_records: number | null
+          file_name: string | null
+          id: string
+          successful_records: number | null
+          total_records: number | null
+          upload_status: string | null
+          upload_timestamp: string | null
+          uploaded_by: string | null
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          batch_id?: string
+          error_details?: Json | null
+          failed_records?: number | null
+          file_name?: string | null
+          id?: string
+          successful_records?: number | null
+          total_records?: number | null
+          upload_status?: string | null
+          upload_timestamp?: string | null
+          uploaded_by?: string | null
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          batch_id?: string
+          error_details?: Json | null
+          failed_records?: number | null
+          file_name?: string | null
+          id?: string
+          successful_records?: number | null
+          total_records?: number | null
+          upload_status?: string | null
+          upload_timestamp?: string | null
+          uploaded_by?: string | null
+        }
+        Relationships: []
+      }
       overtime_validation_log: {
         Row: {
           created_at: string | null
@@ -5658,6 +6068,7 @@ export type Database = {
           joining_date: string
           name: string
           other_conv_amount: number | null
+          overtime_rate_per_hour: number | null
           pan_number: string | null
           preferred_language: string | null
           uan_number: string
@@ -5679,6 +6090,7 @@ export type Database = {
           joining_date: string
           name: string
           other_conv_amount?: number | null
+          overtime_rate_per_hour?: number | null
           pan_number?: string | null
           preferred_language?: string | null
           uan_number: string
@@ -5700,6 +6112,7 @@ export type Database = {
           joining_date?: string
           name?: string
           other_conv_amount?: number | null
+          overtime_rate_per_hour?: number | null
           pan_number?: string | null
           preferred_language?: string | null
           uan_number?: string
@@ -9087,6 +9500,14 @@ export type Database = {
         Args: { p_operations: Json }
         Returns: Json
       }
+      bulk_upload_overtime_rates: {
+        Args: {
+          p_rates_data: Json
+          p_file_name?: string
+          p_change_reason?: string
+        }
+        Returns: Json
+      }
       bytea_to_text: {
         Args: { data: string }
         Returns: string
@@ -9230,6 +9651,15 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      evaluate_payroll_formula: {
+        Args: {
+          p_employee_id: string
+          p_formula_type: string
+          p_month: string
+          p_custom_variables?: Json
+        }
+        Returns: Json
+      }
       export_employee_master: {
         Args: { p_unit_id?: string }
         Returns: {
@@ -9264,6 +9694,10 @@ export type Database = {
       generate_asset_code: {
         Args: { p_location_code: string; p_category_code: string }
         Returns: string
+      }
+      generate_category_recommendations: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
       }
       generate_employee_code: {
         Args: { p_unit_id: string }
@@ -9305,6 +9739,18 @@ export type Database = {
           usage_type: string
           uom: string
           status: string
+        }[]
+      }
+      get_category_performance_metrics: {
+        Args: { p_days?: number }
+        Returns: {
+          category_id: string
+          category_name: string
+          view_count: number
+          item_additions: number
+          search_frequency: number
+          last_activity: string
+          utilization_score: number
         }[]
       }
       get_current_user_role: {
@@ -9518,6 +9964,14 @@ export type Database = {
       is_sunday: {
         Args: { input_date: string }
         Returns: boolean
+      }
+      manage_category_lifecycle: {
+        Args: {
+          p_category_id: string
+          p_action: string
+          p_justification?: string
+        }
+        Returns: Json
       }
       map_documents_to_smeta: {
         Args: Record<PropertyKey, never>
@@ -9806,6 +10260,10 @@ export type Database = {
       text_to_bytea: {
         Args: { data: string }
         Returns: string
+      }
+      track_category_usage: {
+        Args: { p_category_id: string; p_usage_type: string; p_metadata?: Json }
+        Returns: undefined
       }
       update_attendance_from_csv: {
         Args: { rows: Json; update_reason: string }
